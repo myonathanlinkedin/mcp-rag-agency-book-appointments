@@ -13,6 +13,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\AgencyBookingSystem\AgencyBookingSystem.Application\AgencyBookingSystem.Application.csproj" />
+      <ProjectReference Include="..\AgencyBookingSystem\AgencyBookingSystem.Domain\AgencyBookingSystem.Domain.csproj" />
+      <ProjectReference Include="..\AgencyBookingSystem\AgencyBookingSystem.Infrastructure\AgencyBookingSystem.Infrastructure.csproj" />
       <ProjectReference Include="..\Identity\Identity.Application\Identity.Application.csproj" />
       <ProjectReference Include="..\Identity\Identity.Infrastructure\Identity.Infrastructure.csproj" />
       <ProjectReference Include="..\Identity\Identity.Web\Identity.Web.csproj" />

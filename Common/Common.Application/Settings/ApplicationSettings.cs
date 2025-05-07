@@ -18,7 +18,7 @@
 
     public record QdrantSettings(string Endpoint = "", string CollectionName = "", float SimilarityThreshold = 0f, string ApiKey = "", string CerCertificateThumbprint = "");
 
-    public record ConnectionStringsSettings(string IdentityDBConnection = "", string RAGDBConnection = "");
+    public record ConnectionStringsSettings(string IdentityDBConnection = "", string RAGDBConnection = "", string AgencyBookDBConnection = "");
 
     public record LoggingSettings(LogLevelSettings LogLevel = null)
     {

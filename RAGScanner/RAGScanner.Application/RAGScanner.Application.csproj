@@ -18,4 +18,8 @@
     <ProjectReference Include="..\RAGScanner.Domain\RAGScanner.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Configurations\" />
+  </ItemGroup>
+
 </Project>

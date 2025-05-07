@@ -1,18 +1,16 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 public static class AgencyBookInfrastructureConfiguration
 {
-    public static IServiceCollection AddRAGScannerInfrastructure(
-        this IServiceCollection services)
+    public static IServiceCollection AddAgencyBookInfrastructureConfiguration(this IServiceCollection services)
     {
         using var scope = services.BuildServiceProvider().CreateScope();
         var appSettings = scope.ServiceProvider.GetRequiredService<ApplicationSettings>();
 
         services.AddDBStorage<AgencyBookingDbContext>(
                 Assembly.GetExecutingAssembly(),
-                appSettings.ConnectionStrings.RAGDBConnection).AddRAGScannerAssemblyServices();
+                appSettings.ConnectionStrings.AgencyBookDBConnection).AddRAGScannerAssemblyServices();
 
         return services;
     }
