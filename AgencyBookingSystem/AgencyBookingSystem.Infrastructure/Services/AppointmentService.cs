@@ -59,7 +59,7 @@ public class AppointmentService : IAppointmentService
             AgencyId = agencyId,
             AgencyUserId = agencyUserId,
             Date = date,
-            Status = "Pending",
+            Status = AppointmentStatus.Pending,
             Token = Guid.NewGuid().ToString()
         };
 
@@ -73,9 +73,9 @@ public class AppointmentService : IAppointmentService
     public async Task HandleNoShowAsync(Guid appointmentId)
     {
         var appointment = await GetByIdAsync(appointmentId);
-        if (appointment == null || appointment.Status != "Pending") return;
+        if (appointment == null || appointment.Status != AppointmentStatus.Pending) return;
 
-        appointment.Status = "Expired";
+        appointment.Status = AppointmentStatus.Expired;
         await appointmentRepository.Save(appointment);
         logger.LogWarning("Appointment {AppointmentId} marked as Expired due to no-show.", appointmentId);
     }
@@ -106,7 +106,7 @@ public class AppointmentService : IAppointmentService
             AgencyUserId = agency.Id, // Assuming agency handles users internally
             Date = date,
             Name = appointmentName, // Added appointment name
-            Status = "Confirmed",
+            Status = AppointmentStatus.Confirmed,
             Token = Guid.NewGuid().ToString()
         };
 
@@ -166,7 +166,7 @@ public class AppointmentService : IAppointmentService
             AgencyId = agencyId,
             Date = date,
             Name = appointmentName, // Ensure appointment name is included
-            Status = "Pending",
+            Status = AppointmentStatus.Pending,
             Token = Guid.NewGuid().ToString()
         };
 
@@ -194,7 +194,7 @@ public class AppointmentService : IAppointmentService
             return;
         }
 
-        appointment.Status = "Canceled";
+        appointment.Status = AppointmentStatus.Canceled;
         await SaveAsync(appointment, cancellationToken);
         await notificationService.SendNotificationAsync(appointment.Token, "Appointment Cancellation", $"Your appointment '{appointment.Name}' has been canceled.");
 
