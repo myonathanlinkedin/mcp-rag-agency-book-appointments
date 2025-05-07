@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>3ddaa663-0353-4623-ac1f-12ce50ccb3e4</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MediatR" Version="12.3.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+        <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Common.Infrastructure\Common.Infrastructure.csproj" />
+    </ItemGroup>
+</Project>

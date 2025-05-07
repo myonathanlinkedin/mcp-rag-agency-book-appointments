@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Flurl.Http" Version="4.0.2" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.4" />
+    <PackageReference Include="PdfPig" Version="0.1.10" />
+    <PackageReference Include="Qdrant.Client" Version="1.14.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\Common.Application\Common.Application.csproj" />
+    <ProjectReference Include="..\..\Common\Common.Infrastructure\Common.Infrastructure.csproj" />
+    <ProjectReference Include="..\RAGScanner.Application\RAGScanner.Application.csproj" />
+    <ProjectReference Include="..\RAGScanner.Domain\RAGScanner.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Factory\" />
+    <Folder Include="Utility\" />
+  </ItemGroup>
+
+</Project>

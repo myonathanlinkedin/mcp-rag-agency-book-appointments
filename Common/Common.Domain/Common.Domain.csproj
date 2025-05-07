@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MediatR" Version="12.3.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.4" />
+        <PackageReference Include="Scrutor" Version="4.2.2" />
+    </ItemGroup>
+</Project>
