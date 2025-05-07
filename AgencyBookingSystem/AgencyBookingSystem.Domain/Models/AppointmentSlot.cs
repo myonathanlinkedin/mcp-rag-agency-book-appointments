@@ -1,4 +1,4 @@
-﻿public class AppointmentSlot
+﻿public class AppointmentSlot : Entity, IAggregateRoot
 {
     public Guid Id { get; set; }
     public Guid AgencyId { get; set; }

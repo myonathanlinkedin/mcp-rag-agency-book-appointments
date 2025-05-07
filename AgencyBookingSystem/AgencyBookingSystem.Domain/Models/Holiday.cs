@@ -1,4 +1,4 @@
-﻿public class Holiday
+﻿public class Holiday : Entity, IAggregateRoot
 {
     public Guid Id { get; set; }
     public Guid AgencyId { get; set; }

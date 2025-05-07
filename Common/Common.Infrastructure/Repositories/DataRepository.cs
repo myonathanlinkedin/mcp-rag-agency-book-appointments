@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TEntity>
     where TDbContext : DbContext
@@ -12,11 +13,28 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
 
     protected IQueryable<TEntity> AllAsNoTracking() => All().AsNoTracking();
 
-    public async Task Save(
-        TEntity entity,
-        CancellationToken cancellationToken = default)
+    public async Task Save(TEntity entity, CancellationToken cancellationToken = default)
     {
         Data.Update(entity);
         await Data.SaveChangesAsync(cancellationToken);
+    }
+
+    public virtual async Task<TEntity?> GetByIdAsync(Guid id)
+        => await All().FirstOrDefaultAsync(e => e.Id == id);
+
+    public virtual async Task<List<TEntity>> GetAllAsync()
+        => await All().ToListAsync();
+
+    public virtual async Task<List<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate)
+        => await All().Where(predicate).ToListAsync();
+
+    public virtual async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var entity = await GetByIdAsync(id);
+        if (entity != null)
+        {
+            Data.Remove(entity);
+            await Data.SaveChangesAsync(cancellationToken);
+        }
     }
 }

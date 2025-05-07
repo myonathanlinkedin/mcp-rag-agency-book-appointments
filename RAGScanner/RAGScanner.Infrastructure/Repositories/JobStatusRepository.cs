@@ -5,9 +5,9 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
 {
     private readonly ILogger<JobStatusRepository> logger;
 
-    public JobStatusRepository(RAGDbContext db, ILogger<JobStatusRepository> logger) : base(db) 
-        =>  this.logger = logger;
-    
+    public JobStatusRepository(RAGDbContext db, ILogger<JobStatusRepository> logger) : base(db)
+        => this.logger = logger;
+
     public async Task<string> CreateJobAsync(List<string> urls)
     {
         var jobId = Guid.NewGuid().ToString();
@@ -37,14 +37,13 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
         }
     }
 
-    public async Task<JobStatus> GetJobStatusAsync(string jobId)
+    public async Task<JobStatus?> GetJobStatusAsync(string jobId)
     {
         try
         {
-            return await Data
-                        .JobStatuses
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(js => js.JobId == jobId);
+            return await Data.JobStatuses
+                .AsNoTracking()
+                .FirstOrDefaultAsync(js => js.JobId == jobId);
         }
         catch (Exception ex)
         {

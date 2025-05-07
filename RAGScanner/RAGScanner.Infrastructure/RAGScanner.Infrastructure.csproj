@@ -22,9 +22,4 @@
     <ProjectReference Include="..\RAGScanner.Domain\RAGScanner.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Factory\" />
-    <Folder Include="Utility\" />
-  </ItemGroup>
-
 </Project>
