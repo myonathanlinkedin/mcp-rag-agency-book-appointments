@@ -2,5 +2,5 @@
 
 public interface IAgencyUserRepository : IDomainRepository<AgencyUser>
 {
-    Task<AgencyUser?> GetByIdentityUserIdAsync(string identityUserId);
+    Task<AgencyUser?> GetByEmailAsync(string email);
 }

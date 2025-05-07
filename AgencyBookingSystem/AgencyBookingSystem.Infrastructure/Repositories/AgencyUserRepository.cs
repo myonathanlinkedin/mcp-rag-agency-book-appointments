@@ -9,6 +9,6 @@ internal class AgencyUserRepository : DataRepository<AgencyBookingDbContext, Age
 {
     public AgencyUserRepository(AgencyBookingDbContext db) : base(db) { }
 
-    public async Task<AgencyUser?> GetByIdentityUserIdAsync(string identityUserId)
-        => await All().FirstOrDefaultAsync(u => u.IdentityUserId == identityUserId);
+    public async Task<AgencyUser?> GetByEmailAsync(string email)
+        => await All().FirstOrDefaultAsync(u => u.Email == email);
 }

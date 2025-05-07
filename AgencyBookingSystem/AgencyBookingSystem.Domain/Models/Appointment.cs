@@ -4,6 +4,7 @@
     public Guid AgencyUserId { get; set; } // Links to AgencyUser instead of Identity User directly
     public Guid AgencyId { get; set; }
     public DateTime Date { get; set; }
+    public string Name { get; set; } = string.Empty; // New property for appointment name
     public string Status { get; set; } = "Pending";
     public string Token { get; set; } = string.Empty;
 

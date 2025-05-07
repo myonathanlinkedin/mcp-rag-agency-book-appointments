@@ -9,4 +9,5 @@
     public int MaxAppointmentsPerDay { get; set; }
 
     public List<AgencyUser> AgencyUsers { get; set; } = new(); // Link to users
+    public bool IsApproved { get; set; } // Flag to indicate if the agency is approved
 }

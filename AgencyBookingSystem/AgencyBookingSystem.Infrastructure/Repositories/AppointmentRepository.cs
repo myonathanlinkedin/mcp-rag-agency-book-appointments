@@ -14,4 +14,7 @@ internal class AppointmentRepository : DataRepository<AgencyBookingDbContext, Ap
 
     public async Task<List<Appointment>> GetAppointmentsByAgencyAsync(Guid agencyId)
          => await All().Where(a => a.AgencyId == agencyId).ToListAsync();
+
+    public async Task<List<Appointment>> GetByDateAsync(DateTime date)
+         => await All().Where(a => a.Date.Date == date.Date).ToListAsync();
 }

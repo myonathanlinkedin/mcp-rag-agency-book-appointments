@@ -11,12 +11,6 @@ public class AgencyUserService : IAgencyUserService
         this.logger = logger;
     }
 
-    public async Task<AgencyUser?> GetByIdentityUserIdAsync(string identityUserId)
-    {
-        logger.LogInformation("Fetching AgencyUser with IdentityUserId: {IdentityUserId}", identityUserId);
-        return await agencyUserRepository.GetByIdentityUserIdAsync(identityUserId);
-    }
-
     public async Task<AgencyUser?> GetByIdAsync(Guid id) => await agencyUserRepository.GetByIdAsync(id);
     public async Task<List<AgencyUser>> GetAllAsync() => await agencyUserRepository.GetAllAsync();
     public async Task SaveAsync(AgencyUser entity, CancellationToken cancellationToken = default) => await agencyUserRepository.Save(entity, cancellationToken);
