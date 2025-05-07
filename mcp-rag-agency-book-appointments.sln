@@ -45,6 +45,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MessageBroker", "MessageBro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageBroker.Kafka", "MessageBroker\MessageBroker.Kafka.csproj", "{CEB6ACA3-8601-D692-8E33-C8C70D26F9D8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgencyBookingSystem", "AgencyBookingSystem", "{DA86E829-4E10-472D-94F8-1B7A8B35C869}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgencyBookingSystem.Domain", "AgencyBookingSystem\AgencyBookingSystem.Domain\AgencyBookingSystem.Domain.csproj", "{A50A3482-9A80-97B4-5893-0E4AD135196F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +119,10 @@ Global
 		{CEB6ACA3-8601-D692-8E33-C8C70D26F9D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEB6ACA3-8601-D692-8E33-C8C70D26F9D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEB6ACA3-8601-D692-8E33-C8C70D26F9D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A50A3482-9A80-97B4-5893-0E4AD135196F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A50A3482-9A80-97B4-5893-0E4AD135196F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A50A3482-9A80-97B4-5893-0E4AD135196F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A50A3482-9A80-97B4-5893-0E4AD135196F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -135,6 +143,7 @@ Global
 		{ED36797A-4235-2A39-A144-B8D3B8503C50} = {4D9F3ED8-5701-48E6-AE44-124B6E18B648}
 		{FF355B36-4662-96AC-95AD-1708C9469020} = {09A58560-0494-4DB7-BDBD-0154564401DC}
 		{CEB6ACA3-8601-D692-8E33-C8C70D26F9D8} = {AA66F78A-D191-4EE1-B3A8-2FDA57E73901}
+		{A50A3482-9A80-97B4-5893-0E4AD135196F} = {DA86E829-4E10-472D-94F8-1B7A8B35C869}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F78DF37D-D701-4804-8C76-8E39B4B245C7}
