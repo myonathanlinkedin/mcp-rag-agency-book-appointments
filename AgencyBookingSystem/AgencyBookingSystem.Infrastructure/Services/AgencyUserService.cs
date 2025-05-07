@@ -14,4 +14,6 @@ public class AgencyUserService : IAgencyUserService
     public async Task<AgencyUser?> GetByIdAsync(Guid id) => await agencyUserRepository.GetByIdAsync(id);
     public async Task<List<AgencyUser>> GetAllAsync() => await agencyUserRepository.GetAllAsync();
     public async Task SaveAsync(AgencyUser entity, CancellationToken cancellationToken = default) => await agencyUserRepository.Save(entity, cancellationToken);
+    public async Task<AgencyUser?> GetByEmailAsync(string email) => await agencyUserRepository.GetByEmailAsync(email);
+
 }

@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Common\Common.Application\Common.Application.csproj" />
+    <ProjectReference Include="..\..\MCPClient\MCP.Client.csproj" />
     <ProjectReference Include="..\AgencyBookingSystem.Domain\AgencyBookingSystem.Domain.csproj" />
   </ItemGroup>
 

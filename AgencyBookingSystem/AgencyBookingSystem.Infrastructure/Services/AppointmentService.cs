@@ -9,14 +9,16 @@ public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository appointmentRepository;
     private readonly IAgencyService agencyService;
-    private readonly INotificationService notificationService;
+    private readonly IAgencyUserService agencyUserService;
+    private readonly IEventDispatcher eventDispatcher;
     private readonly ILogger<AppointmentService> logger;
 
-    public AppointmentService(IAppointmentRepository appointmentRepository, IAgencyService agencyService, INotificationService notificationService, ILogger<AppointmentService> logger)
+    public AppointmentService(IAppointmentRepository appointmentRepository, IAgencyUserService agencyUserService, IAgencyService agencyService, IEventDispatcher eventDispatcher, ILogger<AppointmentService> logger)
     {
         this.appointmentRepository = appointmentRepository;
         this.agencyService = agencyService;
-        this.notificationService = notificationService;
+        this.eventDispatcher = eventDispatcher;
+        this.agencyUserService = agencyUserService;
         this.logger = logger;
     }
 
@@ -49,8 +51,22 @@ public class AppointmentService : IAppointmentService
     {
         if (!await HasAvailableSlotAsync(agencyId, date))
         {
-            logger.LogWarning("No available slots for Agency {AgencyId} on {Date}.", agencyId, date);
+            logger.LogWarning("No available slots for Agency {AgencyId} on {AppointmentDate}.", agencyId, date);
             return Result.Failure(new[] { "No available slots." });
+        }
+
+        var agency = await agencyService.GetByIdAsync(agencyId);
+        if (agency == null)
+        {
+            logger.LogWarning("Appointment creation failed. Agency {AgencyId} does not exist.", agencyId);
+            return Result.Failure(new[] { "Agency does not exist." });
+        }
+
+        var agencyUser = await agencyService.GetByIdAsync(agencyUserId);
+        if (agencyUser == null)
+        {
+            logger.LogWarning("Appointment creation failed. User {AgencyUserId} does not exist.", agencyUserId);
+            return Result.Failure(new[] { "Agency user does not exist." });
         }
 
         var appointment = new Appointment
@@ -60,13 +76,26 @@ public class AppointmentService : IAppointmentService
             AgencyUserId = agencyUserId,
             Date = date,
             Status = AppointmentStatus.Pending,
-            Token = Guid.NewGuid().ToString()
+            Token = Guid.NewGuid().ToString(),
+            Name = $"Appointment on {date:MMMM dd, yyyy}" // Dynamically set appointment name
         };
 
         await appointmentRepository.Save(appointment, cancellationToken);
-        await notificationService.SendNotificationAsync("customer@example.com", "Appointment Confirmation", $"Your appointment on {date} is confirmed.");
 
-        logger.LogInformation("Appointment created successfully for Agency {AgencyId}, User {AgencyUserId}.", agencyId, agencyUserId);
+        // Dispatch event instead of directly sending notifications
+        await eventDispatcher.Dispatch(new AppointmentEvent(
+            appointment.Id,
+            appointment.Name,
+            date,
+            appointment.Status.ToString(),
+            agency.Name,
+            agency.Email,
+            agencyUser.Email
+        ));
+
+        logger.LogInformation("Appointment '{AppointmentName}' created successfully for Agency {AgencyId}, User {AgencyUserId}.",
+            appointment.Name, agencyId, agencyUserId);
+
         return Result.Success;
     }
 
@@ -99,27 +128,46 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "No agency found for this email." });
         }
 
+        var agencyUser = await agencyUserService.GetByEmailAsync(email);
+        if (agencyUser == null)
+        {
+            logger.LogWarning("Admin override failed. No agency user found for email {Email}.", email);
+            return Result.Failure(new[] { "No agency user found for this email." });
+        }
+
         var appointment = new Appointment
         {
             Id = Guid.NewGuid(),
             AgencyId = agency.Id,
-            AgencyUserId = agency.Id, // Assuming agency handles users internally
+            AgencyUserId = agencyUser.Id,
             Date = date,
-            Name = appointmentName, // Added appointment name
+            Name = appointmentName,
             Status = AppointmentStatus.Confirmed,
             Token = Guid.NewGuid().ToString()
         };
 
         await appointmentRepository.Save(appointment, cancellationToken);
-        await notificationService.SendNotificationAsync("admin@example.com", "Override Alert", $"An appointment '{appointmentName}' was forcibly created on {date}.");
 
-        logger.LogInformation("Admin override: Appointment '{AppointmentName}' forced for Agency {AgencyId}.", appointmentName, agency.Id);
+        // Dispatch event instead of direct notification
+        await eventDispatcher.Dispatch(new AppointmentEvent(
+            appointment.Id,
+            appointment.Name,
+            appointment.Date,
+            appointment.Status,
+            agency.Name,
+            agency.Email,
+            agencyUser.Email
+        ));
+
+        logger.LogInformation("Admin override: Appointment '{AppointmentName}' forced for Agency {AgencyName}, User {UserEmail}.",
+            appointment.Name, agency.Name, agencyUser.Email);
+
         return Result.Success;
     }
 
     public async Task<Result> RescheduleAppointmentAsync(Guid appointmentId, DateTime newDate, CancellationToken cancellationToken = default)
     {
-        var appointment = await GetByIdAsync(appointmentId);
+        var appointment = await appointmentRepository.GetByIdAsync(appointmentId);
         if (appointment == null)
         {
             logger.LogWarning("Reschedule failed. Appointment {AppointmentId} does not exist.", appointmentId);
@@ -128,15 +176,43 @@ public class AppointmentService : IAppointmentService
 
         if (!await HasAvailableSlotAsync(appointment.AgencyId, newDate))
         {
-            logger.LogWarning("Reschedule failed. No available slots on {NewDate}.", newDate);
+            logger.LogWarning("Reschedule failed. No available slots for {NewDate}.", newDate);
             return Result.Failure(new[] { "No available slots for the new date." });
         }
 
         appointment.Date = newDate;
         await appointmentRepository.Save(appointment, cancellationToken);
-        await notificationService.SendNotificationAsync("customer@example.com", "Appointment Rescheduled", $"Your appointment has been rescheduled to {newDate}.");
 
-        logger.LogInformation("Appointment {AppointmentId} successfully rescheduled to {NewDate}.", appointmentId, newDate);
+        // Manually retrieve agency user details
+        var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
+        if (agencyUser == null)
+        {
+            logger.LogWarning("Reschedule failed. No agency user found for appointment {AppointmentId}.", appointmentId);
+            return Result.Failure(new[] { "No agency user found." });
+        }
+
+        // Manually retrieve agency details
+        var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
+        if (agency == null)
+        {
+            logger.LogWarning("Reschedule failed. No agency found for appointment {AppointmentId}.", appointmentId);
+            return Result.Failure(new[] { "No agency found." });
+        }
+
+        // Dispatch event instead of direct notification
+        await eventDispatcher.Dispatch(new AppointmentEvent(
+            appointment.Id,
+            appointment.Name,
+            appointment.Date,
+            appointment.Status,
+            agency.Name,
+            agency.Email,
+            agencyUser.Email
+        ));
+
+        logger.LogInformation("Appointment '{AppointmentName}' successfully rescheduled for agency {AgencyName}, user {UserEmail}.",
+            appointment.Name, agency.Name, agencyUser.Email);
+
         return Result.Success;
     }
 
@@ -160,22 +236,44 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "Agency does not exist." });
         }
 
+        var agencyUser = await agencyUserService.GetByEmailAsync(email);
+        if (agencyUser == null)
+        {
+            logger.LogWarning("Appointment creation failed. No agency user found for email {Email}.", email);
+            return Result.Failure(new[] { "No agency user found for this email." });
+        }
+
         var appointment = new Appointment
         {
             Id = Guid.NewGuid(),
             AgencyId = agencyId,
+            AgencyUserId = agencyUser.Id,
             Date = date,
-            Name = appointmentName, // Ensure appointment name is included
+            Name = appointmentName,
             Status = AppointmentStatus.Pending,
             Token = Guid.NewGuid().ToString()
         };
 
         await appointmentRepository.Save(appointment, cancellationToken);
-        await notificationService.SendNotificationAsync(email, "Appointment Confirmation", $"Your appointment '{appointmentName}' is scheduled for {date}.");
 
-        logger.LogInformation("Appointment '{AppointmentName}' created successfully for Agency {AgencyId}.", appointmentName, agencyId);
+        // Dispatch event instead of direct notification
+        await eventDispatcher.Dispatch(new AppointmentEvent(
+            appointment.Id,
+            appointment.Name,
+            appointment.Date,
+            appointment.Status,
+            agency.Name,
+            agency.Email,
+            agencyUser.Email
+        ));
+
+        logger.LogInformation("Appointment '{AppointmentName}' created successfully for Agency {AgencyName}, User {UserEmail}.",
+            appointment.Name, agency.Name, agencyUser.Email);
+
         return Result.Success;
     }
+
+
     public async Task<bool> ExistsAsync(Guid appointmentId)
     {
         logger.LogInformation("Checking existence of appointment {AppointmentId}.", appointmentId);
@@ -194,12 +292,40 @@ public class AppointmentService : IAppointmentService
             return;
         }
 
-        appointment.Status = AppointmentStatus.Canceled;
+        appointment.Status = "Canceled";
         await SaveAsync(appointment, cancellationToken);
-        await notificationService.SendNotificationAsync(appointment.Token, "Appointment Cancellation", $"Your appointment '{appointment.Name}' has been canceled.");
 
-        logger.LogInformation("Appointment '{AppointmentName}' canceled successfully.", appointment.Name);
+        // Manually retrieve agency user details
+        var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
+        if (agencyUser == null)
+        {
+            logger.LogWarning("Cancellation failed. No agency user found for appointment {AppointmentId}.", appointmentId);
+            return;
+        }
+
+        // Manually retrieve agency details
+        var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
+        if (agency == null)
+        {
+            logger.LogWarning("Cancellation failed. No agency found for appointment {AppointmentId}.", appointmentId);
+            return;
+        }
+
+        // Dispatch event for cancellation notification
+        await eventDispatcher.Dispatch(new AppointmentEvent(
+            appointment.Id,
+            appointment.Name,
+            appointment.Date,
+            appointment.Status,
+            agency.Name,
+            agency.Email,
+            agencyUser.Email
+        ));
+
+        logger.LogInformation("Appointment '{AppointmentName}' canceled successfully for agency {AgencyName}, user {UserEmail}.",
+            appointment.Name, agency.Name, agencyUser.Email);
     }
+
     public async Task<bool> IsBookingAllowedAsync(Guid agencyId)
     {
         var agency = await agencyService.GetByIdAsync(agencyId);
@@ -239,7 +365,7 @@ public class AppointmentService : IAppointmentService
         foreach (var appointment in appointments)
         {
             var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
-            var agencyUser = await agencyService.GetByIdAsync(appointment.AgencyUserId);
+            var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
 
             if (agency == null || agencyUser == null)
             {

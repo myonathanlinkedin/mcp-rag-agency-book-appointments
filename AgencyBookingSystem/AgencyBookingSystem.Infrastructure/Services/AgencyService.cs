@@ -1,22 +1,17 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 public class AgencyService : IAgencyService
 {
     private readonly IAgencyRepository agencyRepository;
     private readonly IAgencyUserRepository agencyUserRepository;
-    private readonly INotificationService notificationService;
     private readonly ILogger<AgencyService> logger;
+    private readonly IEventDispatcher eventDispatcher;
 
-    public AgencyService(IAgencyRepository agencyRepository, IAgencyUserRepository agencyUserRepository, INotificationService notificationService, ILogger<AgencyService> logger)
+    public AgencyService(IAgencyRepository agencyRepository, IAgencyUserRepository agencyUserRepository, IEventDispatcher eventDispatcher, ILogger<AgencyService> logger)
     {
         this.agencyRepository = agencyRepository;
         this.agencyUserRepository = agencyUserRepository;
-        this.notificationService = notificationService;
+        this.eventDispatcher = eventDispatcher;
         this.logger = logger;
     }
 
@@ -70,10 +65,18 @@ public class AgencyService : IAgencyService
 
     public async Task<Result> AssignUserToAgencyAsync(Guid agencyId, string email, string fullName, List<string> roles, CancellationToken cancellationToken = default)
     {
-        if (!await ExistsAsync(agencyId))
+        var agency = await agencyRepository.GetByIdAsync(agencyId);
+        if (agency == null)
         {
-            logger.LogWarning("Failed to assign user with email {Email} to agency {AgencyId}. Agency does not exist.", email, agencyId);
+            logger.LogWarning("Failed to assign user. Agency {AgencyId} does not exist.", agencyId);
             return Result.Failure(new[] { "Agency does not exist." });
+        }
+
+        var existingUser = await agencyUserRepository.GetByEmailAsync(email);
+        if (existingUser != null)
+        {
+            logger.LogWarning("User {Email} is already assigned to an agency.", email);
+            return Result.Failure(new[] { "User is already assigned to an agency." });
         }
 
         var agencyUser = new AgencyUser
@@ -87,15 +90,23 @@ public class AgencyService : IAgencyService
 
         await agencyUserRepository.Save(agencyUser, cancellationToken);
 
-        await notificationService.SendNotificationAsync(email, "Agency Assignment", $"You have been successfully assigned to agency ID {agencyId}.");
+        // Dispatch event instead of direct notification
+        await eventDispatcher.Dispatch(new AgencyUserAssignedEvent(
+            agencyUser.Id,
+            agencyId,
+            email,
+            fullName,
+            roles
+        ));
 
-        logger.LogInformation("Successfully assigned user with email {Email} to agency {AgencyId}.", email, agencyId);
+        logger.LogInformation("User '{FullName}' ({Email}) successfully assigned to agency {AgencyName}.", fullName, email, agency.Name);
+
         return Result.Success;
     }
 
     public async Task<Result> RegisterAgencyAsync(string name, string email, bool requiresApproval, int maxAppointmentsPerDay, CancellationToken cancellationToken = default)
     {
-        if (await GetByEmailAsync(email) != null)
+        if (await agencyRepository.GetByEmailAsync(email) != null)
         {
             logger.LogWarning("Agency registration failed. Email {Email} is already in use.", email);
             return Result.Failure(new[] { "An agency with this email already exists." });
@@ -111,33 +122,45 @@ public class AgencyService : IAgencyService
             IsApproved = !requiresApproval // Auto-approve if `RequiresApproval = false`
         };
 
-        await SaveAsync(agency, cancellationToken);
+        await agencyRepository.Save(agency, cancellationToken);
 
-        if (requiresApproval)
-        {
-            await notificationService.SendNotificationAsync("admin@example.com", "New Agency Approval Request", $"Agency {name} has requested registration.");
-        }
-        else
-        {
-            await notificationService.SendNotificationAsync(email, "Agency Approved", $"Your agency {name} has been successfully registered.");
-        }
+        // Dispatch event instead of direct notification
+        await eventDispatcher.Dispatch(new AgencyRegisteredEvent(
+            agency.Id,
+            agency.Name,
+            agency.Email,
+            agency.RequiresApproval
+        ));
 
-        logger.LogInformation("Agency {Name} registered successfully. Approval required: {RequiresApproval}", agency.Name, agency.RequiresApproval);
+        logger.LogInformation("Agency '{AgencyName}' registered successfully. Approval required: {RequiresApproval}.", agency.Name, agency.RequiresApproval);
+
         return Result.Success;
     }
 
     public async Task<Result> ApproveAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
-        var agency = await GetByIdAsync(agencyId);
-        if (agency == null || agency.IsApproved) return Result.Failure(new[] { "Agency already approved or does not exist." });
+        var agency = await agencyRepository.GetByIdAsync(agencyId);
+        if (agency == null || agency.IsApproved)
+        {
+            logger.LogWarning("Approval failed. Agency {AgencyId} does not exist or is already approved.", agencyId);
+            return Result.Failure(new[] { "Agency already approved or does not exist." });
+        }
 
         agency.IsApproved = true;
-        await SaveAsync(agency, cancellationToken);
-        await notificationService.SendNotificationAsync(agency.Email, "Agency Approved", $"Your agency {agency.Name} has been approved.");
+        await agencyRepository.Save(agency, cancellationToken);
 
-        logger.LogInformation("Agency {AgencyId} has been approved by an admin.", agencyId);
+        // Dispatch event instead of direct notification
+        await eventDispatcher.Dispatch(new AgencyUserAssignedEvent(
+            agency.Id,
+            agency.Name,
+            agency.Email
+        ));
+
+        logger.LogInformation("Agency '{AgencyName}' has been successfully approved.", agency.Name);
+
         return Result.Success;
     }
+
     public async Task<AgencyUser?> GetAgencyUserByEmailAsync(string email)
     {
         logger.LogInformation("Fetching agency user by email: {Email}", email);
