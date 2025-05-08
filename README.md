@@ -1,7 +1,7 @@
 # **🗓️ AI-Powered Appointment Booking System**  
 
 ## **✨ Overview**  
-This project is a **cutting-edge AI-driven** appointment booking system designed for **agencies** to efficiently schedule appointments, issue tokens, and manage queues in **real-time**. With **AI Chat Bots**, **Retrieval-Augmented Generation (RAG)**, and **MCP Client/Server integration**, the system enables **context-aware** decision-making using **external knowledge sources**.  
+This project is a **cutting-edge AI-driven** appointment booking system designed for **agencies** to schedule appointments, and manage queues in **real-time efficiently**. With **AI Chat Bots**, **Retrieval-Augmented Generation (RAG)**, and **MCP Client/Server integration**, the system enables **context-aware** decision-making using **external knowledge sources**.  
 
 Built with **Domain-Driven Development (DDD)** principles, the system leverages **Apache Kafka & ElasticSearch for appointment indexing**, ensuring **optimized search & performance** across thousands of appointments! The architecture is **microservices-ready**, making it scalable and modular for enterprise adoption. **Now powered by Qdrant Vector DB**, it supports AI-driven **semantic search and retrieval** for enhanced user experiences.  
 
@@ -14,6 +14,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ **Domain-Driven Development (DDD) Architecture** 🏗️  
 ✅ **Apache Kafka & ElasticSearch for appointment indexing** 📡  
 ✅ **Qdrant Vector Database – High-speed AI-powered semantic search** 🧠✨  
+✅ **FluentValidation for validation logic** ✅  
 ✅ **Swagger, LINQ, IoC, and WebAPI implementation** 🛠️  
 ✅ **Automatic Email Template generation by AI LLM** 📧✨  
 ✅ **API with Brain – Users can freely type prompts in natural language for AI-driven responses** 🧠📝  
@@ -44,6 +45,7 @@ This ensures a **streamlined booking experience**, allowing agencies to manage *
 ## **🔧 Tech Stack**  
 - **C# .NET Core** 🏗️  
 - **Entity Framework Core & LINQ** 🔍  
+- **FluentValidation for validation logic** ✅  
 - **Swagger for API Documentation** 📜  
 - **Kafka for Event-Driven Appointment Processing** 🔄  
 - **ElasticSearch for Real-Time Appointment Indexing** 🔥  
