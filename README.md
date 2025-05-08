@@ -41,7 +41,7 @@ User → API Gateway → Appointment Service → Event Processing (Kafka) → Se
 8️⃣ **User/customer gets notified with details via AI-enhanced email template** 🚀  
 9️⃣ **User interacts with AI freely via API with Brain – type any prompt, get smart AI responses** 🧠💬  
 🔟 **Qdrant Vector DB enhances search accuracy with AI-powered similarity matching** 🔍💡  
-🔟 **Microservices-ready architecture ensures efficient scaling across multiple agencies** 🏢⚙️  
+1️⃣1️⃣ **Microservices-ready architecture ensures efficient scaling across multiple agencies** 🏢⚙️  
 
 This ensures a **streamlined booking experience**, allowing agencies to manage **appointments efficiently** with **real-time indexing, AI-generated email templates, and AI-driven semantic search with Qdrant!**  
 
