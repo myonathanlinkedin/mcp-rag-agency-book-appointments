@@ -85,6 +85,7 @@ void RegisterServices(WebApplicationBuilder builder)
     // Register tool services (like RAGTools, IdentityTools)
     builder.Services.AddScoped<RAGTools>();
     builder.Services.AddScoped<IdentityTools>();
+    builder.Services.AddScoped<AgencyBookTools>();
 }
 
 // Method to add MCP server with tools
