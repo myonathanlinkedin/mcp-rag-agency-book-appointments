@@ -9,6 +9,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ **Built-in IdentityServer with Asymmetric JWT Signing** – Secure OAuth2/OpenID Connect token issuance 🔐  
 ✅ **AI Chat Bots via PromptAPI** for dynamic responses 🤖  
 ✅ **Retrieval-Augmented Generation (RAG)** for **smart queries** 🔍  
+✅ **RAG with Hangfire for Document Scan, Parse & Upload to Qdrant** – Background job orchestration for AI-assisted knowledge ingestion from files 📂⚙️🧠  
 ✅ **MCP Client/Server Ready** – Context-aware AI-driven decision-making ⚡  
 ✅ **Supports Off Days & Max Daily Appointments** (overflow handling) 📅  
 ✅ **Real-Time Queue Grid via API** ⏳  
