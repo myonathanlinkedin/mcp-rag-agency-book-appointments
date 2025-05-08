@@ -15,7 +15,6 @@ public class ChangePasswordCommandValidator : AbstractValidator<ChangePasswordCo
             .Matches(@"[A-Z]").WithMessage("Password must contain at least one uppercase letter.")
             .Matches(@"[a-z]").WithMessage("Password must contain at least one lowercase letter.")
             .Matches(@"[0-9]").WithMessage("Password must contain at least one number.")
-            .Matches(@"[\!\@\#\$\%\^\&\*\(\)\_\+\-]").WithMessage("Password must contain at least one special character.")
             .WithMessage("New password must be strong.");
 
         RuleFor(x => x.NewPassword)
