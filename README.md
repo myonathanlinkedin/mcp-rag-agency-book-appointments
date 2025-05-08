@@ -13,6 +13,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ **Supports Off Days & Max Daily Appointments** (overflow handling) 📅  
 ✅ **Real-Time Queue Grid via API** ⏳  
 ✅ **Domain-Driven Development (DDD) Architecture** 🏗️  
+✅ **Event Dispatcher Mechanism for Domain Events** – Seamlessly propagates changes across bounded contexts, enabling decoupled and reactive business workflows 📨  
 ✅ **Apache Kafka & ElasticSearch for appointment indexing** 📡  
 ✅ **Qdrant Vector Database – High-speed AI-powered semantic search** 🧠✨  
 ✅ **FluentValidation for validation logic** ✅  
@@ -21,7 +22,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ **API with Brain – Users can freely type prompts in natural language for AI-driven responses** 🧠📝  
 ✅ **Microservices-ready – modular, scalable, and adaptable** 🏢🔄  
 ✅ **Cloud-ready, designed for potential deployment on Azure/AWS** ☁️  
-
+ 
 ## **📜 Architecture Diagram**  
 ```plaintext
 User → API Gateway → Appointment Service → Event Processing (Kafka) → Search Index (ElasticSearch)  
