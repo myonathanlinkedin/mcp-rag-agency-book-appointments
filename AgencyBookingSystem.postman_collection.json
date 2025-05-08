@@ -1,0 +1,1741 @@
+{
+	"info": {
+		"_postman_id": "fb48178d-ef2c-4749-ba04-f67395046d93",
+		"name": "AgencyBookingSystem",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "10894690"
+	},
+	"item": [
+		{
+			"name": "api",
+			"item": [
+				{
+					"name": "AgencyBook",
+					"item": [
+						{
+							"name": "CreateAgency",
+							"item": [
+								{
+									"name": "CreateAgencyAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/CreateAgency/CreateAgencyAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"name\": \"<string>\",\n  \"email\": \"<string>\",\n  \"maxAppointmentsPerDay\": \"<integer>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/CreateAgency/CreateAgencyAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"CreateAgency",
+														"CreateAgencyAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"name\": \"<string>\",\n  \"email\": \"<string>\",\n  \"maxAppointmentsPerDay\": \"<integer>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/CreateAgency/CreateAgencyAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"CreateAgency",
+																"CreateAgencyAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "AssignUserToAgency",
+							"item": [
+								{
+									"name": "AssignUserToAgencyAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/AssignUserToAgency/AssignUserToAgencyAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"userEmail\": \"<string>\",\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/AssignUserToAgency/AssignUserToAgencyAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"AssignUserToAgency",
+														"AssignUserToAgencyAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"userEmail\": \"<string>\",\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/AssignUserToAgency/AssignUserToAgencyAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"AssignUserToAgency",
+																"AssignUserToAgencyAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "CancelAppointment",
+							"item": [
+								{
+									"name": "CancelAppointmentAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/CancelAppointment/CancelAppointmentAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"appointmentId\": \"<uuid>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/CancelAppointment/CancelAppointmentAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"CancelAppointment",
+														"CancelAppointmentAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"appointmentId\": \"<uuid>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/CancelAppointment/CancelAppointmentAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"CancelAppointment",
+																"CancelAppointmentAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "CreateAppointment",
+							"item": [
+								{
+									"name": "CreateAppointmentAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/CreateAppointment/CreateAppointmentAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"userEmail\": \"<string>\",\n  \"date\": \"<dateTime>\",\n  \"appointmentName\": \"<string>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/CreateAppointment/CreateAppointmentAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"CreateAppointment",
+														"CreateAppointmentAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"userEmail\": \"<string>\",\n  \"date\": \"<dateTime>\",\n  \"appointmentName\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/CreateAppointment/CreateAppointmentAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"CreateAppointment",
+																"CreateAppointmentAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "UpdateAgencySettings",
+							"item": [
+								{
+									"name": "UpdateAgencySettingsAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/UpdateAgencySettings/UpdateAgencySettingsAsync",
+											"request": {
+												"method": "PUT",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"appointmentId\": \"<uuid>\",\n  \"maxAppointmentsPerDay\": \"<integer>\",\n  \"holidays\": [\n    {\n      \"id\": \"<uuid>\",\n      \"agencyId\": \"<uuid>\",\n      \"date\": \"<dateTime>\",\n      \"reason\": \"<string>\"\n    },\n    {\n      \"id\": \"<uuid>\",\n      \"agencyId\": \"<uuid>\",\n      \"date\": \"<dateTime>\",\n      \"reason\": \"<string>\"\n    }\n  ]\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/UpdateAgencySettings/UpdateAgencySettingsAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"UpdateAgencySettings",
+														"UpdateAgencySettingsAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "PUT",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"appointmentId\": \"<uuid>\",\n  \"maxAppointmentsPerDay\": \"<integer>\",\n  \"holidays\": [\n    {\n      \"id\": \"<uuid>\",\n      \"agencyId\": \"<uuid>\",\n      \"date\": \"<dateTime>\",\n      \"reason\": \"<string>\"\n    },\n    {\n      \"id\": \"<uuid>\",\n      \"agencyId\": \"<uuid>\",\n      \"date\": \"<dateTime>\",\n      \"reason\": \"<string>\"\n    }\n  ]\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/UpdateAgencySettings/UpdateAgencySettingsAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"UpdateAgencySettings",
+																"UpdateAgencySettingsAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "GetAppointmentsByDate",
+							"item": [
+								{
+									"name": "GetAppointmentsByDateAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/GetAppointmentsByDate/GetAppointmentsByDateAsync",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"date\": \"<dateTime>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/GetAppointmentsByDate/GetAppointmentsByDateAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"GetAppointmentsByDate",
+														"GetAppointmentsByDateAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/GetAppointmentsByDate/GetAppointmentsByDateAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"GetAppointmentsByDate",
+																"GetAppointmentsByDateAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "[\n  {\n    \"appointmentId\": \"<uuid>\",\n    \"appointmentName\": \"<string>\",\n    \"date\": \"<dateTime>\",\n    \"status\": \"<string>\",\n    \"agencyName\": \"<string>\",\n    \"agencyEmail\": \"<string>\",\n    \"userEmail\": \"<string>\"\n  },\n  {\n    \"appointmentId\": \"<uuid>\",\n    \"appointmentName\": \"<string>\",\n    \"date\": \"<dateTime>\",\n    \"status\": \"<string>\",\n    \"agencyName\": \"<string>\",\n    \"agencyEmail\": \"<string>\",\n    \"userEmail\": \"<string>\"\n  }\n]"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "HandleNoShow",
+							"item": [
+								{
+									"name": "HandleNoShowAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/HandleNoShow/HandleNoShowAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"appointmentId\": \"<uuid>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/HandleNoShow/HandleNoShowAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"HandleNoShow",
+														"HandleNoShowAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"appointmentId\": \"<uuid>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/HandleNoShow/HandleNoShowAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"HandleNoShow",
+																"HandleNoShowAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "RescheduleAppointment",
+							"item": [
+								{
+									"name": "RescheduleAppointmentAsync",
+									"item": [
+										{
+											"name": "/api/AgencyBook/RescheduleAppointment/RescheduleAppointmentAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"appointmentId\": \"<uuid>\",\n  \"newDate\": \"<dateTime>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/AgencyBook/RescheduleAppointment/RescheduleAppointmentAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"AgencyBook",
+														"RescheduleAppointment",
+														"RescheduleAppointmentAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"appointmentId\": \"<uuid>\",\n  \"newDate\": \"<dateTime>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/AgencyBook/RescheduleAppointment/RescheduleAppointmentAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"AgencyBook",
+																"RescheduleAppointment",
+																"RescheduleAppointmentAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Identity",
+					"item": [
+						{
+							"name": "Register",
+							"item": [
+								{
+									"name": "RegisterAsync",
+									"item": [
+										{
+											"name": "/api/Identity/Register/RegisterAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"confirmPassword\": \"<string>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/Identity/Register/RegisterAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Identity",
+														"Register",
+														"RegisterAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"confirmPassword\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/Identity/Register/RegisterAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Identity",
+																"Register",
+																"RegisterAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "Login",
+							"item": [
+								{
+									"name": "LoginAsync",
+									"item": [
+										{
+											"name": "/api/Identity/Login/LoginAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/Identity/Login/LoginAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Identity",
+														"Login",
+														"LoginAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/Identity/Login/LoginAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Identity",
+																"Login",
+																"LoginAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"accessToken\": \"<string>\",\n  \"refreshToken\": \"<string>\"\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "RefreshToken",
+							"item": [
+								{
+									"name": "RefreshTokenAsync",
+									"item": [
+										{
+											"name": "/api/Identity/RefreshToken/RefreshTokenAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"userId\": \"<string>\",\n  \"refreshToken\": \"<string>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/Identity/RefreshToken/RefreshTokenAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Identity",
+														"RefreshToken",
+														"RefreshTokenAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"userId\": \"<string>\",\n  \"refreshToken\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/Identity/RefreshToken/RefreshTokenAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Identity",
+																"RefreshToken",
+																"RefreshTokenAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"accessToken\": \"<string>\",\n  \"refreshToken\": \"<string>\"\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "ChangePassword",
+							"item": [
+								{
+									"name": "ChangePasswordAsync",
+									"item": [
+										{
+											"name": "/api/Identity/ChangePassword/ChangePasswordAsync",
+											"request": {
+												"method": "PUT",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"currentPassword\": \"<string>\",\n  \"newPassword\": \"<string>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/Identity/ChangePassword/ChangePasswordAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Identity",
+														"ChangePassword",
+														"ChangePasswordAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "PUT",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"currentPassword\": \"<string>\",\n  \"newPassword\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/Identity/ChangePassword/ChangePasswordAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Identity",
+																"ChangePassword",
+																"ChangePasswordAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "AssignRole",
+							"item": [
+								{
+									"name": "AssignRoleAsync",
+									"item": [
+										{
+											"name": "/api/Identity/AssignRole/AssignRoleAsync",
+											"request": {
+												"method": "PUT",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"email\": \"<string>\",\n  \"roleName\": \"<string>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/Identity/AssignRole/AssignRoleAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Identity",
+														"AssignRole",
+														"AssignRoleAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "PUT",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"email\": \"<string>\",\n  \"roleName\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/Identity/AssignRole/AssignRoleAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Identity",
+																"AssignRole",
+																"AssignRoleAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "ResetPassword",
+							"item": [
+								{
+									"name": "ResetPasswordAsync",
+									"item": [
+										{
+											"name": "/api/Identity/ResetPassword/ResetPasswordAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"email\": \"<string>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/Identity/ResetPassword/ResetPasswordAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Identity",
+														"ResetPassword",
+														"ResetPasswordAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"email\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/Identity/ResetPassword/ResetPasswordAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Identity",
+																"ResetPassword",
+																"ResetPasswordAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Jwks",
+					"item": [
+						{
+							"name": "GetPublicKey",
+							"item": [
+								{
+									"name": "GetPublicKeyAsync",
+									"item": [
+										{
+											"name": "/api/Jwks/GetPublicKey/GetPublicKeyAsync",
+											"request": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/Jwks/GetPublicKey/GetPublicKeyAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Jwks",
+														"GetPublicKey",
+														"GetPublicKeyAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"url": {
+															"raw": "{{baseUrl}}/api/Jwks/GetPublicKey/GetPublicKeyAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Jwks",
+																"GetPublicKey",
+																"GetPublicKeyAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"alg\": \"<string>\",\n  \"crv\": \"<string>\",\n  \"d\": \"<string>\",\n  \"dp\": \"<string>\",\n  \"dq\": \"<string>\",\n  \"e\": \"<string>\",\n  \"k\": \"<string>\",\n  \"key_ops\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"kid\": \"<string>\",\n  \"kty\": \"<string>\",\n  \"n\": \"<string>\",\n  \"oth\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"p\": \"<string>\",\n  \"q\": \"<string>\",\n  \"qi\": \"<string>\",\n  \"use\": \"<string>\",\n  \"x\": \"<string>\",\n  \"x5c\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"x5t\": \"<string>\",\n  \"x5t#S256\": \"<string>\",\n  \"x5u\": \"<string>\",\n  \"y\": \"<string>\"\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Prompt",
+					"item": [
+						{
+							"name": "SendUserPrompt",
+							"item": [
+								{
+									"name": "SendUserPromptAsync",
+									"item": [
+										{
+											"name": "/api/Prompt/SendUserPrompt/SendUserPromptAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"prompt\": \"<string>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/Prompt/SendUserPrompt/SendUserPromptAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"Prompt",
+														"SendUserPrompt",
+														"SendUserPromptAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"prompt\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/Prompt/SendUserPrompt/SendUserPromptAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"Prompt",
+																"SendUserPrompt",
+																"SendUserPromptAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "<string>"
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "RAGScanner",
+					"item": [
+						{
+							"name": "ScanUrl",
+							"item": [
+								{
+									"name": "ScanUrlAsync",
+									"item": [
+										{
+											"name": "/api/RAGScanner/ScanUrl/ScanUrlAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"urls\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/RAGScanner/ScanUrl/ScanUrlAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"RAGScanner",
+														"ScanUrl",
+														"ScanUrlAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"urls\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/RAGScanner/ScanUrl/ScanUrlAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"RAGScanner",
+																"ScanUrl",
+																"ScanUrlAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"succeeded\": \"<boolean>\",\n  \"errors\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "RAGSearch",
+							"item": [
+								{
+									"name": "RAGSearchAsync",
+									"item": [
+										{
+											"name": "/api/RAGScanner/RAGSearch/RAGSearchAsync",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"query\": \"<string>\",\n  \"topK\": \"<integer>\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/RAGScanner/RAGSearch/RAGSearchAsync",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"RAGScanner",
+														"RAGSearch",
+														"RAGSearchAsync"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"query\": \"<string>\",\n  \"topK\": \"<integer>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/RAGScanner/RAGSearch/RAGSearchAsync",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"RAGScanner",
+																"RAGSearch",
+																"RAGSearchAsync"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"content\": \"<string>\",\n    \"url\": \"<string>\",\n    \"title\": \"<string>\",\n    \"score\": \"<float>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"content\": \"<string>\",\n    \"url\": \"<string>\",\n    \"title\": \"<string>\",\n    \"score\": \"<float>\"\n  }\n]"
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "/"
+		}
+	]
+}
