@@ -4,10 +4,10 @@ using System.Security.Cryptography;
 public class RsaKeyProviderService : IRsaKeyProvider
 {
     private const string SignatureUse = "sig";
-    private RSA rsa;
-    private JsonWebKey jsonWebKey;
-    private string keyId;
-    private byte[] encryptedPrivateKey;
+    private RSA? rsa;
+    private JsonWebKey jsonWebKey = null!;
+    private string keyId = null!;
+    private byte[] encryptedPrivateKey = null!;
     private readonly byte[] encryptionKey;
     private readonly byte[] encryptionIV;
 
@@ -31,19 +31,15 @@ public class RsaKeyProviderService : IRsaKeyProvider
 
     private void GenerateKeys()
     {
-        // Dispose the old RSA key securely
         DisposeKeys();
 
-        // Generate a new RSA key pair
         rsa = RSA.Create(2048);
         keyId = Guid.NewGuid().ToString();
 
-        // Export the private key and encrypt it
-        var rsaParameters = rsa.ExportParameters(true); // Export all parameters, including private key parts
+        var rsaParameters = rsa.ExportParameters(true);
         encryptedPrivateKey = EncryptPrivateKey(rsaParameters);
 
-        // Export the public key
-        var rsaSecurityKey = new RsaSecurityKey(rsa.ExportParameters(false)) // Export only public key
+        var rsaSecurityKey = new RsaSecurityKey(rsa.ExportParameters(false))
         {
             KeyId = keyId
         };
@@ -54,10 +50,8 @@ public class RsaKeyProviderService : IRsaKeyProvider
 
     public RSA GetPrivateKey()
     {
-        // Decrypt and load the private key into memory when it's needed
         if (rsa == null)
         {
-            // Decrypt the private key and import the parameters
             var rsaParameters = DecryptPrivateKey(encryptedPrivateKey);
             rsa = RSA.Create();
             rsa.ImportParameters(rsaParameters);
@@ -68,10 +62,9 @@ public class RsaKeyProviderService : IRsaKeyProvider
 
     public JsonWebKey GetPublicJwk() => jsonWebKey;
 
-    // Encrypt the RSA private key to secure it in memory
     private byte[] EncryptPrivateKey(RSAParameters rsaParameters)
     {
-        using (var aes = Aes.Create()) // Aes.Create() replaces AesManaged
+        using (var aes = Aes.Create())
         {
             aes.Key = encryptionKey;
             aes.IV = encryptionIV;
@@ -84,10 +77,9 @@ public class RsaKeyProviderService : IRsaKeyProvider
         }
     }
 
-    // Decrypt the RSA private key and securely load it when needed
     private RSAParameters DecryptPrivateKey(byte[] encryptedPrivateKey)
     {
-        using (var aes = Aes.Create()) // Aes.Create() replaces AesManaged
+        using (var aes = Aes.Create())
         {
             aes.Key = encryptionKey;
             aes.IV = encryptionIV;
@@ -96,12 +88,11 @@ public class RsaKeyProviderService : IRsaKeyProvider
             {
                 var decryptedPrivateKey = decryptor.TransformFinalBlock(encryptedPrivateKey, 0, encryptedPrivateKey.Length);
 
-                // Import decrypted private key into RSA
                 RSAParameters rsaParameters = new RSAParameters();
                 using (var rsa = RSA.Create())
                 {
                     rsa.ImportRSAPrivateKey(decryptedPrivateKey, out _);
-                    rsaParameters = rsa.ExportParameters(true);  // Exporting the full RSA parameters including private key
+                    rsaParameters = rsa.ExportParameters(true);
                 }
 
                 return rsaParameters;
@@ -109,21 +100,16 @@ public class RsaKeyProviderService : IRsaKeyProvider
         }
     }
 
-    // Securely dispose of RSA keys and clear sensitive memory
     private void DisposeKeys()
     {
         if (rsa != null)
         {
-            // Zero out the private key memory
             Array.Clear(encryptedPrivateKey, 0, encryptedPrivateKey.Length);
-
-            // Zero out any sensitive data in memory
             rsa.Dispose();
             rsa = null;
         }
     }
 
-    // Override the finalizer to ensure memory is cleaned up if Dispose() wasn't called
     ~RsaKeyProviderService()
     {
         DisposeKeys();
