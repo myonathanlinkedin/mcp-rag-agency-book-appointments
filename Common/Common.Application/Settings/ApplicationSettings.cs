@@ -12,24 +12,21 @@
     public JwtSettings Jwt { get; init; } = new();
     public MCPSettings MCP { get; init; } = new();
     public MailHogSettings MailHog { get; init; } = new();
+    public KafkaSettings Kafka { get; init; } = new(); // ✅ Added Kafka Settings
     public string AllowedHosts { get; init; } = "*";
 
     public record ApiSettings(string ApiKey = "", string Endpoint = "", string LlmModel = "", string EmbeddingModel = "");
-
     public record QdrantSettings(string Endpoint = "", string CollectionName = "", float SimilarityThreshold = 0f, string ApiKey = "", string CerCertificateThumbprint = "");
-
     public record ConnectionStringsSettings(string IdentityDBConnection = "", string RAGDBConnection = "", string AgencyBookDBConnection = "");
-
     public record LoggingSettings(LogLevelSettings LogLevel = null)
     {
         public LoggingSettings() : this(new LogLevelSettings()) { }
     }
-
     public record LogLevelSettings(string Default = "Information", string Microsoft = "Warning", string MicrosoftHostingLifetime = "Warning");
-
     public record JwtSettings(string JwksUrl = "");
-
     public record MCPSettings(string ServerName = "", string Endpoint = "");
-
     public record MailHogSettings(string SmtpServer = "", int SmtpPort = 587, string FromAddress = "");
+
+    // ✅ Added Kafka Configuration
+    public record KafkaSettings(string BootstrapServers = "", string GroupId = "", string Topic = "");
 }

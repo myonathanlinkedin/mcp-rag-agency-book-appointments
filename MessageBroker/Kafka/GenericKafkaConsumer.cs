@@ -1,20 +1,19 @@
 ﻿using Confluent.Kafka;
 using Nest;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class GenericKafkaConsumer : IKafkaConsumerService
 {
     private readonly IConsumer<Null, string> consumer;
     private readonly IElasticClient elasticClient;
     private readonly string indexName;
-    private readonly IApiService apiService;
 
-    public GenericKafkaConsumer(string bootstrapServers, string groupId, IElasticClient elasticClient, string indexName, IApiService apiService)
+    public GenericKafkaConsumer(string bootstrapServers, string groupId, IElasticClient elasticClient, string indexName)
     {
         this.consumer = CreateConsumer(bootstrapServers, groupId);
         this.elasticClient = elasticClient;
         this.indexName = indexName;
-        this.apiService = apiService;
     }
 
     public async Task ConsumeAsync(string topic, CancellationToken cancellationToken)
@@ -26,7 +25,10 @@ public class GenericKafkaConsumer : IKafkaConsumerService
             while (!cancellationToken.IsCancellationRequested)
             {
                 var cr = consumer.Consume(cancellationToken);
-                await ProcessMessageAsync(cr.Message.Value);
+                if (!string.IsNullOrEmpty(cr?.Message?.Value))
+                {
+                    await ProcessMessageAsync(cr.Message.Value);
+                }
             }
         }
         catch (OperationCanceledException)
@@ -55,20 +57,26 @@ public class GenericKafkaConsumer : IKafkaConsumerService
     {
         try
         {
-            var payload = JsonConvert.DeserializeObject<GenericPayload>(message);
-            if (payload == null) return;
+            var jsonData = JObject.Parse(message);
+            var action = jsonData["Action"]?.ToString();
+            var id = jsonData["Id"]?.ToString();
 
-            if (payload.Action == "DELETE")
+            if (string.IsNullOrEmpty(action) || string.IsNullOrEmpty(id)) return;
+
+            switch (action)
             {
-                await HandleDeletionAsync(payload);
-            }
-            else if (payload.Action == "UPDATE")
-            {
-                await HandleUpdateAsync(payload);
-            }
-            else
-            {
-                await HandleIndexingAsync(payload);
+                case "INSERT":
+                    await InsertToElasticAsync(jsonData);
+                    break;
+                case "UPDATE":
+                    await UpdateInElasticAsync(id, jsonData);
+                    break;
+                case "DELETE":
+                    await DeleteFromElasticAsync(id);
+                    break;
+                default:
+                    Console.WriteLine($"Unknown action type: {action}. Skipping.");
+                    break;
             }
         }
         catch (Exception ex)
@@ -77,45 +85,21 @@ public class GenericKafkaConsumer : IKafkaConsumerService
         }
     }
 
-    private async Task HandleDeletionAsync(GenericPayload payload)
+    private async Task InsertToElasticAsync(JObject jsonData)
     {
-        var searchResponse = await elasticClient.SearchAsync<object>(s => s
-            .Index(indexName)
-            .Query(q => q.Term(t => t.Field("id").Value(payload.Id)))
-        );
-
-        foreach (var doc in searchResponse.Hits)
-        {
-            await elasticClient.DeleteAsync<object>(doc.Id, d => d.Index(indexName));
-            Console.WriteLine($"Deleted document with ID '{doc.Id}'.");
-        }
+        await elasticClient.IndexDocumentAsync(jsonData);
+        Console.WriteLine($"Inserted document with ID '{jsonData["Id"]}' into ElasticSearch.");
     }
 
-    private async Task HandleUpdateAsync(GenericPayload payload)
+    private async Task UpdateInElasticAsync(string id, JObject jsonData)
     {
-        var apiResponse = await apiService.GetItemByIdAsync(payload.Id);
-        if (apiResponse.IsSuccessStatusCode)
-        {
-            await elasticClient.UpdateAsync<object>(payload.Id, u => u.Index(indexName).Doc(apiResponse.Content));
-            Console.WriteLine($"Updated document with ID '{payload.Id}'.");
-        }
-        else
-        {
-            Console.WriteLine($"Failed to update document '{payload.Id}': API returned {apiResponse.StatusCode}");
-        }
+        await elasticClient.UpdateAsync<object>(id, u => u.Index(indexName).Doc(jsonData));
+        Console.WriteLine($"Updated document with ID '{id}' in ElasticSearch.");
     }
 
-    private async Task HandleIndexingAsync(GenericPayload payload)
+    private async Task DeleteFromElasticAsync(string id)
     {
-        var apiResponse = await apiService.GetItemByIdAsync(payload.Id);
-        if (apiResponse.IsSuccessStatusCode)
-        {
-            await elasticClient.IndexDocumentAsync(apiResponse.Content);
-            Console.WriteLine($"Indexed document with ID '{payload.Id}'.");
-        }
-        else
-        {
-            Console.WriteLine($"Failed to index document '{payload.Id}': API returned {apiResponse.StatusCode}");
-        }
+        await elasticClient.DeleteAsync<object>(id, d => d.Index(indexName));
+        Console.WriteLine($"Deleted document with ID '{id}' from ElasticSearch.");
     }
 }

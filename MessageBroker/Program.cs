@@ -39,17 +39,13 @@ public class Program
             {
                 var configuration = hostContext.Configuration;
 
-                services.AddRefitClient<IApiService>()
-                        .ConfigureHttpClient(c => c.BaseAddress = new Uri(configuration["Elasticsearch:Url"]));
-
                 services.AddSingleton<IKafkaConsumerService>(sp =>
                 {
                     return new GenericKafkaConsumer(
                         configuration["Kafka:BootstrapServers"],
                         configuration["Kafka:GroupId"],
                         sp.GetRequiredService<IElasticClient>(),
-                        configuration["Elasticsearch:IndexName"],
-                        sp.GetRequiredService<IApiService>()
+                        configuration["Elasticsearch:IndexName"]
                     );
                 });
 
