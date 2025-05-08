@@ -37,13 +37,20 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
         }
     }
 
-    public async Task<JobStatus?> GetJobStatusAsync(string jobId)
+    public async Task<JobStatus> GetJobStatusAsync(string jobId)
     {
         try
         {
-            return await Data.JobStatuses
+            var jobStatus = await Data.JobStatuses
                 .AsNoTracking()
                 .FirstOrDefaultAsync(js => js.JobId == jobId);
+
+            if (jobStatus == null)
+            {
+                throw new InvalidOperationException($"Job with ID {jobId} not found.");
+            }
+
+            return jobStatus;
         }
         catch (Exception ex)
         {
