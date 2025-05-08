@@ -6,6 +6,7 @@ This project is a **cutting-edge AI-driven** appointment booking system designed
 Built with **Domain-Driven Development (DDD)** principles, the system leverages **Apache Kafka & ElasticSearch for appointment indexing**, ensuring **optimized search & performance** across thousands of appointments! The architecture is **microservices-ready**, making it scalable and modular for enterprise adoption. **Now powered by Qdrant Vector DB**, it supports AI-driven **semantic search and retrieval** for enhanced user experiences.  
 
 ## **🚀 Key Features**  
+✅ **Built-in IdentityServer with Asymmetric JWT Signing** – Secure OAuth2/OpenID Connect token issuance 🔐  
 ✅ **AI Chat Bots via PromptAPI** for dynamic responses 🤖  
 ✅ **Retrieval-Augmented Generation (RAG)** for **smart queries** 🔍  
 ✅ **MCP Client/Server Ready** – Context-aware AI-driven decision-making ⚡  
