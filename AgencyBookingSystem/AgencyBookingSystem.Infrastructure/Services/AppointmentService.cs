@@ -5,9 +5,10 @@ using Newtonsoft.Json;
 public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository appointmentRepository;
+    private readonly IAppointmentSlotRepository appointmentSlotRepository;
     private readonly IAgencyService agencyService;
     private readonly IAgencyUserService agencyUserService;
-    private readonly IEventDispatcher eventDispatcher; // ✅ Keeping event dispatcher
+    private readonly IEventDispatcher eventDispatcher; 
     private readonly ILogger<AppointmentService> logger;
     private readonly IProducer<Null, string> kafkaProducer;
     private readonly string kafkaTopic;
@@ -15,9 +16,11 @@ public class AppointmentService : IAppointmentService
     public AppointmentService(IAppointmentRepository appointmentRepository, IAgencyUserService agencyUserService,
                               IAgencyService agencyService, IEventDispatcher eventDispatcher,
                               ILogger<AppointmentService> logger, IProducer<Null, string> kafkaProducer,
+                              IAppointmentSlotRepository appointmentSlotRepository,
                               string kafkaTopic)
     {
         this.appointmentRepository = appointmentRepository;
+        this.appointmentSlotRepository = appointmentSlotRepository;
         this.agencyService = agencyService;
         this.agencyUserService = agencyUserService;
         this.eventDispatcher = eventDispatcher;
@@ -101,23 +104,36 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "Appointment does not exist." });
         }
 
-        if (!await HasAvailableSlotAsync(appointment.AgencyId, newDate))
-        {
-            logger.LogWarning("Reschedule failed. No available slots for {NewDate}.", newDate);
-            return Result.Failure(new[] { "No available slots for the new date." });
-        }
-
-        appointment.Date = newDate;
-        await appointmentRepository.Save(appointment, cancellationToken);
-
-        var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
         var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
+        var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
 
         if (agency == null || agencyUser == null)
         {
             logger.LogWarning("Reschedule failed. No agency/user found for appointment {AppointmentId}.", appointmentId);
             return Result.Failure(new[] { "Invalid agency or user." });
         }
+
+        // ✅ Check if new date is an agency holiday
+        if (agency.Holidays.Any(h => h.Date.Date == newDate.Date))
+        {
+            var holidayReason = agency.Holidays.First(h => h.Date.Date == newDate.Date).Reason;
+            logger.LogWarning("Reschedule failed. {NewDate} is a holiday for Agency {AgencyName} ({Reason}).", newDate, agency.Name, holidayReason);
+            return Result.Failure(new[] { $"Selected date is a holiday: {holidayReason}. Please choose another date." });
+        }
+
+        // ✅ Check available slots & overflow logic
+        var slotsForNewDate = agency.Slots.Where(slot => slot.StartTime.Date == newDate.Date).ToList();
+        var totalAppointmentsForDay = slotsForNewDate.Sum(slot => slot.Capacity); // ✅ Sum capacities for all time slots
+
+        if (totalAppointmentsForDay >= agency.MaxAppointmentsPerDay)
+        {
+            var nextAvailableDate = await GetNextAvailableDateAsync(appointment.AgencyId, newDate);
+            logger.LogWarning("Reschedule failed. No available slots for {NewDate}. Next available slot: {NextAvailableDate}.", newDate, nextAvailableDate);
+            return Result.Failure(new[] { $"No available slots. Next available slot: {nextAvailableDate?.ToString("dddd, MMMM dd")}." });
+        }
+
+        appointment.Date = newDate;
+        await appointmentRepository.Save(appointment, cancellationToken);
 
         // ✅ Dispatch event
         await eventDispatcher.Dispatch(new AppointmentEvent(
@@ -127,7 +143,7 @@ public class AppointmentService : IAppointmentService
         // ✅ Publish reschedule event to Kafka
         await PublishToKafkaAsync("UPDATE", appointment, agency, agencyUser);
 
-        logger.LogInformation("Appointment '{AppointmentName}' successfully rescheduled for agency {AgencyName}, user {UserEmail}.",
+        logger.LogInformation("Appointment '{AppointmentName}' successfully rescheduled for Agency {AgencyName}, User {UserEmail}.",
             appointment.Name, agency.Name, agencyUser.Email);
 
         return Result.Success;
@@ -147,25 +163,46 @@ public class AppointmentService : IAppointmentService
     public async Task<Result> CreateAppointmentAsync(Guid agencyId, string email, string appointmentName, DateTime date, CancellationToken cancellationToken = default)
     {
         var agency = await agencyService.GetByIdAsync(agencyId);
-        if (agency == null)
-        {
-            logger.LogWarning("Appointment creation failed. Agency {AgencyId} does not exist.", agencyId);
-            return Result.Failure(new[] { "Agency does not exist." });
-        }
-
         var agencyUser = await agencyUserService.GetByEmailAsync(email);
-        if (agencyUser == null)
+
+        if (agency == null || agencyUser == null)
         {
-            logger.LogWarning("Appointment creation failed. No agency user found for email {Email}.", email);
-            return Result.Failure(new[] { "No agency user found for this email." });
+            logger.LogWarning("Appointment creation failed. Invalid agency or user.");
+            return Result.Failure(new[] { "Invalid agency or user." });
         }
 
+        // ✅ Check if selected date is an agency holiday
+        if (agency.Holidays.Any(h => h.Date.Date == date.Date))
+        {
+            var holidayReason = agency.Holidays.First(h => h.Date.Date == date.Date).Reason;
+            logger.LogWarning("Appointment creation failed. {Date} is a holiday for Agency {AgencyName} ({Reason}).", date, agency.Name, holidayReason);
+            return Result.Failure(new[] { $"Selected date is a holiday: {holidayReason}. Please choose another date." });
+        }
+
+        // ✅ Find available time slots for the date
+        var slotsForDate = agency.Slots.Where(slot => slot.StartTime.Date == date.Date).ToList();
+        if (!slotsForDate.Any())
+        {
+            logger.LogWarning("No time slots available for {Date} at Agency {AgencyName}.", date, agency.Name);
+            return Result.Failure(new[] { "No available time slots for the selected date." });
+        }
+
+        // ✅ Find the first slot with available capacity
+        var selectedSlot = slotsForDate.FirstOrDefault(slot => slot.Capacity > 0);
+        if (selectedSlot == null)
+        {
+            var nextAvailableDate = await GetNextAvailableDateAsync(agencyId, date);
+            logger.LogWarning("No available slots for {Date}. Next available slot: {NextAvailableDate}.", date, nextAvailableDate);
+            return Result.Failure(new[] { $"No available slots. Next available date: {nextAvailableDate?.ToString("dddd, MMMM dd")}." });
+        }
+
+        // ✅ Create appointment with selected time slot
         var appointment = new Appointment
         {
             Id = Guid.NewGuid(),
             AgencyId = agencyId,
             AgencyUserId = agencyUser.Id,
-            Date = date,
+            Date = selectedSlot.StartTime, // ✅ Ensuring appointment aligns with available slot
             Name = appointmentName,
             Status = AppointmentStatus.Pending,
             Token = Guid.NewGuid().ToString()
@@ -173,23 +210,23 @@ public class AppointmentService : IAppointmentService
 
         await appointmentRepository.Save(appointment, cancellationToken);
 
-        // Dispatch event instead of direct notification
+        // ✅ Reduce slot capacity after booking
+        selectedSlot.Capacity -= 1;
+        await appointmentSlotRepository.Save(selectedSlot, cancellationToken);
+
+        // ✅ Dispatch event
         await eventDispatcher.Dispatch(new AppointmentEvent(
-            appointment.Id,
-            appointment.Name,
-            appointment.Date,
-            appointment.Status,
-            agency.Name,
-            agency.Email,
-            agencyUser.Email
+            appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
         ));
 
-        logger.LogInformation("Appointment '{AppointmentName}' created successfully for Agency {AgencyName}, User {UserEmail}.",
-            appointment.Name, agency.Name, agencyUser.Email);
+        // ✅ Publish appointment to Kafka
+        await PublishToKafkaAsync("INSERT", appointment, agency, agencyUser);
+
+        logger.LogInformation("Appointment '{AppointmentName}' created successfully for Agency {AgencyName}, User {UserEmail} at {AppointmentTime}.",
+            appointment.Name, agency.Name, agencyUser.Email, appointment.Date.ToString("HH:mm"));
 
         return Result.Success;
     }
-
 
     public async Task<bool> ExistsAsync(Guid appointmentId)
     {
