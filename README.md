@@ -3,7 +3,7 @@
 ## **✨ Overview**  
 This project is a **cutting-edge AI-driven** appointment booking system designed for **agencies** to efficiently schedule appointments, issue tokens, and manage queues in **real-time**. With **AI Chat Bots**, **Retrieval-Augmented Generation (RAG)**, and **MCP Client/Server integration**, the system enables **context-aware** decision-making using **external knowledge sources**.  
 
-Built with **Domain-Driven Development (DDD)** principles, the system leverages **Apache Kafka & ElasticSearch for appointment indexing**, ensuring **optimized search & performance** across thousands of appointments! The architecture is **microservices-ready**, making it scalable and modular for enterprise adoption.  
+Built with **Domain-Driven Development (DDD)** principles, the system leverages **Apache Kafka & ElasticSearch for appointment indexing**, ensuring **optimized search & performance** across thousands of appointments! The architecture is **microservices-ready**, making it scalable and modular for enterprise adoption. **Now powered by Qdrant Vector DB**, it supports AI-driven **semantic search and retrieval** for enhanced user experiences.  
 
 ## **🚀 Key Features**  
 ✅ **AI Chat Bots via PromptAPI** for dynamic responses 🤖  
@@ -13,6 +13,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ **Real-Time Queue Grid via API** ⏳  
 ✅ **Domain-Driven Development (DDD) Architecture** 🏗️  
 ✅ **Apache Kafka & ElasticSearch for appointment indexing** 📡  
+✅ **Qdrant Vector Database – High-speed AI-powered semantic search** 🧠✨  
 ✅ **Swagger, LINQ, IoC, and WebAPI implementation** 🛠️  
 ✅ **Automatic Email Template generation by AI LLM** 📧✨  
 ✅ **API with Brain – Users can freely type prompts in natural language for AI-driven responses** 🧠📝  
@@ -22,7 +23,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ## **📜 Architecture Diagram**  
 ```plaintext
 User → API Gateway → Appointment Service → Event Processing (Kafka) → Search Index (ElasticSearch)  
-                  ↳ AI Decision Layer (RAG, MCP Client/Server)  
+                  ↳ AI Decision Layer (RAG, MCP Client/Server, Qdrant Vector DB)  
 ```
 
 ## **🔄 User Flow**  
@@ -35,9 +36,10 @@ User → API Gateway → Appointment Service → Event Processing (Kafka) → Se
 7️⃣ **Appointment is indexed in Apache Kafka & ElasticSearch for real-time search** 📡  
 8️⃣ **User/customer gets notified with details via AI-enhanced email template** 🚀  
 9️⃣ **User interacts with AI freely via API with Brain – type any prompt, get smart AI responses** 🧠💬  
+🔟 **Qdrant Vector DB enhances search accuracy with AI-powered similarity matching** 🔍💡  
 🔟 **Microservices-ready architecture ensures efficient scaling across multiple agencies** 🏢⚙️  
 
-This ensures a **streamlined booking experience**, allowing agencies to manage **appointments efficiently** with **real-time indexing, AI-generated email templates, and free prompt-based AI interaction!**  
+This ensures a **streamlined booking experience**, allowing agencies to manage **appointments efficiently** with **real-time indexing, AI-generated email templates, and AI-driven semantic search with Qdrant!**  
 
 ## **🔧 Tech Stack**  
 - **C# .NET Core** 🏗️  
@@ -45,6 +47,7 @@ This ensures a **streamlined booking experience**, allowing agencies to manage *
 - **Swagger for API Documentation** 📜  
 - **Kafka for Event-Driven Appointment Processing** 🔄  
 - **ElasticSearch for Real-Time Appointment Indexing** 🔥  
+- **Qdrant Vector Database for AI-driven semantic search** 🧠🔍  
 - **AI LLM for Automatic Email Template Generation** 📧🤖  
 - **API with Brain – Free Prompt-Based AI Responses** 🧠📝  
 - **Microservices-ready with modular services & APIs** 🏢🔄  
@@ -79,4 +82,8 @@ For full details, check the [Apache License 2.0](http://www.apache.org/licenses/
 ---
 
 💡 **This system isn't just another booking tool—it’s an intelligent, scalable AI-powered solution.**  
-Let’s **reshape the future** of scheduling with **AI, event-driven processing, scalable microservices, and domain-driven architecture!** 🚀🔥  
+Let’s **reshape the future** of scheduling with **AI, event-driven processing, scalable microservices, and AI-powered search with Qdrant Vector DB!** 🚀🔥  
+
+---
+
+This project is based on my other project: https://github.com/myonathanlinkedin/productinfo-mcp-rag
