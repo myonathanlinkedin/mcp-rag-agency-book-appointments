@@ -23,6 +23,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ **API with Brain – Users can freely type prompts in natural language for AI-driven responses** 🧠📝  
 ✅ **Microservices-ready – modular, scalable, and adaptable** 🏢🔄  
 ✅ **Cloud-ready, designed for potential deployment on Azure/AWS** ☁️  
+✅ **Refit Integration for REST API consumption** – Simplifies REST API interaction with typed interfaces for seamless API calls 🔌  
  
 ## **📜 Architecture Diagram**  
 ```plaintext
