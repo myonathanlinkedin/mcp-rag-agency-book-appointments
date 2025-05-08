@@ -21,7 +21,6 @@ public class AgencyBookController : ApiController
     public async Task<ActionResult<Result>> CreateAgencyAsync(CreateAgencyCommand command)
     => await Send(command);
 
-    // This endpoint is for the agency to assign a user belonging to them, exclusively for the agency (unless adminstrator also an agency user, it can't use this endpoint)
     [HttpPost]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = CommonModelConstants.Role.Agency)]
     [Route(nameof(AssignUserToAgencyAsync))]
@@ -34,7 +33,6 @@ public class AgencyBookController : ApiController
     public async Task<ActionResult<Result>> CancelAppointmentAsync(CancelAppointmentCommand command)
         => await Send(command);
 
-    // This endpoint is for the agency to create an appointment, exclusively for the agency (unless adminstrator also an agency user, it can't use this endpoint)
     [HttpPost]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = CommonModelConstants.Role.Agency)]
     [Route(nameof(CreateAppointmentAsync))]

@@ -4,9 +4,13 @@ public class CreateAppointmentCommandValidator : AbstractValidator<CreateAppoint
 {
     public CreateAppointmentCommandValidator()
     {
+        RuleFor(a => a.AgencyEmail)
+            .Must(email => string.IsNullOrWhiteSpace(email) || email.Contains("@"))
+            .WithMessage("Agency email must be a valid email or left blank.");
+
         RuleFor(a => a.UserEmail)
             .NotEmpty().WithMessage("User email is required.")
-            .EmailAddress().WithMessage("A valid user email is required.");
+            .EmailAddress().WithMessage("User email must be a valid email address.");
 
         RuleFor(a => a.Date)
             .GreaterThan(DateTime.UtcNow).WithMessage("Appointment date must be in the future.");

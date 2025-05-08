@@ -4,9 +4,9 @@ public class UpdateAgencySettingsCommandValidator : AbstractValidator<UpdateAgen
 {
     public UpdateAgencySettingsCommandValidator()
     {
-        RuleFor(x => x.AppointmentId)
-            .NotEmpty().WithMessage("AppointmentId is required.")
-            .Must(id => id != Guid.Empty).WithMessage("AppointmentId must be a valid GUID.");
+        RuleFor(x => x.AgencyEmail)
+            .Must(email => string.IsNullOrWhiteSpace(email) || email.Contains("@"))
+            .WithMessage("AgencyEmail must be a valid email or empty.");
 
         RuleFor(x => x.MaxAppointmentsPerDay)
             .GreaterThan(0).WithMessage("MaxAppointmentsPerDay must be greater than zero.");

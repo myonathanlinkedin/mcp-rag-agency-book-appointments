@@ -5,12 +5,14 @@ using System.Security.Claims;
 
 public class CreateAppointmentCommand : IRequest<Result>
 {
+    public string? AgencyEmail { get; } // Optional: Admin must provide, otherwise retrieved from context
     public string UserEmail { get; }
     public DateTime Date { get; }
-    public string AppointmentName { get; } // Added appointment name
+    public string AppointmentName { get; }
 
-    public CreateAppointmentCommand(string userEmail, DateTime date, string appointmentName)
+    public CreateAppointmentCommand(string? agencyEmail, string userEmail, DateTime date, string appointmentName)
     {
+        AgencyEmail = agencyEmail;
         UserEmail = userEmail;
         Date = date;
         AppointmentName = appointmentName;
@@ -37,13 +39,23 @@ public class CreateAppointmentCommand : IRequest<Result>
 
         public async Task<Result> Handle(CreateAppointmentCommand request, CancellationToken cancellationToken)
         {
-            // Retrieve AgencyEmail from HttpContextAccessor
-            var agencyEmail = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Email)?.Value;
+            var user = httpContextAccessor.HttpContext?.User;
+            var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
+            var isAdmin = user?.IsInRole(CommonModelConstants.Role.Administrator) ?? false;
 
-            if (string.IsNullOrEmpty(agencyEmail))
+            if (string.IsNullOrEmpty(userEmail))
             {
-                logger.LogWarning("Failed to create appointment. No valid AgencyEmail found in HttpContext.");
-                return Result.Failure(new[] { "No valid AgencyEmail found in HttpContext." });
+                logger.LogWarning("Failed to create appointment. No valid user email found in HttpContext.");
+                return Result.Failure(new[] { "No valid user email found in HttpContext." });
+            }
+
+            // Determine agency email: Admin must provide it, otherwise retrieve from user context
+            string agencyEmail = request.AgencyEmail ?? userEmail;
+
+            if (request.AgencyEmail != null && !isAdmin)
+            {
+                logger.LogWarning("Unauthorized appointment creation attempt. Only administrators can create for another agency.");
+                return Result.Failure(new[] { "Only administrators can create appointments for another agency." });
             }
 
             var agency = await agencyService.GetByEmailAsync(agencyEmail);
