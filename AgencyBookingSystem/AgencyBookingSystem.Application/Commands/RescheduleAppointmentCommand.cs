@@ -35,7 +35,7 @@ public class RescheduleAppointmentCommand : IRequest<Result>
             // Retrieve user role and email from HttpContextAccessor
             var user = httpContextAccessor.HttpContext?.User;
             var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
-            var isAdmin = user?.IsInRole("Administrator") ?? false;
+            var isAdmin = user?.IsInRole(CommonModelConstants.Role.Administrator) ?? false;
 
             if (string.IsNullOrEmpty(userEmail))
             {

@@ -30,7 +30,7 @@ public class AgencyService : IAgencyService
     public async Task SaveAsync(Agency entity, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving agency: {AgencyName}", entity.Name);
-        await agencyRepository.Save(entity, cancellationToken);
+        await agencyRepository.UpsertAsync(entity, cancellationToken);
     }
 
     public async Task<List<Agency>> GetAgenciesWithUsersAsync()
@@ -88,7 +88,7 @@ public class AgencyService : IAgencyService
             Roles = roles
         };
 
-        await agencyUserRepository.Save(agencyUser, cancellationToken);
+        await agencyUserRepository.UpsertAsync(agencyUser, cancellationToken);
 
         // Dispatch event instead of direct notification
         await eventDispatcher.Dispatch(new AgencyUserAssignedEvent(
@@ -122,7 +122,7 @@ public class AgencyService : IAgencyService
             IsApproved = !requiresApproval // Auto-approve if `RequiresApproval = false`
         };
 
-        await agencyRepository.Save(agency, cancellationToken);
+        await agencyRepository.UpsertAsync(agency, cancellationToken);
 
         // Dispatch event instead of direct notification
         await eventDispatcher.Dispatch(new AgencyRegisteredEvent(
@@ -147,7 +147,7 @@ public class AgencyService : IAgencyService
         }
 
         agency.IsApproved = true;
-        await agencyRepository.Save(agency, cancellationToken);
+        await agencyRepository.UpsertAsync(agency, cancellationToken);
 
         // Dispatch event instead of direct notification
         await eventDispatcher.Dispatch(new AgencyUserAssignedEvent(

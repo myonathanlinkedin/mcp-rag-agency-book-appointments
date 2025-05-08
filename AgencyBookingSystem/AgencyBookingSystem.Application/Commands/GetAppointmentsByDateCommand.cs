@@ -3,16 +3,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
-public class GetAppointmentsByDateCommand : IRequest<List<AppointmentDto>>
+public class GetAppointmentsByDateCommand : IRequest<Result<List<AppointmentDto>>>
 {
     public DateTime Date { get; }
 
-    public GetAppointmentsByDateCommand(DateTime date)
-    {
-        Date = date;
-    }
+    public GetAppointmentsByDateCommand(DateTime date) => Date = date;
 
-    public class GetAppointmentsByDateCommandHandler : IRequestHandler<GetAppointmentsByDateCommand, List<AppointmentDto>>
+    public class GetAppointmentsByDateCommandHandler : IRequestHandler<GetAppointmentsByDateCommand, Result<List<AppointmentDto>>>
     {
         private readonly IAppointmentService appointmentService;
         private readonly ILogger<GetAppointmentsByDateCommandHandler> logger;
@@ -28,11 +25,10 @@ public class GetAppointmentsByDateCommand : IRequest<List<AppointmentDto>>
             this.httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<List<AppointmentDto>> Handle(GetAppointmentsByDateCommand request, CancellationToken cancellationToken)
+        public async Task<Result<List<AppointmentDto>>> Handle(GetAppointmentsByDateCommand request, CancellationToken cancellationToken)
         {
             logger.LogInformation("Fetching appointments for date {Date}.", request.Date);
 
-            // Retrieve user role and email from HttpContext
             var user = httpContextAccessor.HttpContext?.User;
             var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
             var isAdmin = user?.IsInRole(CommonModelConstants.Role.Administrator) ?? false;
@@ -40,30 +36,21 @@ public class GetAppointmentsByDateCommand : IRequest<List<AppointmentDto>>
             if (string.IsNullOrEmpty(userEmail))
             {
                 logger.LogWarning("Failed to fetch appointments. No valid user email found.");
-                return new List<AppointmentDto>();
+                return Result<List<AppointmentDto>>.Failure(new[] { "User email is missing." });
             }
 
-            List<AppointmentDto> appointmentDtos;
+            List<AppointmentDto> appointmentDtos = isAdmin
+                ? await appointmentService.GetAppointmentsByDateAsync(request.Date)
+                : await appointmentService.GetAppointmentsByDateForUserAsync(request.Date, userEmail);
 
-            if (isAdmin)
-            {
-                // Admins get all appointments
-                appointmentDtos = await appointmentService.GetAppointmentsByDateAsync(request.Date);
-            }
-            else
-            {
-                // Agents get only their own appointments
-                appointmentDtos = await appointmentService.GetAppointmentsByDateForUserAsync(request.Date, userEmail);
-            }
-
-            if (appointmentDtos == null || !appointmentDtos.Any())
+            if (appointmentDtos is null || !appointmentDtos.Any())
             {
                 logger.LogWarning("No appointments found for date {Date}.", request.Date);
-                return new List<AppointmentDto>();
+                return Result<List<AppointmentDto>>.Failure(new[] { "No appointments found.", "Try a different date." });
             }
 
             logger.LogInformation("Successfully fetched {AppointmentCount} appointments for date {AppointmentDate}.", appointmentDtos.Count, request.Date);
-            return appointmentDtos;
+            return Result<List<AppointmentDto>>.SuccessWith(appointmentDtos);
         }
     }
 }

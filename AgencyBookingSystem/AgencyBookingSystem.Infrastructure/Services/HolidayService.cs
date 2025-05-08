@@ -26,7 +26,7 @@ public class HolidayService : IHolidayService
     public async Task SaveAsync(Holiday entity, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving holiday for Agency ID: {AgencyId}", entity.AgencyId);
-        await holidayRepository.Save(entity, cancellationToken);
+        await holidayRepository.UpsertAsync(entity, cancellationToken);
     }
 
     public async Task<List<Holiday>> GetHolidaysByAgencyAsync(Guid agencyId)

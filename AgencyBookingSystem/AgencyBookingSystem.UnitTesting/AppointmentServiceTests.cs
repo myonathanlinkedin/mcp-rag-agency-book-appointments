@@ -198,7 +198,7 @@ public class AppointmentServiceTests
         // Assert
         Assert.Equal(AppointmentStatus.Expired, appointment.Status);
         mockAppointmentRepository.Verify(
-            repo => repo.Save(It.Is<Appointment>(a => a.Id == appointmentId && a.Status == AppointmentStatus.Expired),
+            repo => repo.UpsertAsync(It.Is<Appointment>(a => a.Id == appointmentId && a.Status == AppointmentStatus.Expired),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -307,7 +307,7 @@ public class AppointmentServiceTests
         Assert.True(result.Succeeded);
         Assert.Equal(newDate, appointment.Date);
         mockAppointmentRepository.Verify(
-            repo => repo.Save(It.Is<Appointment>(a => a.Id == appointmentId && a.Date == newDate),
+            repo => repo.UpsertAsync(It.Is<Appointment>(a => a.Id == appointmentId && a.Date == newDate),
             It.IsAny<CancellationToken>()),
             Times.Once);
         mockEventDispatcher.Verify(
@@ -339,7 +339,7 @@ public class AppointmentServiceTests
         Assert.False(result.Succeeded);
         Assert.Contains("Appointment does not exist", result.Errors[0]);
         mockAppointmentRepository.Verify(
-            repo => repo.Save(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
+            repo => repo.UpsertAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -400,7 +400,7 @@ public class AppointmentServiceTests
         Assert.False(result.Succeeded);
         Assert.Contains("Selected date is a holiday", result.Errors[0]);
         mockAppointmentRepository.Verify(
-            repo => repo.Save(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
+            repo => repo.UpsertAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -456,7 +456,7 @@ public class AppointmentServiceTests
         // Assert
         Assert.True(result.Succeeded);
         mockAppointmentRepository.Verify(
-            repo => repo.Save(
+            repo => repo.UpsertAsync(
                 It.Is<Appointment>(a =>
                     a.AgencyId == agencyId &&
                     a.AgencyUserId == agencyUserId &&
@@ -466,7 +466,7 @@ public class AppointmentServiceTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
         mockAppointmentSlotRepository.Verify(
-            repo => repo.Save(
+            repo => repo.UpsertAsync(
                 It.Is<AppointmentSlot>(s => s.StartTime == date && s.Capacity == 2),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -526,7 +526,7 @@ public class AppointmentServiceTests
         Assert.False(result.Succeeded);
         Assert.Contains("Selected date is a holiday", result.Errors[0]);
         mockAppointmentRepository.Verify(
-            repo => repo.Save(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
+            repo => repo.UpsertAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -583,7 +583,7 @@ public class AppointmentServiceTests
         // Assert
         Assert.Equal("Canceled", appointment.Status);
         mockAppointmentRepository.Verify(
-            repo => repo.Save(It.Is<Appointment>(a => a.Id == appointmentId && a.Status == "Canceled"),
+            repo => repo.UpsertAsync(It.Is<Appointment>(a => a.Id == appointmentId && a.Status == "Canceled"),
             It.IsAny<CancellationToken>()),
             Times.Once);
         mockEventDispatcher.Verify(

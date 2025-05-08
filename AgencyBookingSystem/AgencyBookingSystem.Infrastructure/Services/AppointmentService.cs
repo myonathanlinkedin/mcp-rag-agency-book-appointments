@@ -81,7 +81,7 @@ public class AppointmentService : IAppointmentService
         if (appointment == null || appointment.Status != AppointmentStatus.Pending) return;
 
         appointment.Status = AppointmentStatus.Expired;
-        await appointmentRepository.Save(appointment);
+        await appointmentRepository.UpsertAsync(appointment);
         logger.LogWarning("Appointment {AppointmentId} marked as Expired due to no-show.", appointmentId);
     }
 
@@ -133,7 +133,7 @@ public class AppointmentService : IAppointmentService
         }
 
         appointment.Date = newDate;
-        await appointmentRepository.Save(appointment, cancellationToken);
+        await appointmentRepository.UpsertAsync(appointment, cancellationToken);
 
         // ✅ Dispatch event
         await eventDispatcher.Dispatch(new AppointmentEvent(
@@ -208,11 +208,11 @@ public class AppointmentService : IAppointmentService
             Token = Guid.NewGuid().ToString()
         };
 
-        await appointmentRepository.Save(appointment, cancellationToken);
+        await appointmentRepository.UpsertAsync(appointment, cancellationToken);
 
         // ✅ Reduce slot capacity after booking
         selectedSlot.Capacity -= 1;
-        await appointmentSlotRepository.Save(selectedSlot, cancellationToken);
+        await appointmentSlotRepository.UpsertAsync(selectedSlot, cancellationToken);
 
         // ✅ Dispatch event
         await eventDispatcher.Dispatch(new AppointmentEvent(
@@ -291,7 +291,7 @@ public class AppointmentService : IAppointmentService
     public async Task SaveAsync(Appointment entity, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving appointment '{AppointmentName}' for Agency {AgencyId}.", entity.Name, entity.AgencyId);
-        await appointmentRepository.Save(entity, cancellationToken);
+        await appointmentRepository.UpsertAsync(entity, cancellationToken);
     }
 
     public async Task<List<AppointmentDto>> GetAppointmentsByDateAsync(DateTime date)

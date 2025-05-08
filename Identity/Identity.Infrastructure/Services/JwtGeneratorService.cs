@@ -19,9 +19,9 @@ public class JwtGeneratorService : IJwtGenerator
     {
         this.userManager = userManager;
         this.keyProvider = keyProvider;
-        audience = appSettings.Audience;
-        issuer = appSettings.Issuer;
-        tokenExpirationSeconds = appSettings.TokenExpirationSeconds;
+        this.audience = appSettings.Audience;
+        this.issuer = appSettings.Issuer;
+        this.tokenExpirationSeconds = appSettings.TokenExpirationSeconds;
     }
 
     public async Task<(string AccessToken, string RefreshToken)> GenerateToken(User user)
