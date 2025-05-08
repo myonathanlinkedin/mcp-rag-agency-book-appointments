@@ -7,7 +7,7 @@ public class CreateAgencyCommand : IRequest<Result>
     public string Email { get; }
     public int MaxAppointmentsPerDay { get; }
 
-    public CreateAgencyCommand(string name, string email, bool requiresApproval, int maxAppointmentsPerDay)
+    public CreateAgencyCommand(string name, string email, int maxAppointmentsPerDay)
     {
         Name = name;
         Email = email;
