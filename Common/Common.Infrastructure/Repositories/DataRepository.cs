@@ -15,7 +15,19 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
 
     public async Task Save(TEntity entity, CancellationToken cancellationToken = default)
     {
-        Data.Update(entity);
+        var existingEntity = await GetByIdAsync(entity.Id);
+
+        if (existingEntity != null)
+        {
+            // Entity exists, so update it
+            Data.Entry(existingEntity).CurrentValues.SetValues(entity);
+        }
+        else
+        {
+            // Entity doesn't exist, so insert a new one
+            await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
+        }
+
         await Data.SaveChangesAsync(cancellationToken);
     }
 
