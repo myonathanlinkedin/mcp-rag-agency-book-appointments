@@ -23,7 +23,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ **API with Brain – Users can freely type prompts in natural language for AI-driven responses** 🧠📝  
 ✅ **Microservices-ready – modular, scalable, and adaptable** 🏢🔄  
 ✅ **Cloud-ready, designed for potential deployment on Azure/AWS** ☁️  
-✅ **Refit Integration for REST API consumption** – Simplifies REST API interaction with typed interfaces for seamless API calls 🔌  
+✅ **Refit-powered REST API clients** – Type-safe declarative HTTP calls 🔌  
  
 ## **📜 Architecture Diagram**  
 ```plaintext
@@ -46,18 +46,18 @@ User → API Gateway → Appointment Service → Event Processing (Kafka) → Se
 
 This ensures a **streamlined booking experience**, allowing agencies to manage **appointments efficiently** with **real-time indexing, AI-generated email templates, and AI-driven semantic search with Qdrant!**  
 
-## **🔧 Tech Stack**  
-- **C# .NET Core** 🏗️  
-- **Entity Framework Core & LINQ** 🔍  
-- **FluentValidation for validation logic** ✅  
-- **Swagger for API Documentation** 📜  
-- **Kafka for Event-Driven Appointment Processing** 🔄  
-- **ElasticSearch for Real-Time Appointment Indexing** 🔥  
-- **Qdrant Vector Database for AI-driven semantic search** 🧠🔍  
-- **AI LLM for Automatic Email Template Generation** 📧🤖  
-- **API with Brain – Free Prompt-Based AI Responses** 🧠📝  
-- **Microservices-ready with modular services & APIs** 🏢🔄  
-- **Cloud-ready for potential Azure/AWS deployment** ☁️  
+## **🧰 Tech Stack**  
+🟦 **.NET 8** – Modern, performant runtime for cloud-native applications  
+🛡️ **IdentityServer** – Secure authentication and token issuance  
+📅 **Hangfire** – Background job scheduling for asynchronous workflows  
+📡 **Apache Kafka** – Distributed event streaming platform  
+🔍 **ElasticSearch** – High-speed, full-text search for appointment indexing  
+🧠 **Qdrant** – Vector DB for semantic AI search  
+🧾 **PromptAPI** – LLM-based AI chatbot integration  
+🔌 **Refit** – Declarative REST API clients with interface-based contracts  
+✅ **FluentValidation** – Fluent rules for robust input validation  
+🧪 **Swagger / OpenAPI** – API documentation and test interface  
+☁️ **Azure / AWS Ready** – Cloud-native infrastructure compatible  
 
 ## **🛡️ Security & Access Control**  
 ⚠️ **Strict access policies & authentication layers**  
