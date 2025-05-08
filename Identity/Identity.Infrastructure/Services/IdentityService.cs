@@ -115,7 +115,7 @@ public class IdentityService : IIdentity
         }
 
         var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
-        var newPassword = PasswordGenerator.Generate(8);
+        var newPassword = PasswordGenerator.Generate(CommonModelConstants.Identity.DefaultPasswordLength);
         var identityResult = await userManager.ResetPasswordAsync(user, resetToken, newPassword);
         var errors = identityResult.Errors.Select(e => e.Description);
 

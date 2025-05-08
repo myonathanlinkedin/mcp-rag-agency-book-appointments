@@ -14,6 +14,7 @@ public class CommonModelConstants
         public const int MaxEmailLength = 50;
         public const int MinPasswordLength = 6;
         public const int MaxPasswordLength = 32;
+        public const int DefaultPasswordLength = 8;
     }
 
     public class Role

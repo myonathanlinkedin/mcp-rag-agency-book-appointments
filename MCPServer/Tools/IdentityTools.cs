@@ -34,7 +34,7 @@ public sealed class IdentityTools
     [McpServerTool, Description(RegisterDescription)]
     public async Task<string> RegisterAsync([Description("Email address to register")] string email)
     {
-        var password = PasswordGenerator.Generate(6);
+        var password = PasswordGenerator.Generate(CommonModelConstants.Identity.DefaultPasswordLength);
         var payload = new
         {
             email,
@@ -132,7 +132,7 @@ public sealed class IdentityTools
     [McpServerTool, Description(ResetPasswordDescription)]
     public async Task<string> ResetPasswordAsync([Description("Email address to reset password for")] string email)
     {
-        var newPassword = PasswordGenerator.Generate(6);  // Generate a random new password
+        var newPassword = PasswordGenerator.Generate(CommonModelConstants.Identity.DefaultPasswordLength);  // Generate a random new password
         var payload = new
         {
             email
