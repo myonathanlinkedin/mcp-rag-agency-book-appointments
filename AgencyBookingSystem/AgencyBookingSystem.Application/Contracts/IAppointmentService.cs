@@ -9,9 +9,6 @@
     // Create an appointment while checking availability and handling notifications
     Task<Result> CreateAppointmentAsync(Guid agencyId, string email, string appointmentName, DateTime date, CancellationToken cancellationToken = default);
 
-    // Allow admins to forcefully create appointments regardless of availability constraints
-    Task<Result> ForceCreateAppointmentAsync(string email, string appointmentName, DateTime date, CancellationToken cancellationToken = default);
-
     // Check if a given appointment exists in the system
     Task<bool> ExistsAsync(Guid appointmentId);
 
@@ -32,4 +29,7 @@
 
     // Fetch all appointments for a specific user
     Task<List<AppointmentDto>> GetAppointmentsByDateAsync(DateTime date);
+
+    // Fetch appointments for a specific user on a given date
+    Task<List<AppointmentDto>> GetAppointmentsByDateForUserAsync(DateTime date, string userEmail);
 }

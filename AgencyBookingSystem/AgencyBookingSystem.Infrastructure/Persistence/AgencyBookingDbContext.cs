@@ -10,7 +10,6 @@ internal class AgencyBookingDbContext : DbContext
 
     public DbSet<Agency> Agencies { get; set; } = default!;
     public DbSet<AgencyUser> AgencyUsers { get; set; } = default!;
-    public DbSet<Customer> Customers { get; set; } = default!;
     public DbSet<Appointment> Appointments { get; set; } = default!;
     public DbSet<AppointmentSlot> AppointmentSlots { get; set; } = default!;
     public DbSet<Holiday> Holidays { get; set; } = default!;

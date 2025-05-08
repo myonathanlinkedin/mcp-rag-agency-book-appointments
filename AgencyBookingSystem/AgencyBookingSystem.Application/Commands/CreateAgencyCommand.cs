@@ -5,14 +5,12 @@ public class CreateAgencyCommand : IRequest<Result>
 {
     public string Name { get; }
     public string Email { get; }
-    public bool RequiresApproval { get; }
     public int MaxAppointmentsPerDay { get; }
 
     public CreateAgencyCommand(string name, string email, bool requiresApproval, int maxAppointmentsPerDay)
     {
         Name = name;
         Email = email;
-        RequiresApproval = requiresApproval;
         MaxAppointmentsPerDay = maxAppointmentsPerDay;
     }
 
@@ -40,7 +38,8 @@ public class CreateAgencyCommand : IRequest<Result>
                 Id = Guid.NewGuid(),
                 Name = request.Name,
                 Email = request.Email,
-                RequiresApproval = request.RequiresApproval,
+                RequiresApproval = true,
+                IsApproved = true,
                 MaxAppointmentsPerDay = request.MaxAppointmentsPerDay
             };
 

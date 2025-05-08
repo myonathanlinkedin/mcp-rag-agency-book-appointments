@@ -29,7 +29,8 @@ internal class IdentityDbInitializer : DbInitializer
                 var rolesToCreate = new[]
                 {
                     CommonModelConstants.Role.Administrator,
-                    CommonModelConstants.Role.Prompter
+                    CommonModelConstants.Role.Prompter,
+                    CommonModelConstants.Role.Agency
                 };
 
                 foreach (var roleName in rolesToCreate)

@@ -119,52 +119,6 @@ public class AppointmentService : IAppointmentService
         return preferredDate;
     }
 
-    public async Task<Result> ForceCreateAppointmentAsync(string email, string appointmentName, DateTime date, CancellationToken cancellationToken = default)
-    {
-        var agency = await agencyService.GetByEmailAsync(email);
-        if (agency == null)
-        {
-            logger.LogWarning("Admin override failed. No agency found for email {Email}.", email);
-            return Result.Failure(new[] { "No agency found for this email." });
-        }
-
-        var agencyUser = await agencyUserService.GetByEmailAsync(email);
-        if (agencyUser == null)
-        {
-            logger.LogWarning("Admin override failed. No agency user found for email {Email}.", email);
-            return Result.Failure(new[] { "No agency user found for this email." });
-        }
-
-        var appointment = new Appointment
-        {
-            Id = Guid.NewGuid(),
-            AgencyId = agency.Id,
-            AgencyUserId = agencyUser.Id,
-            Date = date,
-            Name = appointmentName,
-            Status = AppointmentStatus.Confirmed,
-            Token = Guid.NewGuid().ToString()
-        };
-
-        await appointmentRepository.Save(appointment, cancellationToken);
-
-        // Dispatch event instead of direct notification
-        await eventDispatcher.Dispatch(new AppointmentEvent(
-            appointment.Id,
-            appointment.Name,
-            appointment.Date,
-            appointment.Status,
-            agency.Name,
-            agency.Email,
-            agencyUser.Email
-        ));
-
-        logger.LogInformation("Admin override: Appointment '{AppointmentName}' forced for Agency {AgencyName}, User {UserEmail}.",
-            appointment.Name, agency.Name, agencyUser.Email);
-
-        return Result.Success;
-    }
-
     public async Task<Result> RescheduleAppointmentAsync(Guid appointmentId, DateTime newDate, CancellationToken cancellationToken = default)
     {
         var appointment = await appointmentRepository.GetByIdAsync(appointmentId);
@@ -388,4 +342,44 @@ public class AppointmentService : IAppointmentService
         logger.LogInformation("Successfully fetched {AppointmentCount} appointments for date {AppointmentDate}.", appointmentDtos.Count, date);
         return appointmentDtos;
     }
+
+    public async Task<List<AppointmentDto>> GetAppointmentsByDateForUserAsync(DateTime date, string userEmail)
+    {
+        logger.LogInformation("Fetching appointments for user {UserEmail} on date {Date}.", userEmail, date);
+
+        var appointments = await appointmentRepository.GetByDateAndUserAsync(date, userEmail);
+        if (appointments == null || !appointments.Any())
+        {
+            logger.LogWarning("No appointments found for user {UserEmail} on date {Date}.", userEmail, date);
+            return new List<AppointmentDto>();
+        }
+
+        var appointmentDtos = new List<AppointmentDto>();
+        foreach (var appointment in appointments)
+        {
+            var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
+            var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
+
+            if (agency == null || agencyUser == null)
+            {
+                logger.LogWarning("Incomplete data for appointment {AppointmentId}. Skipping.", appointment.Id);
+                continue;
+            }
+
+            appointmentDtos.Add(new AppointmentDto
+            {
+                AppointmentId = appointment.Id,
+                AppointmentName = appointment.Name,
+                Date = appointment.Date,
+                Status = appointment.Status,
+                AgencyName = agency.Name,
+                AgencyEmail = agency.Email,
+                UserEmail = agencyUser.Email
+            });
+        }
+
+        logger.LogInformation("Successfully fetched {AppointmentCount} appointments for user {UserEmail} on date {Date}.", appointmentDtos.Count, userEmail, date);
+        return appointmentDtos;
+    }
+
 }

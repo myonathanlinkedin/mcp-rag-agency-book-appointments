@@ -4,10 +4,6 @@ public class CreateAppointmentCommandValidator : AbstractValidator<CreateAppoint
 {
     public CreateAppointmentCommandValidator()
     {
-        RuleFor(a => a.AgencyEmail)
-            .NotEmpty().WithMessage("Agency email is required.")
-            .EmailAddress().WithMessage("A valid agency email is required.");
-
         RuleFor(a => a.UserEmail)
             .NotEmpty().WithMessage("User email is required.")
             .EmailAddress().WithMessage("A valid user email is required.");
