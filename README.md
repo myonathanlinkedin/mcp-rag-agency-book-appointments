@@ -47,7 +47,7 @@ User → API Gateway → Appointment Service → Event Processing (Kafka) → Se
 This ensures a **streamlined booking experience**, allowing agencies to manage **appointments efficiently** with **real-time indexing, AI-generated email templates, and AI-driven semantic search with Qdrant!**  
 
 ## **🧰 Tech Stack**  
-🟦 **.NET 8** – Modern, performant runtime for cloud-native applications  
+🟦 **.NET 9** – Modern, performant runtime for cloud-native applications  
 🛡️ **IdentityServer** – Secure authentication and token issuance  
 📅 **Hangfire** – Background job scheduling for asynchronous workflows  
 📡 **Apache Kafka** – Distributed event streaming platform  
