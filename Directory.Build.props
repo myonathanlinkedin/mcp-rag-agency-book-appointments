@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     
     <!-- Suppress specific warnings across all projects -->
-    <NoWarn>CS0108;CS8618;CS8625;CS8603</NoWarn>
+    <NoWarn>$(NoWarn);0108;8618;8625;8603</NoWarn>
     
     <!-- Don't treat warnings as errors by default -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
