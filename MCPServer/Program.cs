@@ -14,9 +14,6 @@ ConfigureLogging(builder);
 var configuration = builder.Configuration;
 string serverName = configuration["MCP:ServerName"] ?? "MCP Server";
 
-// Register default HttpClient with shared configuration
-RegisterHttpClient(builder, configuration);
-
 // Register Refit clients dynamically from the assembly
 RegisterRefitClients(builder, configuration);
 
@@ -44,17 +41,6 @@ void ConfigureLogging(WebApplicationBuilder builder)
 
     builder.Logging.ClearProviders();
     builder.Logging.AddProvider(new SerilogLoggerProvider(Log.Logger));
-}
-
-// Method to register the HttpClient with shared configuration for all API clients
-void RegisterHttpClient(WebApplicationBuilder builder, IConfiguration configuration)
-{
-    // Register the default HttpClient with a shared configuration
-    builder.Services.AddHttpClient("MCPClient", client =>
-    {
-        client.BaseAddress = new Uri(configuration["MCP:BaseUrl"]);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    });
 }
 
 // Method to register Refit clients dynamically from the assembly

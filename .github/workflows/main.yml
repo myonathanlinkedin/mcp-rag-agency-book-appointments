@@ -1,4 +1,4 @@
-name: Build and Deploy Agency Appointments API
+name: Build Agency Appointments API
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: agency-book-appointments    # Web app name
   DOTNET_VERSION: '9.0.x'                       # .NET version
   WORKING_DIRECTORY: '.'                        # Set your app's working directory
   REGISTRY: ghcr.io
@@ -150,47 +149,6 @@ jobs:
         labels: ${{ steps.meta-broker.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'pull_request'
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    
-    steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: app-artifact
-        path: ./publish
-        
-    - name: Login to Azure
-      uses: azure/login@v2
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-        
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
-      uses: azure/webapps-deploy@v3
-      with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: ./publish
-        
-    # Added post-deployment health check
-    - name: Check deployment health
-      run: |
-        echo "Waiting for deployment to stabilize..."
-        sleep 30
-        response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health)
-        if [ "$response" = "200" ]; then
-          echo "Deployment successful and application is healthy!"
-        else
-          echo "Health check failed with status: $response"
-          exit 1
-        fi
         
     # Added security scan
     - name: Run security scan for SimpleIdentityServer

@@ -13,7 +13,7 @@ public class JwtGeneratorService : IJwtGenerator
     private readonly int tokenExpirationSeconds;
 
     private const string RsaAlgorithm = SecurityAlgorithms.RsaSha256Signature;
-    private readonly Dictionary<string, (string RefreshToken, DateTime Expiry)> _refreshTokenStore = new();
+    private readonly Dictionary<string, (string RefreshToken, DateTime Expiry)> refreshTokenStore = new();
 
     public JwtGeneratorService(UserManager<User> userManager, ApplicationSettings appSettings, IRsaKeyProvider keyProvider)
     {
@@ -56,14 +56,14 @@ public class JwtGeneratorService : IJwtGenerator
         var refreshTokenExpiry = DateTime.UtcNow.AddSeconds((int)(tokenExpirationSeconds * 1.5)); // 50% longer than access token
         var refreshToken = GenerateRefreshToken();
 
-        _refreshTokenStore[user.Id] = (refreshToken, refreshTokenExpiry);
+        refreshTokenStore[user.Id] = (refreshToken, refreshTokenExpiry);
 
         return (accessToken, refreshToken);
     }
 
     public async Task<string> RefreshToken(string userId, string providedRefreshToken)
     {
-        if (!_refreshTokenStore.TryGetValue(userId, out var storedToken) ||
+        if (!refreshTokenStore.TryGetValue(userId, out var storedToken) ||
             storedToken.RefreshToken != providedRefreshToken ||
             storedToken.Expiry < DateTime.UtcNow)
         {

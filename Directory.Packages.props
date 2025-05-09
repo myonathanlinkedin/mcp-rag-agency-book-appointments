@@ -6,6 +6,8 @@
   
   <ItemGroup>
     <!-- ASP.NET Core & Extensions -->
+	<PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.9.0" />
+	<PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.9.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.6" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.6" />
