@@ -10,6 +10,8 @@ WORKDIR /src
 
 # Copy csproj files and restore dependencies
 COPY ["MCPServer/MCP.Server.csproj", "MCPServer/"]
+COPY ["Directory.Build.props", "./"]
+COPY ["Directory.Packages.props", "./"]
 # Add any other project references here as needed
 RUN dotnet restore "MCPServer/MCP.Server.csproj"
 

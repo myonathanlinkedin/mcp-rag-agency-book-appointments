@@ -106,7 +106,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Readme", "Readme", "{D3C938
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Migration", "Migration", "{B9A1C58A-7C14-4EA3-9941-95084B5C9267}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MigrationScripts", "MigrationScripts", "{B9A1C58A-7C14-4EA3-9941-95084B5C9267}"
 	ProjectSection(SolutionItems) = preProject
 		migration.ps1 = migration.ps1
 	EndProjectSection
