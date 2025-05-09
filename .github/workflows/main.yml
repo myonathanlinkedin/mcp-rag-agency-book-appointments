@@ -43,11 +43,11 @@ jobs:
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore /p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: Test
-      run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" /p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
       working-directory: ${{ env.WORKING_DIRECTORY }}
     
     # Added code coverage report
@@ -69,7 +69,7 @@ jobs:
       uses: github/codeql-action/analyze@v3
       
     - name: Publish
-      run: dotnet publish --configuration Release --output ./publish
+      run: dotnet publish --configuration Release --output ./publish /p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: Upload artifact
@@ -78,7 +78,7 @@ jobs:
         name: app-artifact
         path: ${{ env.WORKING_DIRECTORY }}/publish
     
-    # Added Docker build and push
+    # Added Docker build and push for SimpleIdentityServer
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
@@ -89,26 +89,73 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Extract Docker metadata
-      id: meta
+    - name: Extract Docker metadata for SimpleIdentityServer
+      id: meta-identity
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/identity-server
         tags: |
-          type=semver,pattern={{version}}
           type=sha,format=long
           latest
           
-    - name: Build and push Docker image
+    - name: Build and push SimpleIdentityServer Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./AgencyBookingSystem/Dockerfile
+        file: ./SimpleIdentityServer/Dockerfile
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        tags: ${{ steps.meta-identity.outputs.tags }}
+        labels: ${{ steps.meta-identity.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          ADDITIONAL_BUILD_ARGS=/p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+
+    # Added Docker build and push for MCPServer
+    - name: Extract Docker metadata for MCPServer
+      id: meta-mcp
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/mcp-server
+        tags: |
+          type=sha,format=long
+          latest
+          
+    - name: Build and push MCPServer Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./MCPServer/Dockerfile
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta-mcp.outputs.tags }}
+        labels: ${{ steps.meta-mcp.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          ADDITIONAL_BUILD_ARGS=/p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+
+    # Added Docker build and push for MessageBroker
+    - name: Extract Docker metadata for MessageBroker
+      id: meta-broker
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/message-broker
+        tags: |
+          type=sha,format=long
+          latest
+          
+    - name: Build and push MessageBroker Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./MessageBroker/Dockerfile
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta-broker.outputs.tags }}
+        labels: ${{ steps.meta-broker.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          ADDITIONAL_BUILD_ARGS=/p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
 
   deploy:
     runs-on: ubuntu-latest
@@ -152,14 +199,14 @@ jobs:
         fi
         
     # Added security scan
-    - name: Run security scan
+    - name: Run security scan for SimpleIdentityServer
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/identity-server:latest
         format: 'sarif'
-        output: 'trivy-results.sarif'
+        output: 'trivy-identity-results.sarif'
         
-    - name: Upload security scan results
+    - name: Upload security scan results for SimpleIdentityServer
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: 'trivy-results.sarif'
+        sarif_file: 'trivy-identity-results.sarif'

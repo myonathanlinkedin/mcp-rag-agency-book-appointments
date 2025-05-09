@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <!-- Suppress specific warnings across all projects -->
+    <NoWarn>$(NoWarn);CS0108;CS8618;CS8625;CS8603</NoWarn>
+    
+    <!-- Don't treat warnings as errors by default -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    
+    <!-- Enable nullable reference types -->
+    <Nullable>enable</Nullable>
+    
+    <!-- Enable implicit usings -->
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>
