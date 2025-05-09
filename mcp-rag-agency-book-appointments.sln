@@ -57,6 +57,65 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgencyBookingSystem.Web", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgencyBookingSystem.UnitTesting", "AgencyBookingSystem\AgencyBookingSystem.UnitTesting\AgencyBookingSystem.UnitTesting.csproj", "{C59ED0B8-526D-45D5-BF6C-2F7EBD23788F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IgnoreConfigs", "IgnoreConfigs", "{55EABAC2-C5DA-4EBA-99C6-90E6D312E3D8}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Postman", "Postman", "{5B21BF67-875D-4DEA-96F9-6962796078C9}"
+	ProjectSection(SolutionItems) = preProject
+		AgencyBookingSystem.postman_collection.json = AgencyBookingSystem.postman_collection.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Guides", "Guides", "{08337788-ACE5-49B9-9E2A-E3FD32DF49A3}"
+	ProjectSection(SolutionItems) = preProject
+		deployment-guide.md = deployment-guide.md
+		docker-guide.md = docker-guide.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipelines", "Pipelines", "{9563BA54-315C-444B-A104-E8FA349E1309}"
+	ProjectSection(SolutionItems) = preProject
+		azure-pipelines.yml = azure-pipelines.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CentralPackages", "CentralPackages", "{3BD6A7AC-5455-49EA-9664-9E85FC6DEF84}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Packages.props = Directory.Packages.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BuildConfigs", "BuildConfigs", "{9898C268-0E4B-4A01-A283-C16AB0BCF34B}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dockers", "Dockers", "{C224629B-76A4-480D-BF52-4DE72702A87D}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{9033B49C-DAB3-428D-8754-913A0A80DC37}"
+	ProjectSection(SolutionItems) = preProject
+		github-workflow.yml = github-workflow.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "License", "License", "{692FD5E7-421C-4CC3-8B77-1C0665E3DAD8}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Readme", "Readme", "{D3C9389C-39C3-448D-80B1-077CF28BD320}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Migration", "Migration", "{B9A1C58A-7C14-4EA3-9941-95084B5C9267}"
+	ProjectSection(SolutionItems) = preProject
+		migration.ps1 = migration.ps1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -172,6 +231,17 @@ Global
 		{955C8D0A-F8DE-6F2E-9452-6787E94D6BEC} = {DA86E829-4E10-472D-94F8-1B7A8B35C869}
 		{50152866-2B41-4D81-AB4F-BFD5E19159EA} = {DA86E829-4E10-472D-94F8-1B7A8B35C869}
 		{C59ED0B8-526D-45D5-BF6C-2F7EBD23788F} = {DA86E829-4E10-472D-94F8-1B7A8B35C869}
+		{55EABAC2-C5DA-4EBA-99C6-90E6D312E3D8} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{5B21BF67-875D-4DEA-96F9-6962796078C9} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{08337788-ACE5-49B9-9E2A-E3FD32DF49A3} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{9563BA54-315C-444B-A104-E8FA349E1309} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{3BD6A7AC-5455-49EA-9664-9E85FC6DEF84} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{9898C268-0E4B-4A01-A283-C16AB0BCF34B} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{C224629B-76A4-480D-BF52-4DE72702A87D} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{9033B49C-DAB3-428D-8754-913A0A80DC37} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{692FD5E7-421C-4CC3-8B77-1C0665E3DAD8} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{D3C9389C-39C3-448D-80B1-077CF28BD320} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{B9A1C58A-7C14-4EA3-9941-95084B5C9267} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F78DF37D-D701-4804-8C76-8E39B4B245C7}
