@@ -43,11 +43,11 @@ jobs:
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: Build
-      run: dotnet build --configuration Release --no-restore /p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+      run: dotnet build --configuration Release --no-restore "/p:NoWarn=CS0108,CS8618,CS8625,CS8603"
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: Test
-      run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" /p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+      run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" "/p:NoWarn=CS0108,CS8618,CS8625,CS8603"
       working-directory: ${{ env.WORKING_DIRECTORY }}
     
     # Added code coverage report
@@ -69,7 +69,7 @@ jobs:
       uses: github/codeql-action/analyze@v3
       
     - name: Publish
-      run: dotnet publish --configuration Release --output ./publish /p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+      run: dotnet publish --configuration Release --output ./publish "/p:NoWarn=CS0108,CS8618,CS8625,CS8603"
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: Upload artifact
@@ -109,7 +109,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         build-args: |
-          ADDITIONAL_BUILD_ARGS=/p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+          ADDITIONAL_BUILD_ARGS="/p:NoWarn=CS0108,CS8618,CS8625,CS8603"
 
     # Added Docker build and push for MCPServer
     - name: Extract Docker metadata for MCPServer
@@ -132,7 +132,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         build-args: |
-          ADDITIONAL_BUILD_ARGS=/p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+          ADDITIONAL_BUILD_ARGS="/p:NoWarn=CS0108,CS8618,CS8625,CS8603"
 
     # Added Docker build and push for MessageBroker
     - name: Extract Docker metadata for MessageBroker
@@ -155,7 +155,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         build-args: |
-          ADDITIONAL_BUILD_ARGS=/p:TreatWarningsAsErrors=false /p:NoWarn=CS0108,CS8618,CS8625,CS8603
+          ADDITIONAL_BUILD_ARGS="/p:NoWarn=CS0108,CS8618,CS8625,CS8603"
 
   deploy:
     runs-on: ubuntu-latest
