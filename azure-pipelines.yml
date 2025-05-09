@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'  # Changed to Ubuntu for better compatibility with containerized apps
 
 variables:
   solution: '**/*.sln'
@@ -11,6 +11,11 @@ variables:
   webAppName: 'agency-book-appointments'
   azureServiceConnection: 'your-azure-service-connection'
   dotnetVersion: '9.0.x'
+  containerRegistry: 'your-container-registry'
+  dockerRegistryServiceConnection: 'your-docker-registry-connection'
+  imageRepository: 'agency-booking-system'
+  dockerfilePath: '$(Build.SourcesDirectory)/AgencyBookingSystem/Dockerfile'
+  tag: '$(Build.BuildId)'
 
 stages:
 - stage: Build
@@ -46,6 +51,24 @@ stages:
         command: 'test'
         projects: '**/*Tests/*.csproj'
         arguments: '--configuration $(buildConfiguration) --no-build'
+        
+    # Added SonarCloud analysis
+    - task: SonarCloudPrepare@1
+      displayName: 'Prepare SonarCloud Analysis'
+      inputs:
+        SonarCloud: 'your-sonarcloud-connection'
+        organization: 'your-sonarcloud-org'
+        scannerMode: 'MSBuild'
+        projectKey: 'agency-booking-system'
+        projectName: 'Agency Booking System'
+        
+    - task: SonarCloudAnalyze@1
+      displayName: 'Run SonarCloud Analysis'
+      
+    - task: SonarCloudPublish@1
+      displayName: 'Publish SonarCloud Results'
+      inputs:
+        pollingTimeoutSec: '300'
     
     - task: DotNetCoreCLI@2
       displayName: 'Publish Web API'
@@ -61,6 +84,19 @@ stages:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'drop'
         publishLocation: 'Container'
+        
+    # Added Docker build and push
+    - task: Docker@2
+      displayName: 'Build and Push Docker Image'
+      inputs:
+        containerRegistry: '$(dockerRegistryServiceConnection)'
+        repository: '$(imageRepository)'
+        command: 'buildAndPush'
+        Dockerfile: '$(dockerfilePath)'
+        buildContext: '$(Build.SourcesDirectory)'
+        tags: |
+          $(tag)
+          latest
 
 - stage: Deploy
   displayName: 'Deploy to Azure'
@@ -74,15 +110,32 @@ stages:
       runOnce:
         deploy:
           steps:
-          - task: AzureRmWebAppDeployment@4
-            displayName: 'Deploy Agency Appointments API'
+          - task: AzureWebAppContainer@1
+            displayName: 'Deploy Container to Azure Web App'
             inputs:
-              ConnectionType: 'AzureRM'
               azureSubscription: '$(azureServiceConnection)'
-              appType: 'webApp'
-              WebAppName: '$(webAppName)'
-              packageForLinux: '$(Pipeline.Workspace)/drop/*.zip'
-              AppSettings: '-ASPNETCORE_ENVIRONMENT Production -ConnectionStrings:DefaultConnection "$(ConnectionString)"'
-              enableCustomDeployment: true
-              DeploymentType: 'webDeploy'
-              RemoveAdditionalFilesFlag: true
+              appName: '$(webAppName)'
+              containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+              appSettings: |
+                -ASPNETCORE_ENVIRONMENT Production
+                -ConnectionStrings:IdentityDBConnection "$(IdentityDBConnection)"
+                -ConnectionStrings:DefaultConnection "$(DefaultConnection)"
+                -Elasticsearch:Url "$(ElasticsearchUrl)"
+                -Kafka:BootstrapServers "$(KafkaBootstrapServers)"
+          
+          # Added health check verification
+          - task: AzureCLI@2
+            displayName: 'Verify Deployment Health'
+            inputs:
+              azureSubscription: '$(azureServiceConnection)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Checking application health..."
+                response=$(curl -s -o /dev/null -w "%{http_code}" https://$(webAppName).azurewebsites.net/health)
+                if [ "$response" = "200" ]; then
+                  echo "Application is healthy!"
+                else
+                  echo "Application health check failed with status: $response"
+                  exit 1
+                fi
