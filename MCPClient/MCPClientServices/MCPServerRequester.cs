@@ -75,7 +75,9 @@ public class MCPServerRequester : IMCPServerRequester
             }
 
             messages.AddMessages(updates);
-            messageStore.SaveMessages(sessionId, messages);
+
+            if(useSession)
+                  messageStore.SaveMessages(sessionId, messages);
 
             return Result<string>.SuccessWith(responseBuilder.ToString());
         }
