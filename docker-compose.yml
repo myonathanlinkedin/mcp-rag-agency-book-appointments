@@ -10,7 +10,8 @@ services:
       - "8443:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=IdentityServer;User=sa;Password=YourStrong!Password;TrustServerCertificate=True
+    volumes:
+      - ./SimpleIdentityServer/appsettings.json:/app/appsettings.json
     depends_on:
       - db
     networks:
@@ -20,15 +21,14 @@ services:
   mcp-server:
     build:
       context: .
-      dockerfile: MCP.Server/Dockerfile
+      dockerfile: MCPServer/Dockerfile
     ports:
       - "8081:80"
       - "8444:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=McpServer;User=sa;Password=YourStrong!Password;TrustServerCertificate=True
-      - Kafka__BootstrapServers=kafka:9092
-      - IdentityServer__Authority=http://simple-identity-server
+    volumes:
+      - ./MCPServer/appsettings.json:/app/appsettings.json
     depends_on:
       - db
       - kafka
@@ -40,14 +40,16 @@ services:
   message-broker-kafka:
     build:
       context: .
-      dockerfile: MessageBroker.Kafka/Dockerfile
+      dockerfile: MessageBroker/Dockerfile
     ports:
       - "8082:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - Kafka__BootstrapServers=kafka:9092
+    volumes:
+      - ./MessageBroker/appsettings.json:/app/appsettings.json
     depends_on:
       - kafka
+      - db
     networks:
       - mcp-network
     restart: unless-stopped
@@ -92,9 +94,33 @@ services:
     networks:
       - mcp-network
 
+  # Add Elasticsearch for search indexing
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - mcp-network
+
+  # Add MailHog for email testing
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - mcp-network
+
 networks:
   mcp-network:
     driver: bridge
 
 volumes:
   mssql-data:
+  elasticsearch-data:

@@ -1,21 +1,21 @@
 # Base image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM mcr.microsoft.com/dotnet/nightly/aspnet:9.0-preview AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
 # Build image
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/nightly/sdk:9.0-preview AS build
 WORKDIR /src
 
 # Copy csproj files and restore dependencies
-COPY ["MCP.Server/MCP.Server.csproj", "MCP.Server/"]
+COPY ["MCPServer/MCP.Server.csproj", "MCPServer/"]
 # Add any other project references here as needed
-RUN dotnet restore "MCP.Server/MCP.Server.csproj"
+RUN dotnet restore "MCPServer/MCP.Server.csproj"
 
 # Copy the rest of the source code
 COPY . .
-WORKDIR "/src/MCP.Server"
+WORKDIR "/src/MCPServer"
 
 # Build the application
 RUN dotnet build "MCP.Server.csproj" -c Release -o /app/build
