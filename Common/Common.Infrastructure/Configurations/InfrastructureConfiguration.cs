@@ -63,8 +63,6 @@ public static class InfrastructureConfiguration
                 };
             });
 
-        services.AddHttpContextAccessor();
-
         return services;
     }
 
