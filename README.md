@@ -75,13 +75,15 @@ Feel free to submit **pull requests** or open **issues**!
 
 ---
 
-### **📜 License - Apache License 2.0 (TL;DR)**  
-This project follows the **Apache License 2.0**, which means:  
+### 📜 License - Apache License 2.0 (TL;DR)
 
-✅ **You can** use, modify, and distribute the code freely.  
-✅ **You must** include the original license when distributing.  
-✅ **You can** use this in personal & commercial projects.  
-✅ **No warranties** – use at your own risk! 🚀  
+This project follows the **Apache License 2.0**, which means:
+
+- ✅ **You can** use, modify, and distribute the code freely.  
+- ✅ **You must** include the original license when distributing.  
+- ✅ **You must** include the `NOTICE` file if one is provided.  
+- ✅ **You can** use this in personal & commercial projects.  
+- ✅ **No warranties** – use at your own risk! 🚀  
 
 For full details, check the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).  
 
