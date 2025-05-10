@@ -41,7 +41,7 @@ public class Program
 
                 services.AddSingleton<IKafkaConsumerService>(sp =>
                 {
-                    return new GenericKafkaConsumer(
+                    return new AppointmentKafkaConsumer(
                         configuration["Kafka:BootstrapServers"],
                         configuration["Kafka:GroupId"],
                         sp.GetRequiredService<IElasticClient>(),

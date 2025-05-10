@@ -20,7 +20,7 @@ public static class MBConfiguration
 
         services.Scan(scan => scan
             .FromAssemblies(assembly)
-            .AddClasses(classes => classes.InNamespaceOf<GenericKafkaConsumer>())
+            .AddClasses(classes => classes.InNamespaceOf<AppointmentKafkaConsumer>())
             .AsImplementedInterfaces()
             .WithScopedLifetime());
 

@@ -1,59 +1,23 @@
-﻿using Confluent.Kafka;
-using Nest;
-using Newtonsoft.Json;
+﻿using Nest;
 using Newtonsoft.Json.Linq;
 
-public class GenericKafkaConsumer : IKafkaConsumerService
+public class AppointmentKafkaConsumer : BaseKafkaConsumer<string>, IKafkaConsumerService
 {
-    private readonly IConsumer<Null, string> consumer;
     private readonly IElasticClient elasticClient;
     private readonly string indexName;
 
-    public GenericKafkaConsumer(string bootstrapServers, string groupId, IElasticClient elasticClient, string indexName)
+    public AppointmentKafkaConsumer(
+        string bootstrapServers,
+        string groupId,
+        IElasticClient elasticClient,
+        string indexName
+    ) : base(bootstrapServers, groupId)
     {
-        this.consumer = CreateConsumer(bootstrapServers, groupId);
         this.elasticClient = elasticClient;
         this.indexName = indexName;
     }
 
-    public async Task ConsumeAsync(string topic, CancellationToken cancellationToken)
-    {
-        try
-        {
-            consumer.Subscribe(topic);
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                var cr = consumer.Consume(cancellationToken);
-                if (!string.IsNullOrEmpty(cr?.Message?.Value))
-                {
-                    await ProcessMessageAsync(cr.Message.Value);
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            consumer.Close();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error consuming messages: {ex.Message}");
-        }
-    }
-
-    private IConsumer<Null, string> CreateConsumer(string bootstrapServers, string groupId)
-    {
-        var config = new ConsumerConfig
-        {
-            BootstrapServers = bootstrapServers,
-            GroupId = groupId,
-            AutoOffsetReset = AutoOffsetReset.Earliest
-        };
-
-        return new ConsumerBuilder<Null, string>(config).Build();
-    }
-
-    private async Task ProcessMessageAsync(string message)
+    protected override async Task<bool> ProcessMessageAsync(string message)
     {
         try
         {
@@ -61,7 +25,7 @@ public class GenericKafkaConsumer : IKafkaConsumerService
             var action = jsonData["Action"]?.ToString();
             var id = jsonData["Id"]?.ToString();
 
-            if (string.IsNullOrEmpty(action) || string.IsNullOrEmpty(id)) return;
+            if (string.IsNullOrEmpty(action) || string.IsNullOrEmpty(id)) return false;
 
             switch (action)
             {
@@ -76,12 +40,15 @@ public class GenericKafkaConsumer : IKafkaConsumerService
                     break;
                 default:
                     Console.WriteLine($"Unknown action type: {action}. Skipping.");
-                    break;
+                    return false;
             }
+
+            return true;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error processing message: {ex.Message}");
+            return false;
         }
     }
 
