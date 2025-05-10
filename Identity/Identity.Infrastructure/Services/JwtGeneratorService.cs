@@ -62,7 +62,7 @@ public class JwtGeneratorService : IJwtGenerator
 
         var accessToken = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
 
-        var tokenExpiry = tokenExpirationSeconds * 1.5;
+        var tokenExpiry = tokenExpirationSeconds;
         var refreshTokenExpiry = DateTime.UtcNow.AddSeconds((int)tokenExpiry);
         var refreshToken = GenerateRefreshToken();
 
