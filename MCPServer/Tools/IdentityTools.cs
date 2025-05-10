@@ -49,19 +49,6 @@ public sealed class IdentityTools : BaseTool
             : $"Failed to register user. Status code: {response.StatusCode}";
     }
 
-    [McpServerTool, Description(LoginDescription)]
-    public async Task<string> LoginAsync(
-        [Description("Email address to log in")] string email,
-        [Description("Password to log in")] string password)
-    {
-        var payload = new { email, password };
-        var responseBody = await identityApi.LoginAsync(payload);
-        var token = TokenExtractor.ExtractTokenFromResponse(responseBody);
-
-        Log.Information("Successfully logged in user: {Email}", email);
-        return $"Login successful. Token: {token}";
-    }
-
     [McpServerTool, Description(ChangePasswordDescription)]
     public async Task<string> ChangePasswordAsync(
         [Description("Current password")] string currentPassword,
