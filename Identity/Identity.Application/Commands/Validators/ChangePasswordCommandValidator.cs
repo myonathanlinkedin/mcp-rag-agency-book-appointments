@@ -14,7 +14,7 @@ public class ChangePasswordCommandValidator : AbstractValidator<ChangePasswordCo
             .MaximumLength(CommonModelConstants.Identity.MaxPasswordLength)
             .Matches(@"[A-Z]").WithMessage("Password must contain at least one uppercase letter.")
             .Matches(@"[a-z]").WithMessage("Password must contain at least one lowercase letter.")
-            .Matches(@"[0-9]").WithMessage("Password must contain at least one number.")
+            .Matches(@"[\d]|[\W]").WithMessage("Password must contain at least one number OR one special character.")
             .WithMessage("New password must be strong.");
 
         RuleFor(x => x.NewPassword)

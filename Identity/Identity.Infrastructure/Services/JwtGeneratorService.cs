@@ -1,24 +1,32 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Caching.Distributed;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 public class JwtGeneratorService : IJwtGenerator
 {
     private readonly UserManager<User> userManager;
     private readonly IRsaKeyProvider keyProvider;
+    private readonly IDistributedCache distributedCache;
     private readonly string audience;
     private readonly string issuer;
     private readonly int tokenExpirationSeconds;
 
     private const string RsaAlgorithm = SecurityAlgorithms.RsaSha256Signature;
-    private readonly Dictionary<string, (string RefreshToken, DateTime Expiry)> refreshTokenStore = new();
 
-    public JwtGeneratorService(UserManager<User> userManager, ApplicationSettings appSettings, IRsaKeyProvider keyProvider)
+    public JwtGeneratorService(
+        UserManager<User> userManager,
+        ApplicationSettings appSettings,
+        IRsaKeyProvider keyProvider,
+        IDistributedCache distributedCache)
     {
         this.userManager = userManager;
         this.keyProvider = keyProvider;
+        this.distributedCache = distributedCache;
         this.audience = appSettings.Audience;
         this.issuer = appSettings.Issuer;
         this.tokenExpirationSeconds = appSettings.TokenExpirationSeconds;
@@ -53,28 +61,51 @@ public class JwtGeneratorService : IJwtGenerator
         };
 
         var accessToken = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
-        var refreshTokenExpiry = DateTime.UtcNow.AddSeconds((int)(tokenExpirationSeconds * 1.5)); // 50% longer than access token
+
+        var tokenExpiry = tokenExpirationSeconds * 1.5;
+        var refreshTokenExpiry = DateTime.UtcNow.AddSeconds((int)tokenExpiry);
         var refreshToken = GenerateRefreshToken();
 
-        refreshTokenStore[user.Id] = (refreshToken, refreshTokenExpiry);
+        var refreshTokenData = new RefreshTokenModel { RefreshToken = refreshToken, Expiry = refreshTokenExpiry };
+        var cacheOptions = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(tokenExpiry)
+        };
+
+        var cacheKey = GetRefreshTokenCacheKey(user.Id);
+        var json = JsonSerializer.Serialize(refreshTokenData);
+        await distributedCache.SetStringAsync(cacheKey, json, cacheOptions);
 
         return (accessToken, refreshToken);
     }
 
     public async Task<string> RefreshToken(string userId, string providedRefreshToken)
     {
-        if (!refreshTokenStore.TryGetValue(userId, out var storedToken) ||
-            storedToken.RefreshToken != providedRefreshToken ||
-            storedToken.Expiry < DateTime.UtcNow)
+        var cacheKey = GetRefreshTokenCacheKey(userId);
+        var cachedTokenJson = await distributedCache.GetStringAsync(cacheKey);
+        if (string.IsNullOrEmpty(cachedTokenJson))
         {
-            throw new SecurityTokenException("Invalid or expired refresh token");
+            throw new SecurityTokenException("Invalid or expired refresh token.");
+        }
+
+        var storedToken = JsonSerializer.Deserialize<RefreshTokenModel>(cachedTokenJson);
+        if (storedToken == null || storedToken.RefreshToken != providedRefreshToken || storedToken.Expiry < DateTime.UtcNow)
+        {
+            throw new SecurityTokenException("Invalid or expired refresh token.");
         }
 
         var user = await userManager.FindByIdAsync(userId);
-        if (user == null) throw new SecurityTokenException("User not found");
+        if (user == null)
+        {
+            throw new SecurityTokenException("User not found.");
+        }
 
         return (await GenerateToken(user)).AccessToken;
     }
+
+    public JsonWebKey GetPublicKey() => keyProvider.GetPublicJwk();
+
+    private static string GetRefreshTokenCacheKey(string userId) => $"refresh_token:{userId}";
 
     private string GenerateRefreshToken()
     {
@@ -83,6 +114,4 @@ public class JwtGeneratorService : IJwtGenerator
         rng.GetBytes(randomBytes);
         return Convert.ToBase64String(randomBytes);
     }
-
-    public JsonWebKey GetPublicKey() => keyProvider.GetPublicJwk();
 }

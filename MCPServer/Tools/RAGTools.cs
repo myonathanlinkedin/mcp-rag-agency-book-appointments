@@ -55,7 +55,7 @@ namespace MCP.Server.Tools
             try
             {
                 var payload = new { Urls = urls };
-                var response = await ragApi.ScanUrlsAsync(payload, $"Bearer {token}");
+                var response = await ragApi.ScanUrlsAsync(payload, GetBearerToken());
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -89,7 +89,7 @@ namespace MCP.Server.Tools
             try
             {
                 var payload = new { Query = query };
-                var results = await ragApi.RAGSearchAsync(payload, $"Bearer {token}");
+                var results = await ragApi.RAGSearchAsync(payload, GetBearerToken());
 
                 if (results != null)
                 {

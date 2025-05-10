@@ -7,10 +7,6 @@ public class UserPromptCommandValidator : AbstractValidator<UserPromptCommand>
         RuleFor(x => x.Prompt)
             .NotEmpty()
             .MinimumLength(CommonModelConstants.Common.MinNameLength)
-            .MaximumLength(CommonModelConstants.Common.MaxNameLength)
-            .WithMessage("Prompt must be between "
-                        + CommonModelConstants.Common.MinNameLength
-                        + " and "
-                        + CommonModelConstants.Common.MaxNameLength + " characters.");
+            .WithMessage($"Prompt minimal character is {CommonModelConstants.Common.MinNameLength}");
     }
 }

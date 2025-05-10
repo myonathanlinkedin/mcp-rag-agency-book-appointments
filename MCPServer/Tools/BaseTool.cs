@@ -1,4 +1,5 @@
 ﻿using ModelContextProtocol.Server;
+using Serilog;
 
 [McpServerToolType]
 public class BaseTool
@@ -10,6 +11,12 @@ public class BaseTool
         this.httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     }
 
+    protected string LogAndReturnMissingToken()
+    {
+        Log.Warning("Authentication token is missing.");
+        return "Authentication token is missing or invalid.";
+    }
+
     protected string? GetTokenFromHttpContext()
     {
         var token = httpContextAccessor.HttpContext?.Request?.Headers["Authorization"].ToString();
@@ -19,6 +26,11 @@ public class BaseTool
         }
 
         return null;
+    }
+
+    protected string GetBearerToken()
+    {
+        return $"Bearer {GetTokenFromHttpContext()}";
     }
 }
 

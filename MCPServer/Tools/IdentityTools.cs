@@ -13,21 +13,8 @@ public sealed class IdentityTools : BaseTool
         this.identityApi = identityApi ?? throw new ArgumentNullException(nameof(identityApi));
     }
 
-    private string? GetToken()
-    {
-        var token = GetTokenFromHttpContext();
-        return string.IsNullOrWhiteSpace(token) ? LogAndReturnMissingToken() : $"Bearer {token}";
-    }
-
-    private string LogAndReturnMissingToken()
-    {
-        Log.Warning("Authentication token is missing.");
-        return "Authentication token is missing or invalid.";
-    }
-
-    private const string RegisterDescription = "Register a user account. Upon successful registration, an email will be sent containing your login details. " +
-                                               "Please check your inbox for your email address and password. The password is provided for your convenience; " +
-                                               "it is recommended that you change it after your first login.";
+    private const string RegisterDescription = "Register a user account. Upon successful registration, an email will be sent containing login details. " +
+                                               "Please check your inbox for your email and password. It is recommended to change it after first login.";
 
     private const string ChangePasswordDescription = "Change the user's password. A valid Bearer token, obtained from a successful login, is required.";
 
@@ -35,15 +22,30 @@ public sealed class IdentityTools : BaseTool
 
     private const string AssignRoleDescription = "Assigns a specified role to a user. The role must exist before assignment.";
 
+    private const string RefreshTokenDescription = "Refresh the user's authentication token. A valid Bearer token is required.";
+
     [McpServerTool, Description(RegisterDescription)]
     public async Task<string> RegisterAsync([Description("Email address to register")] string email)
     {
-        var password = PasswordGenerator.Generate(CommonModelConstants.Identity.DefaultPasswordLength);
-        var payload = new { email, password, confirmPassword = password };
+        try
+        {
+            var password = PasswordGenerator.Generate(CommonModelConstants.Identity.DefaultPasswordLength);
+            var payload = new { email, password, confirmPassword = password };
 
-        var response = await identityApi.RegisterAsync(payload);
-        return response.IsSuccessStatusCode ? "An email has been sent. Please check your inbox to complete the registration."
-            : $"Failed to register user. Status code: {response.StatusCode}";
+            var response = await identityApi.RegisterAsync(payload);
+            if (response.IsSuccessStatusCode)
+            {
+                Log.Information("User registered successfully: {Email}", email);
+                return "An email has been sent. Please check your inbox to complete the registration.";
+            }
+            Log.Warning("Failed to register user: {Email}. Status code: {StatusCode}", email, response.StatusCode);
+            return $"Failed to register user. Status code: {response.StatusCode}";
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Exception during user registration: {Email}. Error: {Error}", email, ex.Message);
+            return "An error occurred while registering the user.";
+        }
     }
 
     [McpServerTool, Description(ChangePasswordDescription)]
@@ -51,21 +53,49 @@ public sealed class IdentityTools : BaseTool
         [Description("Current password")] string currentPassword,
         [Description("New password to set")] string newPassword)
     {
-        var token = GetToken();
-        if (token == LogAndReturnMissingToken()) return token;
+        try
+        {
+            var token = GetTokenFromHttpContext();
+            if (token == LogAndReturnMissingToken()) return token;
 
-        var payload = new { currentPassword, newPassword };
-        var response = await identityApi.ChangePasswordAsync(payload, token);
-        return response.IsSuccessStatusCode ? "Password changed successfully."
-            : $"Failed to change password. Status code: {response.StatusCode}";
+            var payload = new { currentPassword, newPassword };
+            var response = await identityApi.ChangePasswordAsync(payload, GetBearerToken());
+
+            if (response.IsSuccessStatusCode)
+            {
+                Log.Information("Password changed successfully.");
+                return "Password changed successfully.";
+            }
+            Log.Warning("Failed to change password. Status code: {StatusCode}", response.StatusCode);
+            return $"Failed to change password. Status code: {response.StatusCode}";
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Exception during password change. Error: {Error}", ex.Message);
+            return "An error occurred while changing the password.";
+        }
     }
 
     [McpServerTool, Description(ResetPasswordDescription)]
     public async Task<string> ResetPasswordAsync([Description("Email address to reset password for")] string email)
     {
-        var response = await identityApi.ResetPasswordAsync(new { email });
-        return response.IsSuccessStatusCode ? "Password has been reset. A new password has been sent to your email."
-            : $"Failed to reset password. Status code: {response.StatusCode}";
+        try
+        {
+            var response = await identityApi.ResetPasswordAsync(new { email });
+
+            if (response.IsSuccessStatusCode)
+            {
+                Log.Information("Password reset successfully for {Email}", email);
+                return "Password has been reset. A new password has been sent to your email.";
+            }
+            Log.Warning("Failed to reset password for {Email}. Status code: {StatusCode}", email, response.StatusCode);
+            return $"Failed to reset password. Status code: {response.StatusCode}.";
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Exception during password reset for {Email}. Error: {Error}", email, ex.Message);
+            return "An error occurred while resetting the password.";
+        }
     }
 
     [McpServerTool, Description(AssignRoleDescription)]
@@ -73,12 +103,54 @@ public sealed class IdentityTools : BaseTool
         [Description("User's email address")] string email,
         [Description("Role name to assign")] string roleName)
     {
-        var token = GetToken();
-        if (token == LogAndReturnMissingToken()) return token;
+        try
+        {
+            var token = GetTokenFromHttpContext();
+            if (token == LogAndReturnMissingToken()) return token;
 
-        var payload = new { email, roleName };
-        var response = await identityApi.AssignRoleAsync(payload, token);
-        return response.IsSuccessStatusCode ? $"Role '{roleName}' successfully assigned to user '{email}'."
-            : $"Failed to assign role. Status code: {response.StatusCode}.";
+            var payload = new { email, roleName };
+            var response = await identityApi.AssignRoleAsync(payload, GetBearerToken());
+
+            if (response.IsSuccessStatusCode)
+            {
+                Log.Information("Role '{RoleName}' successfully assigned to user '{Email}'.", roleName, email);
+                return $"Role '{roleName}' successfully assigned to user '{email}'.";
+            }
+            Log.Warning("Failed to assign role '{RoleName}' to user '{Email}'. Status code: {StatusCode}", roleName, email, response.StatusCode);
+            return $"Failed to assign role. Status code: {response.StatusCode}.";
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Exception during role assignment for {Email}. Error: {Error}", email, ex.Message);
+            return "An error occurred while assigning the role.";
+        }
+    }
+
+    [McpServerTool, Description(RefreshTokenDescription)]
+    public async Task<string> RefreshTokenAsync(
+        [Description("User ID associated with the refresh token")] string userId,
+        [Description("Refresh token to renew authentication")] string refreshToken)
+    {
+        try
+        {
+            var token = GetTokenFromHttpContext();
+            if (token == LogAndReturnMissingToken()) return token;
+
+            var payload = new { userId, refreshToken };
+            var response = await identityApi.RefreshTokenAsync(payload, token);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Log.Information("Token refreshed successfully for UserId: {UserId}", userId);
+                return "Token refreshed successfully.";
+            }
+            Log.Warning("Failed to refresh token for UserId: {UserId}. Status code: {StatusCode}", userId, response.StatusCode);
+            return $"Failed to refresh token. Status code: {response.StatusCode}.";
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Exception occurred while refreshing token for UserId: {UserId}. Error: {Error}", userId, ex.Message);
+            return "An error occurred while refreshing the token.";
+        }
     }
 }
