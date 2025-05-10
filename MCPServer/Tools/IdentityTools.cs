@@ -29,9 +29,6 @@ public sealed class IdentityTools : BaseTool
                                                "Please check your inbox for your email address and password. The password is provided for your convenience; " +
                                                "it is recommended that you change it after your first login.";
 
-    private const string LoginDescription = "This system allows direct login via chat by prompting the user for their email and password. " +
-                                             "Upon successful login, a Bearer token will be returned for authentication purposes.";
-
     private const string ChangePasswordDescription = "Change the user's password. A valid Bearer token, obtained from a successful login, is required.";
 
     private const string ResetPasswordDescription = "Reset the user's password. A new random password will be generated and emailed to the user.";
