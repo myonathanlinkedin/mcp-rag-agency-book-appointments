@@ -51,20 +51,17 @@ public class MCPServerRequester : IMCPServerRequester
         }
     }
 
-    public async Task<Result<string>> RequestAsync(string prompt, string token, ChatRole? chatRole = null, bool useSession = false)
+    public async Task<Result<string>> RequestAsync(string prompt, ChatRole? chatRole = null, bool useSession = false, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (!string.IsNullOrWhiteSpace(token))
-                 prompt = prompt + $" & use this token: {token}";
-
             List<ChatMessage> messages = useSession ? messageStore.GetMessages(sessionId) : new List<ChatMessage>();
 
             messages.Add(new ChatMessage(chatRole ?? ChatRole.User, prompt));
 
             List<ChatResponseUpdate> updates = new List<ChatResponseUpdate>();
 
-            var results = chatClient.GetStreamingResponseAsync(messages, new() { Tools = tools.Cast<AITool>().ToList() });
+            var results = chatClient.GetStreamingResponseAsync(messages, new() { Tools = tools.Cast<AITool>().ToList() }, cancellationToken);
 
             StringBuilder responseBuilder = new StringBuilder();
 

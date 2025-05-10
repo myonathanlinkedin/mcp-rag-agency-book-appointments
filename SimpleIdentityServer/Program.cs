@@ -53,7 +53,6 @@ builder.Services
         options.IdleTimeout = TimeSpan.FromMinutes(30);
     })
     .AddHttpContextAccessor()
-    .AddHttpClient()
     .AddAuthorization(options =>
     {
         options.AddPolicy(CommonModelConstants.Policy.AdminAccess, policy =>

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 public abstract class AppointmentNotificationHandlerBase<TEvent> : IEventHandler<TEvent>
     where TEvent : IDomainEvent
@@ -30,7 +31,7 @@ public abstract class AppointmentNotificationHandlerBase<TEvent> : IEventHandler
 
         logger.LogInformation("Requesting email body generation for recipient: {RecipientEmail}", email);
 
-        var result = await mcpServerRequester.RequestAsync(prompt, string.Empty, ChatRole.User, false);
+        var result = await mcpServerRequester.RequestAsync(prompt: prompt);
         if (result == null || !result.Succeeded)
         {
             logger.LogError("Failed to generate email content for {RecipientEmail}. Errors: {ErrorDetails}", email, result?.Errors);

@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.AI;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol.Transport;
 using OpenAI;
 using System.ClientModel;
+using System.Net.Http.Headers;
 
 public static class McpClientServiceExtensions
 {
@@ -57,9 +59,18 @@ public static class McpClientServiceExtensions
                 .Build();
         });
 
-        // Register SseClientTransport
         services.AddScoped(sp =>
         {
+            var httpClient = sp.GetRequiredService<HttpClient>();
+
+            // 🔹 Set the Authorization header here
+            var token = sp.GetRequiredService<IHttpContextAccessor>().HttpContext?.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrWhiteSpace(token) && token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                token = token.Substring("Bearer ".Length).Trim();
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
             var uri = new Uri($"{serverEndpoint}/sse");
 
             return new SseClientTransport(new SseClientTransportOptions
@@ -67,7 +78,7 @@ public static class McpClientServiceExtensions
                 Endpoint = uri,
                 Name = serverName,
                 ConnectionTimeout = TimeSpan.FromMinutes(1)
-            });
+            }, httpClient);
         });
 
         // Register IMcpClient

@@ -24,7 +24,7 @@ public abstract class RAGEmailNotificationHandlerBase<TEvent> : IEventHandler<TE
         var (email, password, subject, prompt) = GetEmailData(domainEvent);
 
         logger.LogInformation("Requesting email body generation for: {Email}", email);
-        var result = await mcpServerRequester.RequestAsync(prompt, string.Empty, ChatRole.User, false);
+        var result = await mcpServerRequester.RequestAsync(prompt: prompt);
 
         if (result == null || !result.Succeeded)
         {

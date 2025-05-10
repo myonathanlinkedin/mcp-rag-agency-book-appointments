@@ -30,7 +30,7 @@ public abstract class AgencyRegisteredEventNotificationBase<TEvent> : IEventHand
 
         logger.LogInformation("Generating agency registration email for recipient: {RecipientEmail}", email);
 
-        var result = await mcpServerRequester.RequestAsync(prompt, string.Empty, ChatRole.User, false);
+        var result = await mcpServerRequester.RequestAsync(prompt: prompt);
         if (result == null || !result.Succeeded)
         {
             logger.LogError("Failed to generate email content for {RecipientEmail}. Errors: {ErrorDetails}", email, result?.Errors);

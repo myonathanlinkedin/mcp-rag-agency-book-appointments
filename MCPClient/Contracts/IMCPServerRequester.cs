@@ -2,5 +2,5 @@
 
 public interface IMCPServerRequester
 {
-   Task<Result<string>> RequestAsync(string prompt, string token, ChatRole? chatRole = null, bool useSession = false);
+    Task<Result<string>> RequestAsync(string prompt, ChatRole? chatRole = null, bool useSession = false, CancellationToken cancellationToken = default);
 }

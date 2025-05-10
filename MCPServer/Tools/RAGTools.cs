@@ -4,8 +4,7 @@ using System.ComponentModel;
 
 namespace MCP.Server.Tools
 {
-    [McpServerToolType]
-    public sealed class RAGTools
+    public sealed class RAGTools : BaseTool
     {
         private const string ScanUrlsDescription =
             "Scan one or more URLs, parse the content, and save the resulting document vectors into the vector store. " +
@@ -37,24 +36,25 @@ namespace MCP.Server.Tools
 
         private readonly IRAGApi ragApi;
 
-        public RAGTools(IRAGApi ragApi)
+        public RAGTools(IRAGApi ragApi, IHttpContextAccessor httpContextAccessor) : base(httpContextAccessor)
         {
-            this.ragApi = ragApi;
+            this.ragApi = ragApi ?? throw new ArgumentNullException(nameof(ragApi));
         }
 
         [McpServerTool, Description(ScanUrlsDescription)]
-        public async Task<string> ScanUrlsAsync(
-            [Description("List of URLs to scan and process")] List<string> urls,
-            [Description("The Bearer token obtained after login for authentication")] string token)
+        public async Task<string> ScanUrlsAsync([Description("List of URLs to scan and process")] List<string> urls)
         {
+            var token = GetTokenFromHttpContext();
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Log.Warning("Authentication token is missing for URL scanning.");
+                return "Authentication token is missing or invalid.";
+            }
+
             try
             {
-                var payload = new
-                {
-                    Urls = urls
-                };
-
-                // Call the API with the Bearer token
+                var payload = new { Urls = urls };
                 var response = await ragApi.ScanUrlsAsync(payload, $"Bearer {token}");
 
                 if (response.IsSuccessStatusCode)
@@ -62,26 +62,30 @@ namespace MCP.Server.Tools
                     Log.Information("Successfully scanned URLs: {Urls}", string.Join(", ", urls));
                     return "Successfully scanned and processed the URLs.";
                 }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Log.Error("Failed to scan URLs: {Urls}, StatusCode: {StatusCode}, Error: {Error}",
-                        string.Join(", ", urls), response.StatusCode, errorContent);
-                    return $"Failed to scan URLs. Status code: {response.StatusCode}";
-                }
+
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Log.Error("Failed to scan URLs: {Urls}, StatusCode: {StatusCode}, Error: {Error}",
+                    string.Join(", ", urls), response.StatusCode, errorContent);
+                return $"Failed to scan URLs. Status code: {response.StatusCode}";
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "An exception occurred while scanning URLs: {Urls}", string.Join(", ", urls));
+                Log.Error(ex, "An error occurred while scanning URLs: {Urls}", string.Join(", ", urls));
                 return "An error occurred while scanning URLs.";
             }
         }
 
         [McpServerTool, Description(RAGSearchDescription)]
-        public async Task<object> RAGSearchAsync(
-            [Description("The search query")] string query,
-            [Description("The Bearer token obtained after login for authentication")] string token)
+        public async Task<object> RAGSearchAsync([Description("The search query")] string query)
         {
+            var token = GetTokenFromHttpContext();
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Log.Warning("Authentication token is missing for RAG search.");
+                return new { Error = "Authentication token is missing or invalid." };
+            }
+
             try
             {
                 var payload = new { Query = query };
@@ -90,15 +94,15 @@ namespace MCP.Server.Tools
                 if (results != null)
                 {
                     Log.Information("Successfully performed RAG search with query: {Query}", query);
-                    return results;  // Return results if successful
+                    return results;
                 }
 
-                return new { Error = "No results found" };  // If no results, return an error object
+                return new { Error = "No results found" };
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Unexpected error during RAG search for query: {Query}", query);
-                return new { Error = $"Unexpected error during RAG search: {ex.Message}" };  // Return the error message
+                return new { Error = $"Unexpected error during RAG search: {ex.Message}" };
             }
         }
     }

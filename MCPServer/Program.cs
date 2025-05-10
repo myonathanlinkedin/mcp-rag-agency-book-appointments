@@ -72,6 +72,7 @@ void RegisterServices(WebApplicationBuilder builder)
     builder.Services.AddScoped<RAGTools>();
     builder.Services.AddScoped<IdentityTools>();
     builder.Services.AddScoped<AgencyBookTools>();
+    builder.Services.AddHttpContextAccessor();
 }
 
 // Method to add MCP server with tools

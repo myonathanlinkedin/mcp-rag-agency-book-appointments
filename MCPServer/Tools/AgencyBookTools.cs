@@ -1,17 +1,17 @@
 ﻿using ModelContextProtocol.Server;
 using Serilog;
 using System.ComponentModel;
+using Microsoft.AspNetCore.Http;
 
-public class AgencyBookTools
+public class AgencyBookTools : BaseTool
 {
     private readonly IAgencyBookAPI agencyBookApi;
 
-    public AgencyBookTools(IAgencyBookAPI agencyBookApi)
+    public AgencyBookTools(IAgencyBookAPI agencyBookApi, IHttpContextAccessor httpContextAccessor) : base(httpContextAccessor)
     {
-        this.agencyBookApi = agencyBookApi;
+        this.agencyBookApi = agencyBookApi ?? throw new ArgumentNullException(nameof(agencyBookApi));
     }
 
-    // Descriptions as constants for better management
     private const string CreateAgencyDescription = "Create a new agency. Provides basic information including the name, email, and maximum appointments per day.";
     private const string AssignUserToAgencyDescription = "Assign a user to an agency by specifying the user's email and roles.";
     private const string CancelAppointmentDescription = "Cancel an existing appointment using the appointment's ID.";
@@ -21,86 +21,71 @@ public class AgencyBookTools
     private const string RescheduleAppointmentDescription = "Reschedule an existing appointment to a new date and time.";
     private const string UpdateAgencySettingsDescription = "Update agency settings, including max appointments per day and holidays.";
 
-    // Create Agency
+    private string? GetToken()
+    {
+        var token = GetTokenFromHttpContext();
+        return string.IsNullOrWhiteSpace(token) ? LogAndReturnMissingToken() : $"Bearer {token}";
+    }
+
+    private string LogAndReturnMissingToken()
+    {
+        Log.Warning("Authentication token is missing.");
+        return "Authentication token is missing or invalid.";
+    }
+
     [McpServerTool, Description(CreateAgencyDescription)]
     public async Task<string> CreateAgencyAsync(
-        [Description("Authorization token")] string token,
         [Description("Agency name")] string name,
         [Description("Agency email")] string email,
         [Description("Maximum appointments allowed per day")] int maxAppointmentsPerDay)
     {
-        var payload = new { name, email, maxAppointmentsPerDay };
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return token;
 
-        try
-        {
-            var response = await agencyBookApi.CreateAgencyAsync(payload, $"Bearer {token}");
-            return response.IsSuccessStatusCode ? "Agency created successfully."
-                : $"Failed to create agency. Status code: {response.StatusCode}";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while creating agency: {AgencyName}", name);
-            return "An error occurred during agency creation.";
-        }
+        var response = await agencyBookApi.CreateAgencyAsync(new { name, email, maxAppointmentsPerDay }, token);
+        return response.IsSuccessStatusCode ? "Agency created successfully."
+            : $"Failed to create agency. Status code: {response.StatusCode}";
     }
 
-    // Assign User to Agency
     [McpServerTool, Description(AssignUserToAgencyDescription)]
     public async Task<string> AssignUserToAgencyAsync(
-        [Description("Authorization token")] string token,
         [Description("Agency email (optional, can be blank or null)")] string? agencyEmail,
         [Description("User's email")] string userEmail,
         [Description("Roles assigned to the user")] List<string> roles)
     {
-        var payload = new { AgencyEmail = agencyEmail, UserEmail = userEmail, Roles = roles };
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return token;
 
-        try
-        {
-            var response = await agencyBookApi.AssignUserToAgencyAsync(payload, $"Bearer {token}");
-            return response.IsSuccessStatusCode ? "User assigned to agency successfully."
-                : $"Failed to assign user. Status code: {response.StatusCode}";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while assigning user: {UserEmail} to agency: {AgencyEmail}", userEmail, agencyEmail ?? "current agency");
-            return "An error occurred during user assignment.";
-        }
+        var response = await agencyBookApi.AssignUserToAgencyAsync(new { agencyEmail, userEmail, roles }, token);
+        return response.IsSuccessStatusCode ? "User assigned to agency successfully."
+            : $"Failed to assign user. Status code: {response.StatusCode}";
     }
 
-    // Create Appointment
     [McpServerTool, Description(CreateAppointmentDescription)]
     public async Task<string> CreateAppointmentAsync(
-        [Description("Authorization token")] string token,
         [Description("Agency email (optional, can be blank or null)")] string? agencyEmail,
         [Description("User's email for appointment")] string userEmail,
         [Description("Appointment date and time")] DateTime date,
         [Description("Name of the appointment")] string appointmentName)
     {
-        var payload = new { AgencyEmail = agencyEmail, UserEmail = userEmail, Date = date, AppointmentName = appointmentName };
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return token;
 
-        try
-        {
-            var response = await agencyBookApi.CreateAppointmentAsync(payload, $"Bearer {token}");
-            return response.IsSuccessStatusCode ? "Appointment created successfully."
-                : $"Failed to create appointment. Status code: {response.StatusCode}";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while creating appointment for agency: {AgencyEmail}, user: {UserEmail} on {Date}",
-                agencyEmail ?? "current agency", userEmail, date);
-            return "An error occurred during appointment creation.";
-        }
+        var response = await agencyBookApi.CreateAppointmentAsync(new { agencyEmail, userEmail, date, appointmentName }, token);
+        return response.IsSuccessStatusCode ? "Appointment created successfully."
+            : $"Failed to create appointment. Status code: {response.StatusCode}";
     }
 
-    // Get Appointments by Date
     [McpServerTool, Description(GetAppointmentsByDateDescription)]
     public async Task<List<object>> GetAppointmentsByDateAsync(
-        [Description("Authorization token")] string token,
         [Description("The date to fetch appointments for")] DateTime date)
     {
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return new List<object>();
+
         try
         {
-            var response = await agencyBookApi.GetAppointmentsByDateAsync(date, $"Bearer {token}");
+            var response = await agencyBookApi.GetAppointmentsByDateAsync(date, token);
             Log.Information("Retrieved appointments for date: {Date}", date);
             return response ?? new List<object>();
         }
@@ -111,94 +96,58 @@ public class AgencyBookTools
         }
     }
 
-    // Handle No-Show
     [McpServerTool, Description(HandleNoShowDescription)]
     public async Task<string> HandleNoShowAsync(
-        [Description("Authorization token")] string token,
         [Description("Appointment ID to mark as no-show")] Guid appointmentId)
     {
-        var payload = new { appointmentId };
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return token;
 
-        try
-        {
-            var response = await agencyBookApi.HandleNoShowAsync(payload, $"Bearer {token}");
-            return response.IsSuccessStatusCode ? "No-show handled successfully."
-                : $"Failed to handle no-show. Status code: {response.StatusCode}";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while handling no-show for appointment ID: {AppointmentId}", appointmentId);
-            return "An error occurred while handling no-show.";
-        }
+        var response = await agencyBookApi.HandleNoShowAsync(new { appointmentId }, token);
+        return response.IsSuccessStatusCode ? "No-show handled successfully."
+            : $"Failed to handle no-show. Status code: {response.StatusCode}";
     }
 
-    // Update Agency Settings
     [McpServerTool, Description(UpdateAgencySettingsDescription)]
     public async Task<string> UpdateAgencySettingsAsync(
-        [Description("Authorization token")] string token,
         [Description("Agency email (optional, can be blank or null)")] string? agencyEmail,
         [Description("Maximum appointments allowed per day")] int maxAppointmentsPerDay,
         [Description("Holiday date")] DateTime holidayDate,
         [Description("Holiday reason")] string holidayReason)
     {
-        var holiday = new { Id = Guid.NewGuid(), Date = holidayDate, Reason = holidayReason };
-        var payload = new { AgencyEmail = agencyEmail, MaxAppointmentsPerDay = maxAppointmentsPerDay, Holidays = new List<object> { holiday } };
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return token;
 
-        try
-        {
-            var response = await agencyBookApi.UpdateAgencySettingsAsync(payload, $"Bearer {token}");
-            return response.IsSuccessStatusCode ? "Agency settings updated successfully."
-                : $"Failed to update agency settings. Status code: {response.StatusCode}";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while updating agency settings for {AgencyEmail}", agencyEmail ?? "current agency");
-            return "An error occurred while updating agency settings.";
-        }
+        var holiday = new { Id = Guid.NewGuid(), Date = holidayDate, Reason = holidayReason };
+        var response = await agencyBookApi.UpdateAgencySettingsAsync(new { agencyEmail, maxAppointmentsPerDay, Holidays = new List<object> { holiday } }, token);
+        return response.IsSuccessStatusCode ? "Agency settings updated successfully."
+            : $"Failed to update agency settings. Status code: {response.StatusCode}";
     }
 
-    // Cancel Appointment
     [McpServerTool, Description(CancelAppointmentDescription)]
     public async Task<string> CancelAppointmentAsync(
-        [Description("Authorization token")] string token,
         [Description("Appointment ID to cancel")] Guid appointmentId)
     {
-        var payload = new { appointmentId };
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return token;
 
-        try
-        {
-            var response = await agencyBookApi.CancelAppointmentAsync(payload, $"Bearer {token}");
-            return response.IsSuccessStatusCode
-                ? "Appointment canceled successfully."
-                : $"Failed to cancel appointment. Status code: {response.StatusCode}";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while canceling appointment ID: {AppointmentId}", appointmentId);
-            return "An error occurred during appointment cancellation.";
-        }
+        var response = await agencyBookApi.CancelAppointmentAsync(new { appointmentId }, token);
+        return response.IsSuccessStatusCode
+            ? "Appointment canceled successfully."
+            : $"Failed to cancel appointment. Status code: {response.StatusCode}";
     }
 
-    // Reschedule Appointment
     [McpServerTool, Description(RescheduleAppointmentDescription)]
     public async Task<string> RescheduleAppointmentAsync(
-        [Description("Authorization token")] string token,
         [Description("Appointment ID to reschedule")] Guid appointmentId,
         [Description("New appointment date and time")] DateTime newDate)
     {
-        var payload = new { appointmentId, newDate };
+        var token = GetToken();
+        if (token == LogAndReturnMissingToken()) return token;
 
-        try
-        {
-            var response = await agencyBookApi.RescheduleAppointmentAsync(payload, $"Bearer {token}");
-            return response.IsSuccessStatusCode
-                ? "Appointment rescheduled successfully."
-                : $"Failed to reschedule appointment. Status code: {response.StatusCode}";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while rescheduling appointment ID: {AppointmentId} to {NewDate}", appointmentId, newDate);
-            return "An error occurred during appointment rescheduling.";
-        }
+        var response = await agencyBookApi.RescheduleAppointmentAsync(new { appointmentId, newDate }, token);
+        return response.IsSuccessStatusCode
+            ? "Appointment rescheduled successfully."
+            : $"Failed to reschedule appointment. Status code: {response.StatusCode}";
     }
 }

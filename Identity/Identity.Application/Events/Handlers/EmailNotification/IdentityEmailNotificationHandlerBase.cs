@@ -24,7 +24,7 @@ public abstract class IdentityEmailNotificationHandlerBase<TEvent> : IEventHandl
         var (email, password, subject, prompt) = GetEmailData(domainEvent);
 
         logger.LogInformation("Requesting email body generation for: {Email}", email);
-        var result = await mcpServerRequester.RequestAsync(prompt, string.Empty, ChatRole.User);
+        var result = await mcpServerRequester.RequestAsync(prompt: prompt);
 
         if (!result.Succeeded)
         {

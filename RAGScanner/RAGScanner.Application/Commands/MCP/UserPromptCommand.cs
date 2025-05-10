@@ -27,7 +27,7 @@ public class UserPromptCommand : IRequest<Result<string>>
             if (string.IsNullOrWhiteSpace(token))
                 return Result<string>.Failure(new List<string> { "Authorization token is missing." });
 
-            return await this.mCPServerRequester.RequestAsync(request.Prompt, token);
+            return await this.mCPServerRequester.RequestAsync(prompt: request.Prompt, cancellationToken: cancellationToken);
         }
     }
 }
