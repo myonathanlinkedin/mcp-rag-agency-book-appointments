@@ -5,25 +5,27 @@ This project is a **cutting-edge AI-driven** appointment booking system designed
 
 Built with **Domain-Driven Development (DDD)** principles, the system leverages **Apache Kafka & ElasticSearch for appointment indexing**, ensuring **optimized search & performance** across thousands of appointments! The architecture is **microservices-ready**, making it scalable and modular for enterprise adoption. **Now powered by Qdrant Vector DB**, it supports AI-driven **semantic search and retrieval** for enhanced user experiences.  
 
-## **🚀 Key Features**  
-✅ **Built-in IdentityServer with Asymmetric JWT Signing** – Secure OAuth2/OpenID Connect token issuance 🔐  
-✅ **AI Chat Bots via PromptAPI** for dynamic responses 🤖  
-✅ **Retrieval-Augmented Generation (RAG)** for **smart queries** 🔍  
-✅ **RAG with Hangfire for Document Scan, Parse & Upload to Qdrant** – Background job orchestration for AI-assisted knowledge ingestion from files 📂⚙️🧠  
-✅ **MCP Client/Server Ready** – Context-aware AI-driven decision-making ⚡  
-✅ **Supports Off Days & Max Daily Appointments** (overflow handling) 📅  
-✅ **Real-Time Queue Grid via API** ⏳  
-✅ **Domain-Driven Development (DDD) Architecture** 🏗️  
-✅ **Event Dispatcher Mechanism for Domain Events** – Seamlessly propagates changes across bounded contexts, enabling decoupled and reactive business workflows 📨  
-✅ **Apache Kafka & ElasticSearch for appointment indexing** 📡  
-✅ **Qdrant Vector Database – High-speed AI-powered semantic search** 🧠✨  
-✅ **FluentValidation for validation logic** ✅  
-✅ **Swagger, LINQ, IoC, and WebAPI implementation** 🛠️  
-✅ **Automatic Email Template generation by AI LLM** 📧✨  
-✅ **API with Brain – Users can freely type prompts in natural language for AI-driven responses** 🧠📝  
-✅ **Microservices-ready – modular, scalable, and adaptable** 🏢🔄  
-✅ **Cloud-ready, designed for potential deployment on Azure/AWS** ☁️  
-✅ **Refit-powered REST API clients** – Type-safe declarative HTTP calls 🔌  
+## 🚀 Key Features
+
+✅ Built-in IdentityServer with Asymmetric JWT Signing 🔐  
+✅ AI Chat Bots via PromptAPI 🤖  
+✅ **Retrieval-Augmented Generation (RAG)** – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
+✅ **Users can update the AI brain using RAG by scanning URLs & PDF documents on the fly** – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
+✅ RAG with Hangfire for document scan, parse & upload to Qdrant ⚙️  
+✅ MCP Client/Server ready ⚡  
+✅ Supports Off Days & Max Daily Appointments 📅  
+✅ Real-Time Queue Grid via API ⏳  
+✅ Domain-Driven Development (DDD) architecture 🏗️  
+✅ Event Dispatcher for Domain Events 📨  
+✅ Apache Kafka & ElasticSearch for appointment indexing 📡  
+✅ Qdrant Vector Database for AI semantic search 🧠✨  
+✅ FluentValidation for validation logic ✅  
+✅ Swagger, LINQ, IoC, WebAPI 🛠️  
+✅ Automatic email template generation by AI LLM 📧✨  
+✅ API with Brain – users can type prompts in natural language 🧠📝  
+✅ Microservices-ready, modular & scalable 🏢🔄  
+✅ Cloud-ready (Azure/AWS) ☁️  
+✅ Refit-powered REST API clients 🔌
  
 ## **📜 Architecture Diagram**  
 ```plaintext
