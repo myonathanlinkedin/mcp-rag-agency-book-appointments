@@ -141,7 +141,7 @@ public class AppointmentService : IAppointmentService
         ));
 
         // ✅ Publish reschedule event to Kafka
-        await PublishToKafkaAsync("UPDATE", appointment, agency, agencyUser);
+        await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Update, appointment, agency, agencyUser);
 
         logger.LogInformation("Appointment '{AppointmentName}' successfully rescheduled for Agency {AgencyName}, User {UserEmail}.",
             appointment.Name, agency.Name, agencyUser.Email);
@@ -220,7 +220,7 @@ public class AppointmentService : IAppointmentService
         ));
 
         // ✅ Publish appointment to Kafka
-        await PublishToKafkaAsync("INSERT", appointment, agency, agencyUser);
+        await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Insert, appointment, agency, agencyUser);
 
         logger.LogInformation("Appointment '{AppointmentName}' created successfully for Agency {AgencyName}, User {UserEmail} at {AppointmentTime}.",
             appointment.Name, agency.Name, agencyUser.Email, appointment.Date.ToString("HH:mm"));
@@ -264,7 +264,7 @@ public class AppointmentService : IAppointmentService
         ));
 
         // ✅ Publish cancellation event to Kafka
-        await PublishToKafkaAsync("DELETE", appointment, agency, agencyUser);
+        await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Delete, appointment, agency, agencyUser);
 
         logger.LogInformation("Appointment '{AppointmentName}' canceled successfully for Agency {AgencyName}, User {UserEmail}.",
             appointment.Name, agency.Name, agencyUser.Email);

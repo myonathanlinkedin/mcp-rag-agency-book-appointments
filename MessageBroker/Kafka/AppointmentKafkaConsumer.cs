@@ -29,13 +29,13 @@ public class AppointmentKafkaConsumer : BaseKafkaConsumer<string>, IKafkaConsume
 
             switch (action)
             {
-                case "INSERT":
+                case CommonModelConstants.KafkaOperation.Insert:
                     await InsertToElasticAsync(jsonData);
                     break;
-                case "UPDATE":
+                case CommonModelConstants.KafkaOperation.Update:
                     await UpdateInElasticAsync(id, jsonData);
                     break;
-                case "DELETE":
+                case CommonModelConstants.KafkaOperation.Delete:
                     await DeleteFromElasticAsync(id);
                     break;
                 default:

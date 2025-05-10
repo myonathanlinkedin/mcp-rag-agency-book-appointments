@@ -29,7 +29,7 @@ public class CommonModelConstants
         public const string AdminAccess = "AdminAccess";
     }
 
-    public class KakfaOperation
+    public class KafkaOperation
     {
         public const string Insert = "INSERT";
         public const string Update = "UPDATE";
