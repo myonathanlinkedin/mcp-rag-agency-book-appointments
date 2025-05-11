@@ -4,7 +4,7 @@ import { extendTheme, type ThemeConfig } from '@chakra-ui/react';
 
 const config = {
   initialColorMode: 'light',
-  useSystemColorMode: false,
+  useSystemColorMode: true,
 } as const;
 
 const theme = extendTheme({
@@ -38,6 +38,35 @@ const theme = extendTheme({
       700: '#334155',
       800: '#1e293b',
       900: '#0f172a',
+    },
+    // LinkedIn dark mode colors
+    linkedin: {
+      dark: {
+        bg: '#1a1a1a',
+        card: '#2d2d2d',
+        text: '#e6e6e6',
+        border: '#404040',
+        hover: '#404040',
+        input: '#2d2d2d',
+        message: {
+          user: '#0a66c2',
+          assistant: '#2d2d2d',
+        },
+        softBlue: '#0a66c2',
+      },
+      light: {
+        bg: '#ffffff',
+        card: '#ffffff',
+        text: '#000000',
+        border: '#e2e8f0',
+        hover: '#f1f5f9',
+        input: '#ffffff',
+        message: {
+          user: '#0a66c2',
+          assistant: '#f1f5f9',
+        },
+        softBlue: '#0a66c2',
+      },
     },
   },
   components: {
@@ -90,12 +119,12 @@ const theme = extendTheme({
     },
   },
   styles: {
-    global: {
+    global: (props: { colorMode: string }) => ({
       body: {
-        bg: 'gray.50',
-        color: 'gray.900',
+        bg: props.colorMode === 'dark' ? 'linkedin.dark.bg' : 'linkedin.light.bg',
+        color: props.colorMode === 'dark' ? 'linkedin.dark.text' : 'linkedin.light.text',
       },
-    },
+    }),
   },
 });
 
