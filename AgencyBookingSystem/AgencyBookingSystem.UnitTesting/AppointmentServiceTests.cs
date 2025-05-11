@@ -11,28 +11,28 @@ public class AppointmentServiceTests
     private readonly Mock<IEventDispatcher> mockEventDispatcher;
     private readonly Mock<ILogger<AppointmentService>> mockLogger;
     private readonly Mock<IProducer<Null, string>> mockKafkaProducer;
-    private readonly string _kafkaTopic = "appointments-topic";
+    private readonly string kafkaTopic = "appointments-topic";
     private readonly AppointmentService appointmentService;
 
     public AppointmentServiceTests()
     {
-        mockAppointmentRepository = new Mock<IAppointmentRepository>();
-        mockAppointmentSlotRepository = new Mock<IAppointmentSlotRepository>();
-        mockAgencyService = new Mock<IAgencyService>();
-        mockAgencyUserService = new Mock<IAgencyUserService>();
-        mockEventDispatcher = new Mock<IEventDispatcher>();
-        mockLogger = new Mock<ILogger<AppointmentService>>();
-        mockKafkaProducer = new Mock<IProducer<Null, string>>();
+        this.mockAppointmentRepository = new Mock<IAppointmentRepository>();
+        this.mockAppointmentSlotRepository = new Mock<IAppointmentSlotRepository>();
+        this.mockAgencyService = new Mock<IAgencyService>();
+        this.mockAgencyUserService = new Mock<IAgencyUserService>();
+        this.mockEventDispatcher = new Mock<IEventDispatcher>();
+        this.mockLogger = new Mock<ILogger<AppointmentService>>();
+        this.mockKafkaProducer = new Mock<IProducer<Null, string>>();
 
-        appointmentService = new AppointmentService(
-            mockAppointmentRepository.Object,
-            mockAgencyUserService.Object,
-            mockAgencyService.Object,
-            mockEventDispatcher.Object,
-            mockLogger.Object,
-            mockKafkaProducer.Object,
-            mockAppointmentSlotRepository.Object,
-            _kafkaTopic
+        this.appointmentService = new AppointmentService(
+            this.mockAppointmentRepository.Object,
+            this.mockAgencyUserService.Object,
+            this.mockAgencyService.Object,
+            this.mockEventDispatcher.Object,
+            this.mockLogger.Object,
+            this.mockKafkaProducer.Object,
+            this.mockAppointmentSlotRepository.Object,
+            this.kafkaTopic
         );
     }
 
@@ -43,18 +43,18 @@ public class AppointmentServiceTests
         var appointmentId = Guid.NewGuid();
         var expectedAppointment = new Appointment { Id = appointmentId, Name = "Test Appointment" };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByIdAsync(appointmentId))
             .ReturnsAsync(expectedAppointment);
 
         // Act
-        var result = await appointmentService.GetByIdAsync(appointmentId);
+        var result = await this.appointmentService.GetByIdAsync(appointmentId);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(appointmentId, result.Id);
         Assert.Equal("Test Appointment", result.Name);
-        mockAppointmentRepository.Verify(repo => repo.GetByIdAsync(appointmentId), Times.Once);
+        this.mockAppointmentRepository.Verify(repo => repo.GetByIdAsync(appointmentId), Times.Once);
     }
 
     [Fact]
@@ -63,16 +63,16 @@ public class AppointmentServiceTests
         // Arrange
         var appointmentId = Guid.NewGuid();
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByIdAsync(appointmentId))
             .ReturnsAsync((Appointment)null);
 
         // Act
-        var result = await appointmentService.GetByIdAsync(appointmentId);
+        var result = await this.appointmentService.GetByIdAsync(appointmentId);
 
         // Assert
         Assert.Null(result);
-        mockAppointmentRepository.Verify(repo => repo.GetByIdAsync(appointmentId), Times.Once);
+        this.mockAppointmentRepository.Verify(repo => repo.GetByIdAsync(appointmentId), Times.Once);
     }
 
     [Fact]
@@ -85,18 +85,18 @@ public class AppointmentServiceTests
             new Appointment { Id = Guid.NewGuid(), Name = "Appointment 2" }
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetAllAsync())
             .ReturnsAsync(appointments);
 
         // Act
-        var result = await appointmentService.GetAllAsync();
+        var result = await this.appointmentService.GetAllAsync();
 
         // Assert
         Assert.Equal(2, result.Count);
         Assert.Equal("Appointment 1", result[0].Name);
         Assert.Equal("Appointment 2", result[1].Name);
-        mockAppointmentRepository.Verify(repo => repo.GetAllAsync(), Times.Once);
+        this.mockAppointmentRepository.Verify(repo => repo.GetAllAsync(), Times.Once);
     }
 
     [Fact]
@@ -109,18 +109,18 @@ public class AppointmentServiceTests
             new Appointment { Id = Guid.NewGuid(), AgencyId = agencyId, Name = "Agency Appointment" }
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetAppointmentsByAgencyAsync(agencyId))
             .ReturnsAsync(appointments);
 
         // Act
-        var result = await appointmentService.GetAppointmentsByAgencyAsync(agencyId);
+        var result = await this.appointmentService.GetAppointmentsByAgencyAsync(agencyId);
 
         // Assert
         Assert.Single(result);
         Assert.Equal("Agency Appointment", result[0].Name);
         Assert.Equal(agencyId, result[0].AgencyId);
-        mockAppointmentRepository.Verify(repo => repo.GetAppointmentsByAgencyAsync(agencyId), Times.Once);
+        this.mockAppointmentRepository.Verify(repo => repo.GetAppointmentsByAgencyAsync(agencyId), Times.Once);
     }
 
     [Fact]
@@ -135,16 +135,16 @@ public class AppointmentServiceTests
             new Appointment { Id = Guid.NewGuid(), AgencyId = agencyId, Date = date }
         };
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetAppointmentsByAgencyAsync(agencyId))
             .ReturnsAsync(appointments);
 
         // Act
-        var result = await appointmentService.HasAvailableSlotAsync(agencyId, date);
+        var result = await this.appointmentService.HasAvailableSlotAsync(agencyId, date);
 
         // Assert
         Assert.True(result);
@@ -162,16 +162,16 @@ public class AppointmentServiceTests
             new Appointment { Id = Guid.NewGuid(), AgencyId = agencyId, Date = date }
         };
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetAppointmentsByAgencyAsync(agencyId))
             .ReturnsAsync(appointments);
 
         // Act
-        var result = await appointmentService.HasAvailableSlotAsync(agencyId, date);
+        var result = await this.appointmentService.HasAvailableSlotAsync(agencyId, date);
 
         // Assert
         Assert.False(result);
@@ -188,16 +188,16 @@ public class AppointmentServiceTests
             Status = AppointmentStatus.Pending
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByIdAsync(appointmentId))
             .ReturnsAsync(appointment);
 
         // Act
-        await appointmentService.HandleNoShowAsync(appointmentId);
+        await this.appointmentService.HandleNoShowAsync(appointmentId);
 
         // Assert
         Assert.Equal(AppointmentStatus.Expired, appointment.Status);
-        mockAppointmentRepository.Verify(
+        this.mockAppointmentRepository.Verify(
             repo => repo.UpsertAsync(It.Is<Appointment>(a => a.Id == appointmentId && a.Status == AppointmentStatus.Expired),
             It.IsAny<CancellationToken>()),
             Times.Once);
@@ -221,22 +221,22 @@ public class AppointmentServiceTests
         // Day 2 - Slots available
         var appointmentsDay2 = new List<Appointment>();
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetAppointmentsByAgencyAsync(agencyId))
             .ReturnsAsync(appointmentsDay1) // First day is full
             .Callback(() => {
                 // Change the setup for the second call to simulate available slots on next day
-                mockAppointmentRepository
+                this.mockAppointmentRepository
                     .Setup(repo => repo.GetAppointmentsByAgencyAsync(agencyId))
                     .ReturnsAsync(appointmentsDay2);
             });
 
         // Act
-        var result = await appointmentService.GetNextAvailableDateAsync(agencyId, preferredDate);
+        var result = await this.appointmentService.GetNextAvailableDateAsync(agencyId, preferredDate);
 
         // Assert
         Assert.Equal(nextAvailableDate.Date, result?.Date);
@@ -284,38 +284,38 @@ public class AppointmentServiceTests
             Email = "user@test.com"
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByIdAsync(appointmentId))
             .ReturnsAsync(appointment);
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAgencyUserService
+        this.mockAgencyUserService
             .Setup(service => service.GetByIdAsync(agencyUserId))
             .ReturnsAsync(agencyUser);
 
-        mockKafkaProducer
+        this.mockKafkaProducer
             .Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DeliveryResult<Null, string>());
 
         // Act
-        var result = await appointmentService.RescheduleAppointmentAsync(appointmentId, newDate);
+        var result = await this.appointmentService.RescheduleAppointmentAsync(appointmentId, newDate);
 
         // Assert
         Assert.True(result.Succeeded);
         Assert.Equal(newDate, appointment.Date);
-        mockAppointmentRepository.Verify(
+        this.mockAppointmentRepository.Verify(
             repo => repo.UpsertAsync(It.Is<Appointment>(a => a.Id == appointmentId && a.Date == newDate),
             It.IsAny<CancellationToken>()),
             Times.Once);
-        mockEventDispatcher.Verify(
+        this.mockEventDispatcher.Verify(
             dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>()),
             Times.Once);
-        mockKafkaProducer.Verify(
+        this.mockKafkaProducer.Verify(
             producer => producer.ProduceAsync(
-                It.Is<string>(topic => topic == _kafkaTopic),
+                It.Is<string>(topic => topic == this.kafkaTopic),
                 It.IsAny<Message<Null, string>>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -328,17 +328,17 @@ public class AppointmentServiceTests
         var appointmentId = Guid.NewGuid();
         var newDate = DateTime.Today.AddDays(3);
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByIdAsync(appointmentId))
             .ReturnsAsync((Appointment)null);
 
         // Act
-        var result = await appointmentService.RescheduleAppointmentAsync(appointmentId, newDate);
+        var result = await this.appointmentService.RescheduleAppointmentAsync(appointmentId, newDate);
 
         // Assert
         Assert.False(result.Succeeded);
         Assert.Contains("Appointment does not exist", result.Errors[0]);
-        mockAppointmentRepository.Verify(
+        this.mockAppointmentRepository.Verify(
             repo => repo.UpsertAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -381,25 +381,25 @@ public class AppointmentServiceTests
             Email = "user@test.com"
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByIdAsync(appointmentId))
             .ReturnsAsync(appointment);
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAgencyUserService
+        this.mockAgencyUserService
             .Setup(service => service.GetByIdAsync(agencyUserId))
             .ReturnsAsync(agencyUser);
 
         // Act
-        var result = await appointmentService.RescheduleAppointmentAsync(appointmentId, newDate);
+        var result = await this.appointmentService.RescheduleAppointmentAsync(appointmentId, newDate);
 
         // Assert
         Assert.False(result.Succeeded);
         Assert.Contains("Selected date is a holiday", result.Errors[0]);
-        mockAppointmentRepository.Verify(
+        this.mockAppointmentRepository.Verify(
             repo => repo.UpsertAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -438,24 +438,24 @@ public class AppointmentServiceTests
             Email = email
         };
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAgencyUserService
+        this.mockAgencyUserService
             .Setup(service => service.GetByEmailAsync(email))
             .ReturnsAsync(agencyUser);
 
-        mockKafkaProducer
+        this.mockKafkaProducer
             .Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DeliveryResult<Null, string>());
 
         // Act
-        var result = await appointmentService.CreateAppointmentAsync(agencyId, email, appointmentName, date);
+        var result = await this.appointmentService.CreateAppointmentAsync(agencyId, email, appointmentName, date);
 
         // Assert
         Assert.True(result.Succeeded);
-        mockAppointmentRepository.Verify(
+        this.mockAppointmentRepository.Verify(
             repo => repo.UpsertAsync(
                 It.Is<Appointment>(a =>
                     a.AgencyId == agencyId &&
@@ -465,17 +465,17 @@ public class AppointmentServiceTests
                     a.Status == AppointmentStatus.Pending),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        mockAppointmentSlotRepository.Verify(
+        this.mockAppointmentSlotRepository.Verify(
             repo => repo.UpsertAsync(
                 It.Is<AppointmentSlot>(s => s.StartTime == date && s.Capacity == 2),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        mockEventDispatcher.Verify(
+        this.mockEventDispatcher.Verify(
             dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>()),
             Times.Once);
-        mockKafkaProducer.Verify(
+        this.mockKafkaProducer.Verify(
             producer => producer.ProduceAsync(
-                It.Is<string>(topic => topic == _kafkaTopic),
+                It.Is<string>(topic => topic == this.kafkaTopic),
                 It.IsAny<Message<Null, string>>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -511,21 +511,21 @@ public class AppointmentServiceTests
             Email = email
         };
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAgencyUserService
+        this.mockAgencyUserService
             .Setup(service => service.GetByEmailAsync(email))
             .ReturnsAsync(agencyUser);
 
         // Act
-        var result = await appointmentService.CreateAppointmentAsync(agencyId, email, appointmentName, date);
+        var result = await this.appointmentService.CreateAppointmentAsync(agencyId, email, appointmentName, date);
 
         // Assert
         Assert.False(result.Succeeded);
         Assert.Contains("Selected date is a holiday", result.Errors[0]);
-        mockAppointmentRepository.Verify(
+        this.mockAppointmentRepository.Verify(
             repo => repo.UpsertAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -561,37 +561,37 @@ public class AppointmentServiceTests
             Email = "user@test.com"
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByIdAsync(appointmentId))
             .ReturnsAsync(appointment);
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAgencyUserService
+        this.mockAgencyUserService
             .Setup(service => service.GetByIdAsync(agencyUserId))
             .ReturnsAsync(agencyUser);
 
-        mockKafkaProducer
+        this.mockKafkaProducer
             .Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DeliveryResult<Null, string>());
 
         // Act
-        await appointmentService.CancelAppointmentAsync(appointmentId);
+        await this.appointmentService.CancelAppointmentAsync(appointmentId);
 
         // Assert
         Assert.Equal("Canceled", appointment.Status);
-        mockAppointmentRepository.Verify(
+        this.mockAppointmentRepository.Verify(
             repo => repo.UpsertAsync(It.Is<Appointment>(a => a.Id == appointmentId && a.Status == "Canceled"),
             It.IsAny<CancellationToken>()),
             Times.Once);
-        mockEventDispatcher.Verify(
+        this.mockEventDispatcher.Verify(
             dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>()),
             Times.Once);
-        mockKafkaProducer.Verify(
+        this.mockKafkaProducer.Verify(
             producer => producer.ProduceAsync(
-                It.Is<string>(topic => topic == _kafkaTopic),
+                It.Is<string>(topic => topic == this.kafkaTopic),
                 It.IsAny<Message<Null, string>>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -614,16 +614,16 @@ public class AppointmentServiceTests
             new Appointment { AgencyId = agencyId, Date = DateTime.UtcNow }
         };
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetAllAsync())
             .ReturnsAsync(appointments);
 
         // Act
-        var result = await appointmentService.IsBookingAllowedAsync(agencyId);
+        var result = await this.appointmentService.IsBookingAllowedAsync(agencyId);
 
         // Assert
         Assert.True(result);
@@ -641,12 +641,12 @@ public class AppointmentServiceTests
             MaxAppointmentsPerDay = 5
         };
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
         // Act
-        var result = await appointmentService.IsBookingAllowedAsync(agencyId);
+        var result = await this.appointmentService.IsBookingAllowedAsync(agencyId);
 
         // Assert
         Assert.False(result);
@@ -686,20 +686,20 @@ public class AppointmentServiceTests
             Email = "user@test.com"
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByDateAsync(date))
             .ReturnsAsync(appointments);
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAgencyUserService
+        this.mockAgencyUserService
             .Setup(service => service.GetByIdAsync(agencyUserId))
             .ReturnsAsync(agencyUser);
 
         // Act
-        var result = await appointmentService.GetAppointmentsByDateAsync(date);
+        var result = await this.appointmentService.GetAppointmentsByDateAsync(date);
 
         // Assert
         Assert.Single(result);
@@ -743,20 +743,20 @@ public class AppointmentServiceTests
             Email = userEmail
         };
 
-        mockAppointmentRepository
+        this.mockAppointmentRepository
             .Setup(repo => repo.GetByDateAndUserAsync(date, userEmail))
             .ReturnsAsync(appointments);
 
-        mockAgencyService
+        this.mockAgencyService
             .Setup(service => service.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockAgencyUserService
+        this.mockAgencyUserService
             .Setup(service => service.GetByIdAsync(agencyUserId))
             .ReturnsAsync(agencyUser);
 
         // Act
-        var result = await appointmentService.GetAppointmentsByDateForUserAsync(date, userEmail);
+        var result = await this.appointmentService.GetAppointmentsByDateForUserAsync(date, userEmail);
 
         // Assert
         Assert.Single(result);

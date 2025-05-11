@@ -4,9 +4,11 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<IsPackable>false</IsPackable>
-	</PropertyGroup>
 
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+	
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" />
 		<PackageReference Include="FluentAssertions" />
@@ -18,12 +20,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\AgencyBookingSystem.Domain\AgencyBookingSystem.Domain.csproj" />
-		<ProjectReference Include="..\AgencyBookingSystem.Infrastructure\AgencyBookingSystem.Infrastructure.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Using Include="Xunit" />
+		<ProjectReference Include="..\..\Common\Common.Domain\Common.Domain.csproj" />
+		<ProjectReference Include="..\..\Common\Common.Infrastructure\Common.Infrastructure.csproj" />
+		<ProjectReference Include="..\RAGScanner.Application\RAGScanner.Application.csproj" />
+		<ProjectReference Include="..\RAGScanner.Domain\RAGScanner.Domain.csproj" />
+		<ProjectReference Include="..\RAGScanner.Infrastructure\RAGScanner.Infrastructure.csproj" />
 	</ItemGroup>
 
 </Project>

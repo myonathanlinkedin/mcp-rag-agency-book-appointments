@@ -111,6 +111,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MigrationScripts", "Migrati
 		migration.ps1 = migration.ps1
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAGScanner.UnitTesting", "RAGScanner\RAGScanner.UnitTesting\RAGScanner.UnitTesting.csproj", "{B68AD33E-A5A4-CC33-541B-24307869FFCC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -201,6 +203,10 @@ Global
 		{C59ED0B8-526D-45D5-BF6C-2F7EBD23788F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C59ED0B8-526D-45D5-BF6C-2F7EBD23788F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C59ED0B8-526D-45D5-BF6C-2F7EBD23788F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B68AD33E-A5A4-CC33-541B-24307869FFCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B68AD33E-A5A4-CC33-541B-24307869FFCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B68AD33E-A5A4-CC33-541B-24307869FFCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B68AD33E-A5A4-CC33-541B-24307869FFCC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -236,6 +242,7 @@ Global
 		{692FD5E7-421C-4CC3-8B77-1C0665E3DAD8} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
 		{D3C9389C-39C3-448D-80B1-077CF28BD320} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
 		{B9A1C58A-7C14-4EA3-9941-95084B5C9267} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{B68AD33E-A5A4-CC33-541B-24307869FFCC} = {4D9F3ED8-5701-48E6-AE44-124B6E18B648}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F78DF37D-D701-4804-8C76-8E39B4B245C7}
