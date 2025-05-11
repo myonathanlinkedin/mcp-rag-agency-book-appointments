@@ -16,7 +16,14 @@ import {
   useToast,
   Container,
   FormErrorMessage,
+  Flex,
+  Image,
+  InputGroup,
+  InputLeftElement,
+  Divider,
+  useColorModeValue,
 } from '@chakra-ui/react';
+import { FiMail, FiLock, FiLogIn } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 
 const loginSchema = z.object({
@@ -30,6 +37,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const toast = useToast();
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   const {
     register,
@@ -57,57 +66,115 @@ export default function LoginPage() {
   };
 
   return (
-    <Container maxW="container.sm" py={10}>
-      <Box
-        p={8}
-        borderWidth={1}
-        borderRadius="lg"
-        boxShadow="lg"
-        bg="white"
-      >
-        <VStack spacing={6}>
-          <Heading>Welcome to Agent Book</Heading>
-          <Text color="gray.600">Please sign in to continue</Text>
+    <Flex minH="100vh" bg="gray.50" align="center" justify="center" p={4}>
+      <Container maxW="container.sm">
+        <Flex
+          direction={{ base: 'column', md: 'row' }}
+          bg={bgColor}
+          borderRadius="xl"
+          boxShadow="xl"
+          overflow="hidden"
+        >
+          {/* Left side - Branding */}
+          <Box
+            w={{ base: 'full', md: '40%' }}
+            bg="brand.600"
+            p={8}
+            display={{ base: 'none', md: 'flex' }}
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+            color="white"
+          >
+            <Image
+              src="/logo-placeholder.svg"
+              alt="Agent Book Logo"
+              w="120px"
+              h="120px"
+              mb={6}
+            />
+            <Heading size="lg" mb={4} textAlign="center">
+              Agent Book
+            </Heading>
+            <Text textAlign="center" opacity={0.9}>
+              Your intelligent appointment booking assistant
+            </Text>
+          </Box>
 
-          <form onSubmit={handleSubmit(onSubmit)} style={{ width: '100%' }}>
-            <VStack spacing={4} align="stretch">
-              <FormControl isInvalid={!!errors.email}>
-                <FormLabel>Email</FormLabel>
-                <Input
-                  type="email"
-                  {...register('email')}
-                  placeholder="Enter your email"
-                />
-                <FormErrorMessage>
-                  {errors.email && errors.email.message}
-                </FormErrorMessage>
-              </FormControl>
+          {/* Right side - Login Form */}
+          <Box w={{ base: 'full', md: '60%' }} p={8}>
+            <VStack spacing={6} align="stretch">
+              <Box textAlign="center" mb={8}>
+                <Heading size="lg" mb={2}>
+                  Welcome Back
+                </Heading>
+                <Text color="gray.600">
+                  Sign in to access your dashboard
+                </Text>
+              </Box>
 
-              <FormControl isInvalid={!!errors.password}>
-                <FormLabel>Password</FormLabel>
-                <Input
-                  type="password"
-                  {...register('password')}
-                  placeholder="Enter your password"
-                />
-                <FormErrorMessage>
-                  {errors.password && errors.password.message}
-                </FormErrorMessage>
-              </FormControl>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <VStack spacing={5}>
+                  <FormControl isInvalid={!!errors.email}>
+                    <FormLabel fontWeight="medium">Email</FormLabel>
+                    <InputGroup>
+                      <InputLeftElement pointerEvents="none">
+                        <FiMail color="gray.400" />
+                      </InputLeftElement>
+                      <Input
+                        type="email"
+                        {...register('email')}
+                        placeholder="Enter your email"
+                        size="lg"
+                        bg="gray.50"
+                      />
+                    </InputGroup>
+                    <FormErrorMessage>
+                      {errors.email && errors.email.message}
+                    </FormErrorMessage>
+                  </FormControl>
 
-              <Button
-                type="submit"
-                colorScheme="blue"
-                size="lg"
-                width="full"
-                isLoading={isLoading}
-              >
-                Sign In
-              </Button>
+                  <FormControl isInvalid={!!errors.password}>
+                    <FormLabel fontWeight="medium">Password</FormLabel>
+                    <InputGroup>
+                      <InputLeftElement pointerEvents="none">
+                        <FiLock color="gray.400" />
+                      </InputLeftElement>
+                      <Input
+                        type="password"
+                        {...register('password')}
+                        placeholder="Enter your password"
+                        size="lg"
+                        bg="gray.50"
+                      />
+                    </InputGroup>
+                    <FormErrorMessage>
+                      {errors.password && errors.password.message}
+                    </FormErrorMessage>
+                  </FormControl>
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    width="full"
+                    isLoading={isLoading}
+                    leftIcon={<FiLogIn />}
+                    mt={4}
+                  >
+                    Sign In
+                  </Button>
+                </VStack>
+              </form>
+
+              <Divider my={6} />
+
+              <Text textAlign="center" fontSize="sm" color="gray.600">
+                © {new Date().getFullYear()} Agent Book. All rights reserved.
+              </Text>
             </VStack>
-          </form>
-        </VStack>
-      </Box>
-    </Container>
+          </Box>
+        </Flex>
+      </Container>
+    </Flex>
   );
 } 

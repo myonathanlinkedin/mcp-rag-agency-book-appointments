@@ -13,8 +13,12 @@ import {
   Flex,
   IconButton,
   Avatar,
+  Heading,
+  Divider,
+  useColorModeValue,
+  Badge,
 } from '@chakra-ui/react';
-import { FiSend, FiLogOut } from 'react-icons/fi';
+import { FiSend, FiLogOut, FiMessageSquare, FiClock } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ReactMarkdown from 'react-markdown';
@@ -37,6 +41,8 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { logout, user } = useAuth();
   const toast = useToast();
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,6 +95,10 @@ export default function ChatPage() {
     }
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <ProtectedRoute>
       <Container maxW="container.xl" h="100vh" p={0}>
@@ -97,20 +107,34 @@ export default function ChatPage() {
           <Box
             p={4}
             borderBottom="1px"
-            borderColor="gray.200"
-            bg="white"
+            borderColor={borderColor}
+            bg={bgColor}
             shadow="sm"
           >
             <Flex justify="space-between" align="center">
-              <Text fontSize="xl" fontWeight="bold">
-                Agent Book
-              </Text>
-              <HStack>
-                <Avatar size="sm" name={user?.email} />
+              <HStack spacing={4}>
+                <IconButton
+                  aria-label="Chat"
+                  icon={<FiMessageSquare />}
+                  variant="ghost"
+                  colorScheme="brand"
+                  fontSize="24px"
+                />
+                <Heading size="md">Agent Book</Heading>
+                <Badge colorScheme="brand" variant="subtle" px={2} py={1}>
+                  Online
+                </Badge>
+              </HStack>
+              <HStack spacing={4}>
+                <Text fontSize="sm" color="gray.600">
+                  {user?.email}
+                </Text>
+                <Avatar size="sm" name={user?.email} bg="brand.500" />
                 <IconButton
                   aria-label="Logout"
                   icon={<FiLogOut />}
                   variant="ghost"
+                  colorScheme="brand"
                   onClick={logout}
                 />
               </HStack>
@@ -143,44 +167,57 @@ export default function ChatPage() {
                   alignSelf={message.role === 'user' ? 'flex-end' : 'flex-start'}
                   maxW="70%"
                 >
-                  <Box
-                    bg={message.role === 'user' ? 'blue.500' : 'white'}
-                    color={message.role === 'user' ? 'white' : 'black'}
+                  <HStack
+                    spacing={2}
+                    align="flex-start"
+                    bg={message.role === 'user' ? 'brand.500' : 'white'}
+                    color={message.role === 'user' ? 'white' : 'gray.800'}
                     p={4}
                     borderRadius="lg"
                     boxShadow="sm"
                   >
-                    <ReactMarkdown
-                      components={{
-                        code: ({ className, children, ...props }) => {
-                          const match = /language-(\w+)/.exec(className || '');
-                          const language = match ? match[1] : '';
-                          const isInline = !className || !match;
-                          
-                          if (isInline) {
-                            return (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          }
+                    <Avatar
+                      size="sm"
+                      name={message.role === 'user' ? user?.email : 'Assistant'}
+                      bg={message.role === 'user' ? 'brand.600' : 'gray.200'}
+                      color={message.role === 'user' ? 'white' : 'gray.700'}
+                    />
+                    <Box flex={1}>
+                      <ReactMarkdown
+                        components={{
+                          code: ({ className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            const language = match ? match[1] : '';
+                            const isInline = !className || !match;
+                            
+                            if (isInline) {
+                              return (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
 
-                          return (
-                            <Box as="pre" p={4} borderRadius="md" bg="gray.800" overflowX="auto">
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            </Box>
-                          );
-                        },
-                      } as Components}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
-                  </Box>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    {message.timestamp.toLocaleTimeString()}
-                  </Text>
+                            return (
+                              <Box as="pre" p={4} borderRadius="md" bg="gray.800" overflowX="auto">
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              </Box>
+                            );
+                          },
+                        } as Components}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                      <HStack mt={2} spacing={2} color={message.role === 'user' ? 'whiteAlpha.800' : 'gray.500'}>
+                        <FiClock size={12} />
+                        <Text fontSize="xs">
+                          {formatTime(message.timestamp)}
+                        </Text>
+                      </HStack>
+                    </Box>
+                  </HStack>
                 </Box>
               ))}
               <div ref={messagesEndRef} />
@@ -188,7 +225,7 @@ export default function ChatPage() {
           </Box>
 
           {/* Input Area */}
-          <Box p={4} bg="white" borderTop="1px" borderColor="gray.200">
+          <Box p={4} bg={bgColor} borderTop="1px" borderColor={borderColor}>
             <HStack>
               <Input
                 value={input}
@@ -196,11 +233,18 @@ export default function ChatPage() {
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
                 disabled={isLoading}
+                size="lg"
+                bg="gray.50"
+                _focus={{
+                  borderColor: 'brand.500',
+                  boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
+                }}
               />
               <IconButton
                 aria-label="Send message"
                 icon={<FiSend />}
-                colorScheme="blue"
+                colorScheme="brand"
+                size="lg"
                 onClick={handleSend}
                 isLoading={isLoading}
               />

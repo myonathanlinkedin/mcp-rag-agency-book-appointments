@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="60" cy="60" r="54" fill="white" fill-opacity="0.1"/>
+  
+  <!-- Calendar Icon -->
+  <rect x="35" y="30" width="50" height="45" rx="4" stroke="white" stroke-width="4"/>
+  <line x1="35" y1="45" x2="85" y2="45" stroke="white" stroke-width="4"/>
+  <line x1="45" y1="30" x2="45" y2="45" stroke="white" stroke-width="4"/>
+  <line x1="75" y1="30" x2="75" y2="45" stroke="white" stroke-width="4"/>
+  
+  <!-- Checkmark -->
+  <path d="M45 65L55 75L75 55" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg> 
