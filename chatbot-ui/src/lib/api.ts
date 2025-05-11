@@ -1,5 +1,7 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig, AxiosInstance, AxiosResponse } from 'axios';
 import { useAuthStore } from '@/store/authStore';
+import { RateLimit } from 'async-sema';
+import { Logger } from '@/lib/logger';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
