@@ -21,14 +21,14 @@ public abstract class IdentityEmailNotificationHandlerBase<TEvent> : IEventHandl
 
     public async Task Handle(TEvent domainEvent)
     {
-        var (email, password, subject, prompt) = GetEmailData(domainEvent);
+        var (email, password, subject, prompt) = this.GetEmailData(domainEvent);
 
-        logger.LogInformation("Requesting email body generation for: {Email}", email);
-        var result = await mcpServerRequester.RequestAsync(prompt: prompt);
+        this.logger.LogInformation("Requesting email body generation for: {Email}", email);
+        var result = await this.mcpServerRequester.RequestAsync(prompt: prompt);
 
         if (!result.Succeeded)
         {
-            logger.LogError("Failed to generate email body for: {Email}. Reason: {Errors}", email, result.Errors);
+            this.logger.LogError("Failed to generate email body for: {Email}. Reason: {Errors}", email, result.Errors);
             return;
         }
 
@@ -40,14 +40,14 @@ public abstract class IdentityEmailNotificationHandlerBase<TEvent> : IEventHandl
                         <html>
                             <body>
                                 <p>{body}</p>
-                                <footer><p>{GetFooter()}</p></footer>
+                                <footer><p>{this.GetFooter()}</p></footer>
                             </body>
                         </html>
                         """;
 
-        logger.LogInformation("Sending email to {Email}", email);
-        await emailSenderService.SendEmailAsync(email, subject, fullHtml);
-        logger.LogInformation("Email successfully sent to {Email}", email);
+        this.logger.LogInformation("Sending email to {Email}", email);
+        await this.emailSenderService.SendEmailAsync(email, subject, fullHtml);
+        this.logger.LogInformation("Email successfully sent to {Email}", email);
     }
 
     protected abstract (string Email, string Password, string Subject, string Prompt) GetEmailData(TEvent domainEvent);

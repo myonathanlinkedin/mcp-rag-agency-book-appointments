@@ -2,7 +2,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-internal class EventDispatcher : IEventDispatcher
+public class EventDispatcher : IEventDispatcher
     {
         private static readonly ConcurrentDictionary<Type, Type> HandlerTypesCache = new();
 

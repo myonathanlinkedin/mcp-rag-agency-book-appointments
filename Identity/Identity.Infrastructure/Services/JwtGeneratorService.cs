@@ -34,7 +34,7 @@ public class JwtGeneratorService : IJwtGenerator
 
     public async Task<(string AccessToken, string RefreshToken)> GenerateToken(User user)
     {
-        var rsa = keyProvider.GetPrivateKey();
+        var rsa = this.keyProvider.GetPrivateKey();
         var tokenHandler = new JwtSecurityTokenHandler();
 
         var claims = new List<Claim>
@@ -45,7 +45,7 @@ public class JwtGeneratorService : IJwtGenerator
             new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString())
         };
 
-        var roles = await userManager.GetRolesAsync(user);
+        var roles = await this.userManager.GetRolesAsync(user);
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
@@ -54,17 +54,17 @@ public class JwtGeneratorService : IJwtGenerator
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddSeconds(tokenExpirationSeconds),
-            Issuer = issuer,
-            Audience = audience,
+            Expires = DateTime.UtcNow.AddSeconds(this.tokenExpirationSeconds),
+            Issuer = this.issuer,
+            Audience = this.audience,
             SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), RsaAlgorithm)
         };
 
         var accessToken = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
 
-        var tokenExpiry = tokenExpirationSeconds;
+        var tokenExpiry = this.tokenExpirationSeconds;
         var refreshTokenExpiry = DateTime.UtcNow.AddSeconds((int)tokenExpiry);
-        var refreshToken = GenerateRefreshToken();
+        var refreshToken = this.GenerateRefreshToken();
 
         var refreshTokenData = new RefreshTokenModel { RefreshToken = refreshToken, Expiry = refreshTokenExpiry };
         var cacheOptions = new DistributedCacheEntryOptions
@@ -72,17 +72,17 @@ public class JwtGeneratorService : IJwtGenerator
             AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(tokenExpiry)
         };
 
-        var cacheKey = GetRefreshTokenCacheKey(user.Id);
+        var cacheKey = this.GetRefreshTokenCacheKey(user.Id);
         var json = JsonSerializer.Serialize(refreshTokenData);
-        await distributedCache.SetStringAsync(cacheKey, json, cacheOptions);
+        await this.distributedCache.SetStringAsync(cacheKey, json, cacheOptions);
 
         return (accessToken, refreshToken);
     }
 
     public async Task<string> RefreshToken(string userId, string providedRefreshToken)
     {
-        var cacheKey = GetRefreshTokenCacheKey(userId);
-        var cachedTokenJson = await distributedCache.GetStringAsync(cacheKey);
+        var cacheKey = this.GetRefreshTokenCacheKey(userId);
+        var cachedTokenJson = await this.distributedCache.GetStringAsync(cacheKey);
         if (string.IsNullOrEmpty(cachedTokenJson))
         {
             throw new SecurityTokenException("Invalid or expired refresh token.");
@@ -94,18 +94,18 @@ public class JwtGeneratorService : IJwtGenerator
             throw new SecurityTokenException("Invalid or expired refresh token.");
         }
 
-        var user = await userManager.FindByIdAsync(userId);
+        var user = await this.userManager.FindByIdAsync(userId);
         if (user == null)
         {
             throw new SecurityTokenException("User not found.");
         }
 
-        return (await GenerateToken(user)).AccessToken;
+        return (await this.GenerateToken(user)).AccessToken;
     }
 
-    public JsonWebKey GetPublicKey() => keyProvider.GetPublicJwk();
+    public JsonWebKey GetPublicKey() => this.keyProvider.GetPublicJwk();
 
-    private static string GetRefreshTokenCacheKey(string userId) => $"refresh_token:{userId}";
+    private string GetRefreshTokenCacheKey(string userId) => $"refresh_token:{userId}";
 
     private string GenerateRefreshToken()
     {
