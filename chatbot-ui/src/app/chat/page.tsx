@@ -129,6 +129,10 @@ export default function ChatPage() {
                   alt="Logo"
                   boxSize="32px"
                   borderRadius="md"
+                  bg="brand.500"
+                  border="1px"
+                  borderColor={colorMode === 'dark' ? 'linkedin.dark.border' : 'linkedin.light.border'}
+                  p={1}
                 />
                 <Heading 
                   size="md" 
