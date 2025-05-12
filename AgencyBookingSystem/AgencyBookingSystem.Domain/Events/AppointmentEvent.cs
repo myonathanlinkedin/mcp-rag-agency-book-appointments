@@ -8,6 +8,8 @@
     public string AgencyEmail { get; }
     public string UserEmail { get; }
 
+    public Guid AggregateId => AppointmentId;
+
     public AppointmentEvent(Guid appointmentId, string appointmentName, DateTime appointmentDate, string status, string agencyName, string agencyEmail, string userEmail)
     {
         AppointmentId = appointmentId == Guid.Empty

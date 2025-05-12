@@ -17,6 +17,6 @@ public class LoginUserCommand : UserRequestModel, IRequest<Result<UserResponseMo
         public async Task<Result<UserResponseModel>> Handle(
             LoginUserCommand request,
             CancellationToken cancellationToken)
-            => await this.identity.Login(request);
+            => await this.identity.Login(request, cancellationToken);
     }
 }

@@ -19,12 +19,12 @@ public abstract class RAGEmailNotificationHandlerBase<TEvent> : IEventHandler<TE
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task Handle(TEvent domainEvent)
+    public async Task Handle(TEvent domainEvent, CancellationToken cancellationToken)
     {
         var (email, password, subject, prompt) = GetEmailData(domainEvent);
 
         logger.LogInformation("Requesting email body generation for: {Email}", email);
-        var result = await mcpServerRequester.RequestAsync(prompt: prompt);
+        var result = await mcpServerRequester.RequestAsync(prompt: prompt, cancellationToken: cancellationToken);
 
         if (result == null || !result.Succeeded)
         {

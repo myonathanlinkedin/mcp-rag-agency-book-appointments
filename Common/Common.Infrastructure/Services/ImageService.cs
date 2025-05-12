@@ -5,14 +5,14 @@ public class ImageService : IImageService
 {
     private const int ThumbnailWidth = 100;
 
-    public async Task<ImageResponseModel> Process(ImageRequestModel image)
+    public async Task<ImageResponse> Process(ImageRequest image)
     {
         using var imageResult = await Image.LoadAsync(image.Content);
 
         var original = await SaveImage(imageResult, imageResult.Width);
         var thumbnail = await SaveImage(imageResult, ThumbnailWidth);
 
-        return new ImageResponseModel(original, thumbnail);
+        return new ImageResponse(original, thumbnail);
     }
 
     private async Task<byte[]> SaveImage(Image image, int resizeWidth)

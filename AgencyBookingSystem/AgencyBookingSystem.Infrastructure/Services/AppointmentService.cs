@@ -138,7 +138,7 @@ public class AppointmentService : IAppointmentService
         // ✅ Dispatch event
         await eventDispatcher.Dispatch(new AppointmentEvent(
             appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
-        ));
+        ), cancellationToken);
 
         // ✅ Publish reschedule event to Kafka
         await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Update, appointment, agency, agencyUser);
@@ -217,7 +217,7 @@ public class AppointmentService : IAppointmentService
         // ✅ Dispatch event
         await eventDispatcher.Dispatch(new AppointmentEvent(
             appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
-        ));
+        ), cancellationToken);
 
         // ✅ Publish appointment to Kafka
         await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Insert, appointment, agency, agencyUser);
@@ -261,7 +261,7 @@ public class AppointmentService : IAppointmentService
         // ✅ Dispatch event
         await eventDispatcher.Dispatch(new AppointmentEvent(
             appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
-        ));
+        ), cancellationToken);
 
         // ✅ Publish cancellation event to Kafka
         await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Delete, appointment, agency, agencyUser);

@@ -16,6 +16,6 @@ public class ResetPasswordCommand : IRequest<Result>
         public async Task<Result> Handle(
             ResetPasswordCommand request,
             CancellationToken cancellationToken)
-            => await identity.ResetPassword(request.Email);
+            => await identity.ResetPassword(request.Email, cancellationToken);
     }
 }

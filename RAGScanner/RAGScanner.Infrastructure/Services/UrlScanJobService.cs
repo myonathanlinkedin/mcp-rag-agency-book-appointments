@@ -28,7 +28,7 @@ public class UrlScanJobService : IUrlScanJobService
         this.logger = logger;
     }
 
-    public async Task ProcessAsync(List<string> urls, Guid jobId, string uploaderEmail)
+    public async Task ProcessAsync(List<string> urls, Guid jobId, string uploaderEmail, CancellationToken cancellationToken)
     {
         await UpdateJobStatusAsync(jobId, JobStatusType.InProgress, "Processing");
 
@@ -36,7 +36,7 @@ public class UrlScanJobService : IUrlScanJobService
         if (!scrapedDocs.Any())
         {
             await UpdateJobStatusAsync(jobId, JobStatusType.Failed, "Nothing scraped.");
-            await DispatchScanEvent("N/A", uploaderEmail, "Failed", null, "No content available");
+            await DispatchScanEvent("N/A", uploaderEmail, "Failed", null, "No content available", cancellationToken);
             return;
         }
 
@@ -53,7 +53,7 @@ public class UrlScanJobService : IUrlScanJobService
             var parsedPages = ParseDocumentPages(doc);
             foreach (var (content, index) in parsedPages.Select((page, idx) => (page.Content, idx)))
             {
-                await DispatchScanEvent(doc.Url, uploaderEmail, "Success", doc.IsPdf ? index + 1 : null, content);
+                await DispatchScanEvent(doc.Url, uploaderEmail, "Success", doc.IsPdf ? index + 1 : null, content, cancellationToken: cancellationToken);
             }
         }
     }
@@ -103,9 +103,9 @@ public class UrlScanJobService : IUrlScanJobService
         }
     }
 
-    private async Task DispatchScanEvent(string documentUrl, string uploaderEmail, string status, int? pageNumber, string contentSnippet)
+    private async Task DispatchScanEvent(string documentUrl, string uploaderEmail, string status, int? pageNumber, string contentSnippet, CancellationToken cancellationToken)
     {
-        await eventDispatcher.Dispatch(new DocumentScanEvent(documentUrl, DateTime.UtcNow, uploaderEmail, status, pageNumber, contentSnippet));
+        await eventDispatcher.Dispatch(new DocumentScanEvent(documentUrl, DateTime.UtcNow, uploaderEmail, status, pageNumber, contentSnippet), cancellationToken);
     }
 
     private string ExtractTitle(string html)

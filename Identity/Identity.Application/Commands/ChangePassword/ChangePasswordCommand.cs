@@ -25,6 +25,6 @@ public class ChangePasswordCommand : IRequest<Result>
             => await identity.ChangePassword(new ChangePasswordRequestModel(
                 currentUser.UserId,
                 request.CurrentPassword,
-                request.NewPassword));
+                request.NewPassword), cancellationToken);
     }
 }

@@ -1,9 +1,12 @@
 ﻿using System.Reflection;
 using System.Text.Json;
+using Marten;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Marten;
+using Marten.Events.Daemon.Resiliency;
 
 public static class InfrastructureConfiguration
 {
@@ -67,7 +70,24 @@ public static class InfrastructureConfiguration
     }
 
     public static IServiceCollection AddEventSourcing(this IServiceCollection services)
-        => services.AddTransient<IEventDispatcher, EventDispatcher>();
+    {
+        services.AddMarten(options =>
+         {
+             using var scope = services.BuildServiceProvider().CreateScope();
+             var appSettings = scope.ServiceProvider.GetRequiredService<ApplicationSettings>();
+             options.Connection(appSettings.ConnectionStrings.EventSourcingConnection);
+
+             // Enable event store (optional)
+             options.Events.AddEventType(typeof(IDomainEvent));
+
+             // Enable document storage
+             options.Schema.For<IDomainEvent>().Identity(x => x.AggregateId);
+
+         }).AddAsyncDaemon(DaemonMode.HotCold);
+
+        return services.AddTransient<IEventDispatcher, EventDispatcher>()
+                   .AddScoped<IEventRepository, MartenEventRepository>();
+    }
 
     public static IHttpClientBuilder ConfigureDefaultHttpClientHandler(this IHttpClientBuilder builder)
         => builder

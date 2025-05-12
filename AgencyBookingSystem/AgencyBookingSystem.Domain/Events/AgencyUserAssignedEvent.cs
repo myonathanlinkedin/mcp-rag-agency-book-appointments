@@ -9,6 +9,8 @@
     public string? FullName { get; } // Nullable for flexibility
     public List<string>? Roles { get; } // Nullable for flexibility
 
+    public Guid AggregateId => AgencyId;
+
     // Constructor for agency-only assignments
     public AgencyUserAssignedEvent(Guid agencyId, string agencyName, string agencyEmail)
     {

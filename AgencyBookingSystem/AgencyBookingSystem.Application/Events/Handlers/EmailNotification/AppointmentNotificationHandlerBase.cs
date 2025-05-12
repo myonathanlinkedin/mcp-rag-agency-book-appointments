@@ -20,7 +20,7 @@ public abstract class AppointmentNotificationHandlerBase<TEvent> : IEventHandler
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task Handle(TEvent domainEvent)
+    public async Task Handle(TEvent domainEvent, CancellationToken cancellationToken)
     {
         var (email, subject, prompt) = GetEmailData(domainEvent); // Removed Password
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(prompt))
@@ -31,7 +31,7 @@ public abstract class AppointmentNotificationHandlerBase<TEvent> : IEventHandler
 
         logger.LogInformation("Requesting email body generation for recipient: {RecipientEmail}", email);
 
-        var result = await mcpServerRequester.RequestAsync(prompt: prompt);
+        var result = await mcpServerRequester.RequestAsync(prompt: prompt, cancellationToken: cancellationToken);
         if (result == null || !result.Succeeded)
         {
             logger.LogError("Failed to generate email content for {RecipientEmail}. Errors: {ErrorDetails}", email, result?.Errors);

@@ -29,7 +29,7 @@ public abstract class BaseDbContext<TContext> : DbContext where TContext : DbCon
 
             foreach (var domainEvent in events)
             {
-                await eventDispatcher.Dispatch(domainEvent);
+                await eventDispatcher.Dispatch(domainEvent, cancellationToken);
             }
         }
 

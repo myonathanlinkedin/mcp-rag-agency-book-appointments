@@ -22,7 +22,7 @@ public class IdentityService : IIdentity
         this.logger = logger;
     }
 
-    public async Task<Result<IUser>> Register(UserRequestModel userRequest)
+    public async Task<Result<IUser>> Register(UserRequestModel userRequest, CancellationToken cancellationToken)
     {
         var user = new User(userRequest.Email);
         var identityResult = await userManager.CreateAsync(user, userRequest.Password);
@@ -31,7 +31,7 @@ public class IdentityService : IIdentity
         if (identityResult.Succeeded)
         {
             logger.LogInformation("User registered successfully with email: {Email}", userRequest.Email);
-            await eventDispatcher.Dispatch(new UserRegisteredEvent(userRequest.Email, userRequest.Password));
+            await eventDispatcher.Dispatch(new UserRegisteredEvent(userRequest.Email, userRequest.Password), cancellationToken);
             return Result<IUser>.SuccessWith(user);
         }
 
@@ -39,7 +39,7 @@ public class IdentityService : IIdentity
         return Result<IUser>.Failure(errors);
     }
 
-    public async Task<Result<UserResponseModel>> Login(UserRequestModel userRequest)
+    public async Task<Result<UserResponseModel>> Login(UserRequestModel userRequest, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(userRequest.Email);
         if (user == null)
@@ -60,7 +60,7 @@ public class IdentityService : IIdentity
         return Result<UserResponseModel>.SuccessWith(new UserResponseModel(tokens.AccessToken, tokens.RefreshToken));
     }
 
-    public async Task<Result<string>> RefreshToken(RefreshTokenRequestModel refreshTokenRequest)
+    public async Task<Result<string>> RefreshToken(RefreshTokenRequestModel refreshTokenRequest, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByIdAsync(refreshTokenRequest.UserId);
         if (user == null)
@@ -82,7 +82,7 @@ public class IdentityService : IIdentity
         }
     }
 
-    public async Task<Result> ChangePassword(ChangePasswordRequestModel changePasswordRequest)
+    public async Task<Result> ChangePassword(ChangePasswordRequestModel changePasswordRequest, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByIdAsync(changePasswordRequest.UserId);
         if (user == null)
@@ -97,7 +97,7 @@ public class IdentityService : IIdentity
         if (identityResult.Succeeded)
         {
             logger.LogInformation("Password changed successfully for email: {Email}", user.Email);
-            await eventDispatcher.Dispatch(new PasswordChangedEvent(user.Email, changePasswordRequest.NewPassword));
+            await eventDispatcher.Dispatch(new PasswordChangedEvent(user.Email, changePasswordRequest.NewPassword), cancellationToken);
             return Result.Success;
         }
 
@@ -105,7 +105,7 @@ public class IdentityService : IIdentity
         return Result.Failure(errors);
     }
 
-    public async Task<Result> ResetPassword(string email)
+    public async Task<Result> ResetPassword(string email, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(email);
         if (user == null)
@@ -122,7 +122,7 @@ public class IdentityService : IIdentity
         if (identityResult.Succeeded)
         {
             logger.LogInformation("Password reset successfully for email: {Email}", email);
-            await eventDispatcher.Dispatch(new PasswordResetEvent(user.Email, newPassword));
+            await eventDispatcher.Dispatch(new PasswordResetEvent(user.Email, newPassword), cancellationToken);
             return Result.Success;
         }
 
@@ -130,7 +130,7 @@ public class IdentityService : IIdentity
         return Result.Failure(errors);
     }
 
-    public async Task<Result> AssignRoleAsync(string email, string roleName)
+    public async Task<Result> AssignRoleAsync(string email, string roleName, CancellationToken cancellationToken)
     {
         try
         {

@@ -1,56 +1,102 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Polly;
+using System.Collections.Concurrent;
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 
 public class EventDispatcher : IEventDispatcher
+{
+    private static readonly ConcurrentDictionary<Type, Type> HandlerTypesCache = new();
+    private static readonly ConcurrentDictionary<Type, Func<object, object, CancellationToken, Task>> HandlersCache = new();
+    private static readonly Type HandlerType = typeof(IEventHandler<>);
+    private static readonly MethodInfo MakeDelegateMethod = typeof(EventDispatcher)
+        .GetMethod(nameof(MakeDelegate), BindingFlags.Static | BindingFlags.NonPublic)!;
+    private static readonly Type EventHandlerFuncType = typeof(Func<object, object, CancellationToken, Task>);
+
+    private readonly IServiceProvider serviceProvider;
+    private readonly ILogger<EventDispatcher>? logger;
+    private readonly IEventRepository eventStore;
+
+    public EventDispatcher(IServiceProvider serviceProvider, IEventRepository eventStore, ILogger<EventDispatcher>? logger = null)
     {
-        private static readonly ConcurrentDictionary<Type, Type> HandlerTypesCache = new();
+        this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        this.eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
+        this.logger = logger;
+    }
 
-        private static readonly ConcurrentDictionary<Type, Func<object, object, Task>> HandlersCache = new();
+    public async Task Dispatch(IDomainEvent domainEvent, CancellationToken cancellationToken = default)
+    {
+        if (domainEvent == null)
+            throw new ArgumentNullException(nameof(domainEvent));
 
-        private static readonly Type HandlerType = typeof(IEventHandler<>);
+        var eventType = domainEvent.GetType();
 
-        private static readonly MethodInfo MakeDelegateMethod = typeof(EventDispatcher)
-            .GetMethod(nameof(MakeDelegate), BindingFlags.Static | BindingFlags.NonPublic)!;
+        // Persist event to event store
+        await eventStore.AppendToStream(domainEvent.AggregateId, new[] { domainEvent }, cancellationToken);
 
-        private static readonly Type EventHandlerFuncType = typeof(Func<Func<object, object, Task>>);
+        var handlerInterface = HandlerTypesCache.GetOrAdd(eventType, t => HandlerType.MakeGenericType(t));
+        var handlers = serviceProvider.GetServices(handlerInterface);
 
-        private readonly IServiceProvider serviceProvider;
+        var exceptions = new List<Exception>();
 
-        public EventDispatcher(IServiceProvider serviceProvider)
-            => this.serviceProvider = serviceProvider;
-
-        public async Task Dispatch(IDomainEvent domainEvent)
+        foreach (var handler in handlers)
         {
-            var eventType = domainEvent.GetType();
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var handlerTypes = HandlerTypesCache.GetOrAdd(
-                eventType,
-                type => HandlerType.MakeGenericType(type));
+            var handlerType = handler.GetType();
 
-            var eventHandlers = serviceProvider.GetServices(handlerTypes);
-
-            foreach (var eventHandler in eventHandlers)
+            var handlerDelegate = HandlersCache.GetOrAdd(handlerType, _ =>
             {
-                var handlerServiceType = eventHandler.GetType();
+                var method = MakeDelegateMethod.MakeGenericMethod(eventType, handlerType);
+                var untyped = method.Invoke(null, null)!;
+                return (Func<object, object, CancellationToken, Task>)Convert.ChangeType(untyped, EventHandlerFuncType)!;
+            });
 
-                var eventHandlerDelegate = HandlersCache.GetOrAdd(handlerServiceType, type =>
-                {
-                    var makeDelegate = MakeDelegateMethod
-                        .MakeGenericMethod(eventType, type);
+            try
+            {
+                await Policy
+                    .Handle<Exception>()
+                    .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)))
+                    .ExecuteAsync(() => handlerDelegate(domainEvent, handler, cancellationToken));
 
-                    return ((Func<Func<object, object, Task>>)makeDelegate
-                        .CreateDelegate(EventHandlerFuncType))
-                        .Invoke();
-                });
-
-                await eventHandlerDelegate(domainEvent, eventHandler);
+                logger?.LogInformation("Dispatched {EventType} to {HandlerType}", eventType.Name, handlerType.Name);
+            }
+            catch (Exception ex)
+            {
+                await StoreFailedEvent(domainEvent, ex, cancellationToken);
+                logger?.LogError(ex, "Error handling {EventType} with {HandlerType}", eventType.Name, handlerType.Name);
+                exceptions.Add(ex);
             }
         }
 
-        private static Func<object, object, Task> MakeDelegate<TEvent, TEventHandler>()
-            where TEvent : IDomainEvent
-            where TEventHandler : IEventHandler<TEvent>
-            => (domainEvent, eventHandler) => 
-                ((TEventHandler)eventHandler).Handle((TEvent)domainEvent);
+        if (exceptions.Any())
+            throw new AggregateException("One or more event handlers failed", exceptions);
     }
+
+    private static Func<object, object, CancellationToken, Task> MakeDelegate<TEvent, THandler>()
+        where TEvent : IDomainEvent
+        where THandler : IEventHandler<TEvent>
+    {
+        return (domainEvent, handler, token) =>
+            ((THandler)handler).Handle((TEvent)domainEvent, token);
+    }
+
+    private async Task StoreFailedEvent(IDomainEvent domainEvent, Exception ex, CancellationToken cancellationToken = default)
+    {
+        var outboxMessage = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            AggregateId = domainEvent.AggregateId,
+            EventType = domainEvent.GetType().FullName!,
+            Payload = JsonSerializer.Serialize(domainEvent),
+            CreatedAt = DateTime.UtcNow,
+            RetryCount = 0,
+            Error = ex.Message
+        };
+
+        using var session = await eventStore.OpenSession(cancellationToken);
+        session.Store(outboxMessage);
+        await session.SaveChangesAsync();
+    }
+}

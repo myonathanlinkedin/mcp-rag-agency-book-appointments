@@ -41,9 +41,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAGScanner.Web", "RAGScanne
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Identity.Domain", "Identity\Identity.Domain\Identity.Domain.csproj", "{FF355B36-4662-96AC-95AD-1708C9469020}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MessageBroker", "MessageBroker", "{AA66F78A-D191-4EE1-B3A8-2FDA57E73901}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BackgroundServices", "BackgroundServices", "{AA66F78A-D191-4EE1-B3A8-2FDA57E73901}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageBroker.Kafka", "MessageBroker\MessageBroker.Kafka.csproj", "{CEB6ACA3-8601-D692-8E33-C8C70D26F9D8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageBroker.Kafka", "BackgroundServices\MessageBroker.Kafka.csproj", "{CEB6ACA3-8601-D692-8E33-C8C70D26F9D8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgencyBookingSystem", "AgencyBookingSystem", "{DA86E829-4E10-472D-94F8-1B7A8B35C869}"
 EndProject

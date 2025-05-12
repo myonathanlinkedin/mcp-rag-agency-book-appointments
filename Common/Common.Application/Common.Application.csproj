@@ -9,6 +9,7 @@
     <ItemGroup>
         <PackageReference Include="AutoMapper" />
         <PackageReference Include="FluentValidation" />
+        <PackageReference Include="Marten" />
         <PackageReference Include="MediatR" />
         <PackageReference Include="MessagePack" />
         <PackageReference Include="Microsoft.AspNetCore.Http" />

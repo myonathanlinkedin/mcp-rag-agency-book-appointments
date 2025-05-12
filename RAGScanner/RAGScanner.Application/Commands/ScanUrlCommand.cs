@@ -36,7 +36,7 @@ public class ScanUrlCommand : BaseCommand<ScanUrlCommand>, IRequest<Result>
             foreach (var (url, jobId) in command.Urls.Zip(jobs))
             {
                 jobClient.Enqueue<IUrlScanJobService>(svc =>
-                    svc.ProcessAsync(new List<string> { url }, new Guid(jobId), user.Email));
+                    svc.ProcessAsync(new List<string> { url }, new Guid(jobId), user.Email, cancellationToken));
             }
 
             return Result.Success;

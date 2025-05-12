@@ -18,7 +18,7 @@ public class ImageModelBinder : IModelBinder
         }
         else
         {
-            var imageRequest = new ImageRequestModel(formFile.OpenReadStream());
+            var imageRequest = new ImageRequest(formFile.OpenReadStream());
             bindingContext.Result = ModelBindingResult.Success(imageRequest);
         }
 

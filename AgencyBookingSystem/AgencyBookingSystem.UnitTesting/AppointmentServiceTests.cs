@@ -311,7 +311,7 @@ public class AppointmentServiceTests
             It.IsAny<CancellationToken>()),
             Times.Once);
         this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>()),
+            dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>(), It.IsAny<CancellationToken>()),
             Times.Once);
         this.mockKafkaProducer.Verify(
             producer => producer.ProduceAsync(
@@ -471,7 +471,7 @@ public class AppointmentServiceTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
         this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>()),
+            dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>(), It.IsAny<CancellationToken>()),
             Times.Once);
         this.mockKafkaProducer.Verify(
             producer => producer.ProduceAsync(
@@ -587,7 +587,7 @@ public class AppointmentServiceTests
             It.IsAny<CancellationToken>()),
             Times.Once);
         this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>()),
+            dispatcher => dispatcher.Dispatch(It.IsAny<AppointmentEvent>(), It.IsAny<CancellationToken>()),
             Times.Once);
         this.mockKafkaProducer.Verify(
             producer => producer.ProduceAsync(

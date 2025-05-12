@@ -3,7 +3,7 @@
 public class ImageModelBinderProvider : IModelBinderProvider
 {
     public IModelBinder? GetBinder(ModelBinderProviderContext context)
-        => context.Metadata.ModelType == typeof(ImageRequestModel)
+        => context.Metadata.ModelType == typeof(ImageRequest)
             ? new ImageModelBinder()
             : default;
 }

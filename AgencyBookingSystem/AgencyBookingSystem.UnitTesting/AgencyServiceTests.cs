@@ -172,7 +172,7 @@ public class AgencyServiceTests
             Times.Once);
         
         this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(It.IsAny<AgencyRegisteredEvent>()),
+            dispatcher => dispatcher.Dispatch(It.IsAny<AgencyRegisteredEvent>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -237,7 +237,7 @@ public class AgencyServiceTests
             Times.Once);
         
         this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(It.IsAny<AgencyUserAssignedEvent>()),
+            dispatcher => dispatcher.Dispatch(It.IsAny<AgencyUserAssignedEvent>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -281,7 +281,7 @@ public class AgencyServiceTests
             Times.Once);
         
         this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(It.IsAny<AgencyUserAssignedEvent>()),
+            dispatcher => dispatcher.Dispatch(It.IsAny<AgencyUserAssignedEvent>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

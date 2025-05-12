@@ -19,12 +19,12 @@ public abstract class IdentityEmailNotificationHandlerBase<TEvent> : IEventHandl
         this.logger = logger;
     }
 
-    public async Task Handle(TEvent domainEvent)
+    public async Task Handle(TEvent domainEvent, CancellationToken cancellationToken)
     {
         var (email, password, subject, prompt) = this.GetEmailData(domainEvent);
 
         this.logger.LogInformation("Requesting email body generation for: {Email}", email);
-        var result = await this.mcpServerRequester.RequestAsync(prompt: prompt);
+        var result = await this.mcpServerRequester.RequestAsync(prompt: prompt, cancellationToken: cancellationToken);
 
         if (!result.Succeeded)
         {

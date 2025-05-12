@@ -21,6 +21,6 @@ public class RegisterUserCommand : UserRequestModel, IRequest<Result>
         public async Task<Result> Handle(
             RegisterUserCommand request,
             CancellationToken cancellationToken)
-            => await this.identity.Register(request);
+            => await this.identity.Register(request, cancellationToken);
     }
 }

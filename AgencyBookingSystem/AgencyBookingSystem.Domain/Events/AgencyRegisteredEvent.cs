@@ -5,6 +5,8 @@
     public string AgencyEmail { get; }
     public bool RequiresApproval { get; }
 
+    public Guid AggregateId => AgencyId;
+
     public AgencyRegisteredEvent(Guid agencyId, string agencyName, string agencyEmail, bool requiresApproval)
     {
         AgencyId = ValidateGuid(agencyId, nameof(agencyId));
@@ -13,7 +15,7 @@
         RequiresApproval = requiresApproval;
     }
 
-    private static Guid ValidateGuid(Guid value, string paramName)
+    private static Guid ValidateGuid(Guid value, string paramName, CancellationToken token = default)
         => value == Guid.Empty ? throw new ArgumentNullException(paramName) : value;
 
     private static string ValidateString(string value, string paramName)

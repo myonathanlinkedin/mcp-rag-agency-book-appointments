@@ -17,7 +17,7 @@ public class RefreshTokenCommand : RefreshTokenRequestModel, IRequest<Result<Use
             RefreshTokenCommand request,
             CancellationToken cancellationToken)
         {
-            var newAccessToken = await identity.RefreshToken(request);
+            var newAccessToken = await identity.RefreshToken(request, cancellationToken);
             return newAccessToken.Succeeded
                 ? Result<UserResponseModel>.SuccessWith(new UserResponseModel(newAccessToken.Data, request.RefreshToken))
                 : Result<UserResponseModel>.Failure(newAccessToken.Errors);

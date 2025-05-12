@@ -1,6 +1,6 @@
-﻿public class ImageResponseModel
+﻿public class ImageResponse
 {
-    public ImageResponseModel(
+    public ImageResponse(
         byte[] originalContent,
         byte[] thumbnailContent)
     {

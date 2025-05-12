@@ -97,7 +97,7 @@ public class AgencyService : IAgencyService
             email,
             fullName,
             roles
-        ));
+        ), cancellationToken);
 
         logger.LogInformation("User '{FullName}' ({Email}) successfully assigned to agency {AgencyName}.", fullName, email, agency.Name);
 
@@ -130,7 +130,7 @@ public class AgencyService : IAgencyService
             agency.Name,
             agency.Email,
             agency.RequiresApproval
-        ));
+        ), cancellationToken);
 
         logger.LogInformation("Agency '{AgencyName}' registered successfully. Approval required: {RequiresApproval}.", agency.Name, agency.RequiresApproval);
 
@@ -154,7 +154,7 @@ public class AgencyService : IAgencyService
             agency.Id,
             agency.Name,
             agency.Email
-        ));
+        ), cancellationToken);
 
         logger.LogInformation("Agency '{AgencyName}' has been successfully approved.", agency.Name);
 

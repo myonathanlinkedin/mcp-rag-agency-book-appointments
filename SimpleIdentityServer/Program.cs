@@ -5,6 +5,7 @@ using System.Reflection;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using Microsoft.Extensions.Options;
+using Marten;
 
 var builder = WebApplication.CreateBuilder(args);
 
