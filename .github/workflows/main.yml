@@ -143,7 +143,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./MessageBroker/Dockerfile
+        file: ./BackgroundServices/MessageBroker/Dockerfile
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta-broker.outputs.tags }}
         labels: ${{ steps.meta-broker.outputs.labels }}
