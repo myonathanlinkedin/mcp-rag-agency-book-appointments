@@ -48,7 +48,8 @@ User → API Gateway → Appointment Service → Event Processing (Kafka) → Se
 
 This ensures a **streamlined booking experience**, allowing agencies to manage **appointments efficiently** with **real-time indexing, AI-generated email templates, and AI-driven semantic search with Qdrant!**  
 
-## **🧰 Tech Stack**  
+## **🧰 Tech Stack**
+
 🟦 **.NET 9** – Modern, performant runtime for cloud-native applications  
 🛡️ **IdentityServer** – Secure authentication and token issuance  
 📅 **Hangfire** – Background job scheduling for asynchronous workflows  
@@ -60,7 +61,9 @@ This ensures a **streamlined booking experience**, allowing agencies to manage *
 ✅ **FluentValidation** – Fluent rules for robust input validation  
 🧪 **Swagger / OpenAPI** – API documentation and test interface  
 ☁️ **Azure / AWS Ready** – Cloud-native infrastructure compatible  
-📜 **Marten DB** – Event sourcing and document database  
+📜 **Marten DB (PostgreSQL)** – Event sourcing and document database  
+🐘 **PostgreSQL** – Backing store for MartenDB event sourcing and ElasticSearch sync  
+🗄️ **MS SQL Server** – Primary application database for transactional data
 
 ## **🛡️ Security & Access Control**  
 ⚠️ **Strict access policies & authentication layers**  
