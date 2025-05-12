@@ -6,6 +6,8 @@
 
     public Guid Id { get; private set; } = default;
 
+    public Entity(Guid id) => Id = id;
+
     public IReadOnlyCollection<IDomainEvent> Events
         => events.ToList().AsReadOnly();
 

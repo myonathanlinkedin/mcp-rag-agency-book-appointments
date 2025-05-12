@@ -2,8 +2,6 @@
 using Serilog;
 using System.ComponentModel;
 
-namespace MCP.Server.Tools;
-
 public sealed class RAGTools : BaseTool
 {
     private const string ScanUrlsDescription =

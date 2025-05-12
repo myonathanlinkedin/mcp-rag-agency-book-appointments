@@ -15,5 +15,12 @@ public class UpdateAgencySettingsCommandValidator : AbstractValidator<UpdateAgen
             .NotNull().WithMessage("Holidays list cannot be null.")
             .Must(holidays => holidays.All(h => h.Date > DateTime.UtcNow))
             .WithMessage("Holiday dates must be in the future.");
+
+        RuleForEach(x => x.Holidays).ChildRules(holiday =>
+        {
+            holiday.RuleFor(h => h.Reason)
+                .NotEmpty().WithMessage("Holiday reason is required.")
+                .MaximumLength(200).WithMessage("Holiday reason must not exceed 200 characters.");
+        });
     }
 }

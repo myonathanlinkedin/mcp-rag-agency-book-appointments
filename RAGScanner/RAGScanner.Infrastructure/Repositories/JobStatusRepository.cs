@@ -12,15 +12,22 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
     {
         var jobId = Guid.NewGuid().ToString();
 
-        var jobStatus = new JobStatus
+        // Corrected the instantiation of JobStatus.Create to a static method call
+        var jobStatusResult = JobStatus.Create(
+            jobId: jobId,
+            status: JobStatusType.Pending.ToString(),
+            message: "Started",
+            urls: urls);
+
+        if (!jobStatusResult.Succeeded)
         {
-            JobId = jobId,
-            Urls = urls,
-            Status = JobStatusType.Pending.ToString(),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = null,
-            Message = "Started"
-        };
+            // Fixed the error by joining the list of errors into a single string
+            var errorMessage = string.Join("; ", jobStatusResult.Errors);
+            logger.LogError("Failed to create JobStatus: {Error}", errorMessage);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        var jobStatus = jobStatusResult.Data;
 
         try
         {
@@ -71,9 +78,7 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
                 return;
             }
 
-            job.Status = status.ToString();
-            job.Message = message ?? job.Message;
-            job.UpdatedAt = DateTime.UtcNow;
+            job.UpdateStatus(status.ToString(), message ?? job.Message);
 
             await Data.SaveChangesAsync();
 

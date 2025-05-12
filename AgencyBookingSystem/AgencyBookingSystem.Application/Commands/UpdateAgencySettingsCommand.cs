@@ -59,10 +59,28 @@ public class UpdateAgencySettingsCommand : IRequest<Result>
                 return Result.Failure(new[] { "Agency not found." });
             }
 
-            agency.MaxAppointmentsPerDay = request.MaxAppointmentsPerDay;
-            agency.Holidays = request.Holidays;
+            // Update agency details using domain method
+            var updateResult = agency.UpdateDetails(
+                agency.Name, // Keep existing name
+                agency.Email, // Keep existing email
+                request.MaxAppointmentsPerDay);
 
-            await agencyService.SaveAsync(agency, cancellationToken);
+            if (!updateResult.Succeeded)
+            {
+                return updateResult;
+            }
+
+            // Update holidays
+            foreach (var holiday in request.Holidays)
+            {
+                var addHolidayResult = agency.AddHoliday(holiday.Date, holiday.Reason);
+                if (!addHolidayResult.Succeeded)
+                {
+                    return addHolidayResult;
+                }
+            }
+
+            await agencyService.UpsertAsync(agency, cancellationToken);
 
             logger.LogInformation("Agency settings updated successfully for {AgencyEmail}.", agencyEmail);
             return Result.Success;

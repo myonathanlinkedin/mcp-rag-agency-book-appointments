@@ -31,7 +31,17 @@ public class AppointmentKafkaConsumer : BaseKafkaConsumer<string>, IKafkaConsume
 
             if (string.IsNullOrEmpty(action) || string.IsNullOrEmpty(id)) return false;
 
-            switch (action)
+            // Map domain actions to CRUD operations
+            var crudAction = action switch
+            {
+                CommonModelConstants.KafkaOperation.Created => CommonModelConstants.KafkaOperation.Insert,
+                CommonModelConstants.KafkaOperation.Rescheduled => CommonModelConstants.KafkaOperation.Update,
+                CommonModelConstants.KafkaOperation.NoShow => CommonModelConstants.KafkaOperation.Update,
+                CommonModelConstants.KafkaOperation.Cancelled => CommonModelConstants.KafkaOperation.Update,
+                _ => action // If it's already a CRUD operation, use it as is
+            };
+
+            switch (crudAction)
             {
                 case CommonModelConstants.KafkaOperation.Insert:
                     await InsertToElasticAsync(jsonData);

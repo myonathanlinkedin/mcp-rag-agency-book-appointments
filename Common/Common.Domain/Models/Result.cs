@@ -65,4 +65,4 @@ public class Result<TData> : Result
 
     public static implicit operator bool(Result<TData> result)
         => result.Succeeded;
-}
+} 

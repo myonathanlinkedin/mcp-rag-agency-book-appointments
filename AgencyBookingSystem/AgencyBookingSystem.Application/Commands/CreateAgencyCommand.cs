@@ -33,17 +33,20 @@ public class CreateAgencyCommand : IRequest<Result>
                 return Result.Failure(new[] { "An agency with this email already exists." });
             }
 
-            var agency = new Agency
-            {
-                Id = Guid.NewGuid(),
-                Name = request.Name,
-                Email = request.Email,
-                RequiresApproval = true,
-                IsApproved = true,
-                MaxAppointmentsPerDay = request.MaxAppointmentsPerDay
-            };
+            var agencyResult = Agency.Create(
+                request.Name,
+                request.Email,
+                true, // requiresApproval
+                request.MaxAppointmentsPerDay);
 
-            await agencyService.SaveAsync(agency, cancellationToken);
+            if (!agencyResult.Succeeded)
+            {
+                logger.LogError("Agency creation failed. {Errors}", string.Join(", ", agencyResult.Errors));
+                return agencyResult;
+            }
+
+            var agency = agencyResult.Data;
+            await agencyService.UpsertAsync(agency, cancellationToken);
 
             logger.LogInformation("Agency {Name} created successfully.", agency.Name);
             return Result.Success;

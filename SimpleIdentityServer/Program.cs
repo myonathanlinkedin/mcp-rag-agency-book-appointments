@@ -25,7 +25,7 @@ builder.Services
     .AddRAGScannerWebComponents()
     .AddAgencyBookApplicationConfiguration()
     .AddAgencyBookInfrastructureConfiguration()
-    .AddAgencyBookingWebComponents()
+    .AddAgencyBookWebComponents()
     .AddEventSourcing()
     .AddModelBinders()
     .AddSwaggerGen(c => c.SwaggerDoc("v1", new OpenApiInfo { Title = "Web API", Version = "v1" }))

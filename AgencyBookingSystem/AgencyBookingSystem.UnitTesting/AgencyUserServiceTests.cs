@@ -23,8 +23,13 @@ public class AgencyUserServiceTests
     public async Task GetByIdAsync_ShouldReturnAgencyUser_WhenUserExists()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var expectedUser = new AgencyUser { Id = userId, Email = "user@example.com" };
+        var userId = new Guid("1bc5eeb9-aee9-46e2-a32f-f5b4a5b06a23");
+        var agencyId = Guid.NewGuid();
+        var expectedUser = new AgencyUser(
+            userId,
+            agencyId,
+            "test@user.com",
+            "Test User");
         
         this.mockAgencyUserRepository
             .Setup(repo => repo.GetByIdAsync(userId))
@@ -36,7 +41,7 @@ public class AgencyUserServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Id.Should().Be(userId);
-        result.Email.Should().Be("user@example.com");
+        result.Email.Should().Be("test@user.com");
         this.mockAgencyUserRepository.Verify(repo => repo.GetByIdAsync(userId), Times.Once);
     }
 
@@ -63,7 +68,12 @@ public class AgencyUserServiceTests
     {
         // Arrange
         var email = "user@example.com";
-        var expectedUser = new AgencyUser { Id = Guid.NewGuid(), Email = email };
+        var userResult = AgencyUser.Create(
+            Guid.NewGuid(),
+            email,
+            "Test User",
+            new[] { "Role1" });
+        var expectedUser = userResult.Data;
         
         this.mockAgencyUserRepository
             .Setup(repo => repo.GetByEmailAsync(email))
@@ -100,10 +110,21 @@ public class AgencyUserServiceTests
     public async Task GetAllAsync_ShouldReturnAllAgencyUsers()
     {
         // Arrange
+        var user1Result = AgencyUser.Create(
+            Guid.NewGuid(),
+            "user1@example.com",
+            "User 1",
+            new[] { "Role1" });
+        var user2Result = AgencyUser.Create(
+            Guid.NewGuid(),
+            "user2@example.com",
+            "User 2",
+            new[] { "Role2" });
+        
         var users = new List<AgencyUser>
         {
-            new AgencyUser { Id = Guid.NewGuid(), Email = "user1@example.com" },
-            new AgencyUser { Id = Guid.NewGuid(), Email = "user2@example.com" }
+            user1Result.Data,
+            user2Result.Data
         };
         
         this.mockAgencyUserRepository
@@ -122,26 +143,22 @@ public class AgencyUserServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_ShouldCallRepositoryUpsert()
+    public async Task UpsertAsync_ShouldCallRepositoryUpsert()
     {
         // Arrange
-        var user = new AgencyUser 
-        { 
-            Id = Guid.NewGuid(), 
-            Email = "user@example.com",
-            FullName = "John Doe"
-        };
-        
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.UpsertAsync(user, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        var userResult = AgencyUser.Create(
+            Guid.NewGuid(),
+            "test@user.com",
+            "Test User",
+            new[] { "Role1" });
+        var user = userResult.Data;
         
         // Act
-        await this.agencyUserService.SaveAsync(user);
+        await this.agencyUserService.UpsertAsync(user);
         
         // Assert
         this.mockAgencyUserRepository.Verify(
-            repo => repo.UpsertAsync(user, It.IsAny<CancellationToken>()), 
+            repo => repo.UpsertAsync(user, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

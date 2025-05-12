@@ -2,7 +2,7 @@
 
 public static class WebConfiguration
 {
-    public static IServiceCollection AddAgencyBookingWebComponents(
+    public static IServiceCollection AddAgencyBookWebComponents(
         this IServiceCollection services)
         => services.AddWebComponents(
             typeof(AgencyBookConfiguration));

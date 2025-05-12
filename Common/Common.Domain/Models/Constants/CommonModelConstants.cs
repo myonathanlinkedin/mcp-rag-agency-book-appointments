@@ -31,6 +31,13 @@ public class CommonModelConstants
 
     public class KafkaOperation
     {
+        // Domain actions
+        public const string Created = "Created";
+        public const string Rescheduled = "Rescheduled";
+        public const string NoShow = "NoShow";
+        public const string Cancelled = "Cancelled";
+
+        // CRUD operations
         public const string Insert = "INSERT";
         public const string Update = "UPDATE";
         public const string Delete = "DELETE";
