@@ -60,6 +60,7 @@ This ensures a **streamlined booking experience**, allowing agencies to manage *
 ✅ **FluentValidation** – Fluent rules for robust input validation  
 🧪 **Swagger / OpenAPI** – API documentation and test interface  
 ☁️ **Azure / AWS Ready** – Cloud-native infrastructure compatible  
+📜 **Marten DB** – Event sourcing and document database  
 
 ## **🛡️ Security & Access Control**  
 ⚠️ **Strict access policies & authentication layers**  
