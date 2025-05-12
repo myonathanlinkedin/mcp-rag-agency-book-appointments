@@ -9,7 +9,7 @@ FROM mcr.microsoft.com/dotnet/nightly/sdk:9.0-preview AS build
 WORKDIR /src
 
 # Copy csproj files and restore dependencies
-COPY ["MessageBroker/MessageBroker.Kafka.csproj", "MessageBroker/"]
+COPY ["BackgroundServices/MessageBroker/MessageBroker.Kafka.csproj", "MessageBroker/"]
 # Add any other project references here as needed
 RUN dotnet restore "MessageBroker/MessageBroker.Kafka.csproj"
 
