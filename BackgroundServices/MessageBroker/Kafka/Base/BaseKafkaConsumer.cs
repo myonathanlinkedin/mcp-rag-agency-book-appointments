@@ -1,11 +1,15 @@
 ﻿using Confluent.Kafka;
+using Microsoft.Extensions.Logging;
 
 public abstract class BaseKafkaConsumer<T>
 {
     private readonly IConsumer<Null, string> consumer;
+    protected readonly ILogger<BaseKafkaConsumer<T>> logger;
 
-    protected BaseKafkaConsumer(string bootstrapServers, string groupId)
+    protected BaseKafkaConsumer(string bootstrapServers, string groupId, ILogger<BaseKafkaConsumer<T>> logger)
     {
+        this.logger = logger;
+
         var config = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers,
@@ -39,7 +43,7 @@ public abstract class BaseKafkaConsumer<T>
                         }
                         catch (KafkaException ke)
                         {
-                            Console.WriteLine($"Offset commit failed: {ke.Message}");
+                            logger.LogError(ke, "Offset commit failed: {Message}", ke.Message);
                         }
                     }
                 }
@@ -51,7 +55,7 @@ public abstract class BaseKafkaConsumer<T>
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error consuming messages: {ex.Message}");
+            logger.LogError(ex, "Error consuming messages: {Message}", ex.Message);
         }
     }
 

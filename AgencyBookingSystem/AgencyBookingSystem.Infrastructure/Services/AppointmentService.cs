@@ -47,7 +47,7 @@ public class AppointmentService : IAppointmentService
         var messageJson = JsonConvert.SerializeObject(message);
         await kafkaProducer.ProduceAsync(kafkaTopic, new Message<Null, string> { Value = messageJson });
 
-        Console.WriteLine($"Published {action} event for Appointment ID {appointment.Id} to Kafka topic {kafkaTopic}.");
+        logger.LogInformation("Published {Action} event for Appointment ID {AppointmentId} to Kafka topic {KafkaTopic}.", action, appointment.Id, kafkaTopic);
     }
 
     public async Task<Appointment?> GetByIdAsync(Guid id)

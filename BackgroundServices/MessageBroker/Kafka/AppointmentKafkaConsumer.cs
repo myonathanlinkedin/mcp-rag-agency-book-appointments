@@ -1,20 +1,24 @@
 ﻿using Nest;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Logging;
 
 public class AppointmentKafkaConsumer : BaseKafkaConsumer<string>, IKafkaConsumerService
 {
     private readonly IElasticClient elasticClient;
     private readonly string indexName;
+    private readonly ILogger<AppointmentKafkaConsumer> logger;
 
     public AppointmentKafkaConsumer(
         string bootstrapServers,
         string groupId,
         IElasticClient elasticClient,
-        string indexName
-    ) : base(bootstrapServers, groupId)
+        string indexName,
+        ILogger<AppointmentKafkaConsumer> logger) 
+        : base(bootstrapServers, groupId, logger)
     {
         this.elasticClient = elasticClient;
         this.indexName = indexName;
+        this.logger = logger;
     }
 
     protected override async Task<bool> ProcessMessageAsync(string message)
@@ -39,7 +43,7 @@ public class AppointmentKafkaConsumer : BaseKafkaConsumer<string>, IKafkaConsume
                     await DeleteFromElasticAsync(id);
                     break;
                 default:
-                    Console.WriteLine($"Unknown action type: {action}. Skipping.");
+                    logger.LogWarning("Unknown action type: {Action}. Skipping.", action);
                     return false;
             }
 
@@ -47,7 +51,7 @@ public class AppointmentKafkaConsumer : BaseKafkaConsumer<string>, IKafkaConsume
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error processing message: {ex.Message}");
+            logger.LogError(ex, "Error processing message: {Message}", ex.Message);
             return false;
         }
     }
@@ -55,18 +59,18 @@ public class AppointmentKafkaConsumer : BaseKafkaConsumer<string>, IKafkaConsume
     private async Task InsertToElasticAsync(JObject jsonData)
     {
         await elasticClient.IndexDocumentAsync(jsonData);
-        Console.WriteLine($"Inserted document with ID '{jsonData["Id"]}' into ElasticSearch.");
+        logger.LogInformation("Inserted document with ID '{Id}' into ElasticSearch.", jsonData["Id"]);
     }
 
     private async Task UpdateInElasticAsync(string id, JObject jsonData)
     {
         await elasticClient.UpdateAsync<object>(id, u => u.Index(indexName).Doc(jsonData));
-        Console.WriteLine($"Updated document with ID '{id}' in ElasticSearch.");
+        logger.LogInformation("Updated document with ID '{Id}' in ElasticSearch.", id);
     }
 
     private async Task DeleteFromElasticAsync(string id)
     {
         await elasticClient.DeleteAsync<object>(id, d => d.Index(indexName));
-        Console.WriteLine($"Deleted document with ID '{id}' from ElasticSearch.");
+        logger.LogInformation("Deleted document with ID '{Id}' from ElasticSearch.", id);
     }
 }

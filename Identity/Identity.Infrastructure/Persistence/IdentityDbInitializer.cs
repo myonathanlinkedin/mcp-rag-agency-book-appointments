@@ -1,18 +1,22 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 internal class IdentityDbInitializer : DbInitializer
 {
     private readonly UserManager<User> userManager;
     private readonly RoleManager<IdentityRole> roleManager;
+    private readonly ILogger<IdentityDbInitializer> logger;
 
     public IdentityDbInitializer(
         IdentityDbContext db,
         UserManager<User> userManager,
-        RoleManager<IdentityRole> roleManager)
+        RoleManager<IdentityRole> roleManager,
+        ILogger<IdentityDbInitializer> logger)
         : base(db)
     {
         this.userManager = userManager;
         this.roleManager = roleManager;
+        this.logger = logger;
     }
 
     public override void Initialize()
@@ -69,7 +73,7 @@ internal class IdentityDbInitializer : DbInitializer
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in SeedAdministrator: {ex.Message}");
+                logger.LogError(ex, "Error in SeedAdministrator: {Message}", ex.Message);
             }
 
         }).GetAwaiter().GetResult();

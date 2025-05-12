@@ -1,18 +1,18 @@
-﻿using System.Reflection;
-using System.Text.Json;
-using Marten;
+﻿using Marten;
+using Marten.Events.Daemon.Resiliency;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using Marten;
-using Marten.Events.Daemon.Resiliency;
+using System.Reflection;
+using System.Text.Json;
 
 public static class InfrastructureConfiguration
 {
     public static IServiceCollection AddDBStorage<TDbContext>(
         this IServiceCollection services,
-        Assembly assembly, 
+        Assembly assembly,
         string dbConnection)
         where TDbContext : DbContext
     {
@@ -59,8 +59,9 @@ public static class InfrastructureConfiguration
                     OnAuthenticationFailed = context =>
                     {
                         var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-                        Console.WriteLine($"Token validation failed: {context.Exception.Message}");
-                        Console.WriteLine($"JWT Token: {token}");
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<JwtBearerEvents>>(); // Get logger from DI container
+                        logger.LogError(context.Exception, "Token validation failed: {Message}", context.Exception.Message);
+                        logger.LogDebug("JWT Token: {Token}", token);
                         return Task.CompletedTask;
                     }
                 };
@@ -72,18 +73,18 @@ public static class InfrastructureConfiguration
     public static IServiceCollection AddEventSourcing(this IServiceCollection services)
     {
         services.AddMarten(options =>
-         {
-             using var scope = services.BuildServiceProvider().CreateScope();
-             var appSettings = scope.ServiceProvider.GetRequiredService<ApplicationSettings>();
-             options.Connection(appSettings.ConnectionStrings.EventSourcingConnection);
+        {
+            using var scope = services.BuildServiceProvider().CreateScope();
+            var appSettings = scope.ServiceProvider.GetRequiredService<ApplicationSettings>();
+            options.Connection(appSettings.ConnectionStrings.EventSourcingConnection);
 
-             // Enable event store (optional)
-             options.Events.AddEventType(typeof(IDomainEvent));
+            // Enable event store (optional)
+            options.Events.AddEventType(typeof(IDomainEvent));
 
-             // Enable document storage
-             options.Schema.For<IDomainEvent>().Identity(x => x.AggregateId);
+            // Enable document storage
+            options.Schema.For<IDomainEvent>().Identity(x => x.AggregateId);
 
-         }).AddAsyncDaemon(DaemonMode.HotCold);
+        }).AddAsyncDaemon(DaemonMode.HotCold);
 
         return services.AddTransient<IEventDispatcher, EventDispatcher>()
                    .AddScoped<IEventRepository, MartenEventRepository>();
