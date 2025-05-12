@@ -1,14 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
+using System.Reflection;
 
 public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TEntity>
     where TDbContext : DbContext
     where TEntity : Entity, IAggregateRoot
 {
-    public DataRepository(TDbContext db) => Data = db;
+    protected readonly TDbContext Data;
 
-    protected TDbContext Data { get; }
+    protected DataRepository(TDbContext db) => Data = db;
 
     protected IQueryable<TEntity> All() => Data.Set<TEntity>();
 
@@ -26,16 +26,34 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
                 Data.Update(entity);
 
             await Data.SaveChangesAsync(cancellationToken);
-        }, nameof(UpsertAsync));
+        });
 
     public async Task<TEntity?> GetByIdAsync(Guid id) =>
-        await TryExecuteAsync(() => All().FirstOrDefaultAsync(e => e.Id == id), nameof(GetByIdAsync));
+        await TryExecuteAsync(() => All().FirstOrDefaultAsync(e => e.Id == id));
+
+    public async Task<TEntity?> GetByIdWithIncludesAsync(Guid id, params Expression<Func<TEntity, object>>[] includes) =>
+        await TryExecuteAsync(() => WithIncludes(includes).FirstOrDefaultAsync(e => e.Id == id));
+
+    public async Task<TEntity?> GetByIdWithAllIncludesAsync(Guid id) =>
+        await TryExecuteAsync(() => WithAllIncludes().FirstOrDefaultAsync(e => e.Id == id));
 
     public async Task<List<TEntity>> GetAllAsync() =>
-        await TryExecuteAsync(() => All().ToListAsync(), nameof(GetAllAsync));
+        await TryExecuteAsync(() => All().ToListAsync());
+
+    public async Task<List<TEntity>> GetAllWithIncludesAsync(params Expression<Func<TEntity, object>>[] includes) =>
+        await TryExecuteAsync(() => WithIncludes(includes).ToListAsync());
+
+    public async Task<List<TEntity>> GetAllWithAllIncludesAsync() =>
+        await TryExecuteAsync(() => WithAllIncludes().ToListAsync());
 
     public async Task<List<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate) =>
-        await TryExecuteAsync(() => All().Where(predicate).ToListAsync(), nameof(FindAsync));
+        await TryExecuteAsync(() => All().Where(predicate).ToListAsync());
+
+    public async Task<List<TEntity>> FindWithIncludesAsync(Expression<Func<TEntity, bool>> predicate, params Expression<Func<TEntity, object>>[] includes) =>
+        await TryExecuteAsync(() => WithIncludes(includes).Where(predicate).ToListAsync());
+
+    public async Task<List<TEntity>> FindWithAllIncludesAsync(Expression<Func<TEntity, bool>> predicate) =>
+        await TryExecuteAsync(() => WithAllIncludes().Where(predicate).ToListAsync());
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
         await TryExecuteAsync(async () =>
@@ -46,33 +64,41 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
                 Data.Remove(entity);
                 await Data.SaveChangesAsync(cancellationToken);
             }
-        }, nameof(DeleteAsync));
+        });
 
-    private async Task<T> TryExecuteAsync<T>(Func<Task<T>> action, string methodName) => await ExecuteAsync(action);
-
-    private async Task TryExecuteAsync(Func<Task> action, string methodName) => await ExecuteAsync(action);
-
-    private async Task<T> ExecuteAsync<T>(Func<Task<T>> action)
+    protected IQueryable<TEntity> WithIncludes(params Expression<Func<TEntity, object>>[] includes)
     {
-        try
-        {
-            return await action();
-        }
-        catch
-        {
-            throw;
-        }
+        var query = All();
+        foreach (var include in includes)
+            query = query.Include(include);
+        return query;
     }
 
-    private async Task ExecuteAsync(Func<Task> action)
+    protected IQueryable<TEntity> WithAllIncludes()
     {
-        try
+        var query = All();
+        var navProps = Data.Model.FindEntityType(typeof(TEntity))?.GetNavigations();
+
+        if (navProps != null)
         {
-            await action();
+            foreach (var nav in navProps)
+            {
+                query = query.Include(nav.Name);
+            }
         }
-        catch
-        {
-            throw;
-        }
+
+        return query;
+    }
+
+    private async Task<T> TryExecuteAsync<T>(Func<Task<T>> action)
+    {
+        try { return await action(); }
+        catch { throw; }
+    }
+
+    private async Task TryExecuteAsync(Func<Task> action)
+    {
+        try { await action(); }
+        catch { throw; }
     }
 }
