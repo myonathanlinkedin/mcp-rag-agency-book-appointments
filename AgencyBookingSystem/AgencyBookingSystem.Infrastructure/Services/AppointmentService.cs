@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
 
 public class AppointmentService : IAppointmentService
 {
@@ -13,11 +14,15 @@ public class AppointmentService : IAppointmentService
     private readonly IProducer<Null, string> kafkaProducer;
     private readonly string kafkaTopic;
 
-    public AppointmentService(IAppointmentRepository appointmentRepository, IAgencyUserService agencyUserService,
-                              IAgencyService agencyService, IEventDispatcher eventDispatcher,
-                              ILogger<AppointmentService> logger, IProducer<Null, string> kafkaProducer,
-                              IAppointmentSlotRepository appointmentSlotRepository,
-                              string kafkaTopic)
+    public AppointmentService(
+        IAppointmentRepository appointmentRepository,
+        IAgencyUserService agencyUserService,
+        IAgencyService agencyService,
+        IEventDispatcher eventDispatcher,
+        ILogger<AppointmentService> logger,
+        IProducer<Null, string> kafkaProducer,
+        IAppointmentSlotRepository appointmentSlotRepository,
+        string kafkaTopic)
     {
         this.appointmentRepository = appointmentRepository;
         this.appointmentSlotRepository = appointmentSlotRepository;
@@ -43,9 +48,19 @@ public class AppointmentService : IAppointmentService
             throw new ArgumentException($"Unsupported action: {action}", nameof(action));
         }
 
+        // Map domain actions to CRUD operations
+        var crudAction = action switch
+        {
+            CommonModelConstants.KafkaOperation.Created => CommonModelConstants.KafkaOperation.Insert,
+            CommonModelConstants.KafkaOperation.Rescheduled => CommonModelConstants.KafkaOperation.Update,
+            CommonModelConstants.KafkaOperation.NoShow => CommonModelConstants.KafkaOperation.Update,
+            CommonModelConstants.KafkaOperation.Cancelled => CommonModelConstants.KafkaOperation.Update,
+            _ => action // If it's already a CRUD operation, use it as is
+        };
+
         var message = new
         {
-            Action = action,
+            Action = crudAction,
             Id = appointment.Id,
             Name = appointment.Name,
             Date = appointment.Date,
@@ -341,6 +356,26 @@ public class AppointmentService : IAppointmentService
 
     private async Task<Result> ValidateAppointmentCreationAsync(Guid agencyId, string email, string appointmentName, DateTime date)
     {
+        // Validate email
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            logger.LogWarning("Appointment creation failed. Email is required.");
+            return Result.Failure(new[] { "Email is required." });
+        }
+
+        if (!new EmailAddressAttribute().IsValid(email))
+        {
+            logger.LogWarning("Appointment creation failed. Invalid email format: {Email}", email);
+            return Result.Failure(new[] { "Invalid email format." });
+        }
+
+        // Validate appointment must start at the hour
+        if (date.Minute != 0 || date.Second != 0)
+        {
+            logger.LogWarning("Appointment creation failed. Appointments must start at the hour.");
+            return Result.Failure(new[] { "Appointments must start at the hour (e.g., 9:00, 10:00)." });
+        }
+
         // Validate agency exists and is approved
         var agency = await agencyService.GetByIdAsync(agencyId);
         if (agency == null)
@@ -353,14 +388,6 @@ public class AppointmentService : IAppointmentService
         {
             logger.LogWarning("Appointment creation failed. Agency {AgencyId} is not approved.", agencyId);
             return Result.Failure(new[] { "Agency is not approved for bookings." });
-        }
-
-        // Validate user exists
-        var agencyUser = await agencyUserService.GetByEmailAsync(email);
-        if (agencyUser == null)
-        {
-            logger.LogWarning("Appointment creation failed. User with email {Email} not found.", email);
-            return Result.Failure(new[] { "Invalid user." });
         }
 
         // Validate appointment name
@@ -384,48 +411,31 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "Appointments cannot be booked more than 6 months in advance." });
         }
 
-        // Validate against agency holidays
-        if (agency.Holidays != null && agency.Holidays.Any(h => h.Date.Date == date.Date))
+        // Check if the requested time falls within any existing slot
+        var overlappingSlots = await appointmentSlotRepository.GetSlotsByAgencyAsync(agencyId, date);
+        if (!overlappingSlots.Any())
         {
-            var holidayReason = agency.Holidays.First(h => h.Date.Date == date.Date).Reason;
-            logger.LogWarning("Appointment creation failed. {Date} is a holiday for Agency {AgencyName} ({Reason}).", date, agency.Name, holidayReason);
-            return Result.Failure(new[] { $"Selected date is a holiday: {holidayReason}. Please choose another date." });
+            logger.LogWarning("No available slots found for {Date} at Agency {AgencyName}.", date, agency.Name);
+            return Result.Failure(new[] { "The requested time is not within any available appointment slot." });
         }
 
-        // Validate business hours
-        var slotsForDate = await appointmentSlotRepository.GetSlotsByAgencyAsync(agencyId, date);
-        if (slotsForDate == null || !slotsForDate.Any())
-        {
-            logger.LogWarning("No time slots available for {Date} at Agency {AgencyName}.", date, agency.Name);
-            return Result.Failure(new[] { "No available time slots for the selected date." });
-        }
-
-        // Validate appointment capacity
-        var existingAppointments = await appointmentRepository.GetByDateAsync(date);
-        if (existingAppointments == null)
-        {
-            existingAppointments = new List<Appointment>();
-        }
-
-        var appointmentsCount = existingAppointments.Count(a => a.AgencyId == agencyId);
-        if (appointmentsCount >= agency.MaxAppointmentsPerDay)
-        {
-            logger.LogWarning("Appointment creation failed. Maximum appointments reached for {Date} at Agency {AgencyName}.", date, agency.Name);
-            return Result.Failure(new[] { "Maximum appointments reached for this date. Please choose another date." });
-        }
-
-        // Validate slot availability
+        // Get the specific hour slot for booking
         var availableSlot = await appointmentSlotRepository.GetAvailableSlotAsync(agencyId, date);
-        if (availableSlot == null)
+        if (availableSlot == null || !availableSlot.HasCapacity)
         {
-            logger.LogWarning("No available slots for {Date} at Agency {AgencyName}.", date, agency.Name);
-            return Result.Failure(new[] { "No available slots for the selected date." });
+            logger.LogWarning("No available capacity for {Date} at Agency {AgencyName}.", date, agency.Name);
+            return Result.Failure(new[] { "This time slot is fully booked. Please choose another time." });
         }
 
         return Result.Success;
     }
 
-    public async Task<Result> CreateAppointmentAsync(Guid agencyId, string email, string appointmentName, DateTime date, CancellationToken cancellationToken = default)
+    public async Task<Result> CreateAppointmentAsync(
+        Guid agencyId,
+        string email,
+        string appointmentName,
+        DateTime date,
+        CancellationToken cancellationToken = default)
     {
         // Validate input parameters
         var validationResult = await ValidateAppointmentCreationAsync(agencyId, email, appointmentName, date);
@@ -434,7 +444,7 @@ public class AppointmentService : IAppointmentService
             return validationResult;
         }
 
-        // Get agency and user
+        // Get agency
         var agency = await agencyService.GetByIdAsync(agencyId);
         if (agency == null)
         {
@@ -442,11 +452,28 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "Agency not found." });
         }
 
+        // Get or create agency user
         var agencyUser = await agencyUserService.GetByEmailAsync(email);
         if (agencyUser == null)
         {
-            logger.LogWarning("Appointment creation failed. User with email {Email} not found.", email);
-            return Result.Failure(new[] { "User not found." });
+            // Create new agency user with default role
+            var userResult = AgencyUser.Create(
+                agencyId,
+                email,
+                email.Split('@')[0], // Use part before @ as temporary name
+                new[] { CommonModelConstants.AgencyRole.Customer }
+            );
+
+            if (!userResult.Succeeded)
+            {
+                logger.LogWarning("Failed to create agency user for email {Email}. Errors: {Errors}", 
+                    email, string.Join(", ", userResult.Errors));
+                return Result.Failure(userResult.Errors);
+            }
+
+            agencyUser = userResult.Data;
+            await agencyUserService.UpsertAsync(agencyUser, cancellationToken);
+            logger.LogInformation("Created new agency user for email {Email}", email);
         }
 
         // Get available slot
@@ -483,7 +510,7 @@ public class AppointmentService : IAppointmentService
             agencyId,
             agencyUser.Id,
             appointmentName,
-            availableSlot.StartTime,
+            date,
             agencyUser);
 
         if (!appointmentResult.Succeeded)

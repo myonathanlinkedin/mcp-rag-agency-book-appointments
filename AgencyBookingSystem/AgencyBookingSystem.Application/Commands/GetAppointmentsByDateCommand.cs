@@ -30,7 +30,7 @@ public class GetAppointmentsByDateCommand : IRequest<Result<List<AppointmentDto>
             logger.LogInformation("Fetching appointments for date {Date}.", request.Date);
 
             var user = httpContextAccessor.HttpContext?.User;
-            var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
+            var userEmail = user?.FindFirst(ClaimTypes.Name)?.Value;
             var isAdmin = user?.IsInRole(CommonModelConstants.Role.Administrator) ?? false;
 
             if (string.IsNullOrEmpty(userEmail))

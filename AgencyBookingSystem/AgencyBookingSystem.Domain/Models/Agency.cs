@@ -219,6 +219,39 @@ public class Agency : Entity, IAggregateRoot
         return Result.Success;
     }
 
+    public Result ClearHolidays()
+    {
+        if (holidays.Any(h => h.Date.Date < DateTime.Today))
+        {
+            return Result.Failure(new[] { "Cannot clear holidays that include past dates." });
+        }
+
+        holidays.Clear();
+        return Result.Success;
+    }
+
+    public Result Unapprove()
+    {
+        if (!IsApproved)
+        {
+            return Result.Failure(new[] { "Agency is already unapproved." });
+        }
+
+        if (agencyUsers.Any())
+        {
+            return Result.Failure(new[] { "Cannot unapprove an agency that has assigned users." });
+        }
+
+        if (slots.Any(s => s.StartTime > DateTime.Now))
+        {
+            return Result.Failure(new[] { "Cannot unapprove an agency that has future appointment slots." });
+        }
+
+        IsApproved = false;
+        RequiresApproval = true;
+        return Result.Success;
+    }
+
     private Result Validate()
     {
         var errors = new List<string>();

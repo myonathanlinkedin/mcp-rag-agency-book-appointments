@@ -19,63 +19,106 @@ public class AssignUserToAgencyCommand : IRequest<Result>
     public class AssignUserToAgencyCommandHandler : IRequestHandler<AssignUserToAgencyCommand, Result>
     {
         private readonly IAgencyService agencyService;
+        private readonly IAgencyUserService agencyUserService;
         private readonly ILogger<AssignUserToAgencyCommandHandler> logger;
         private readonly IHttpContextAccessor httpContextAccessor;
 
         public AssignUserToAgencyCommandHandler(
             IAgencyService agencyService,
+            IAgencyUserService agencyUserService,
             ILogger<AssignUserToAgencyCommandHandler> logger,
             IHttpContextAccessor httpContextAccessor)
         {
             this.agencyService = agencyService;
+            this.agencyUserService = agencyUserService;
             this.logger = logger;
             this.httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<Result> Handle(AssignUserToAgencyCommand request, CancellationToken cancellationToken)
         {
+            // Get user context
             var user = httpContextAccessor.HttpContext?.User;
-            var authenticatedEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
+            var userEmail = user?.FindFirst(ClaimTypes.Name)?.Value;
             var isAdmin = user?.IsInRole(CommonModelConstants.Role.Administrator) ?? false;
+            var isAgency = user?.IsInRole(CommonModelConstants.Role.Agency) ?? false;
 
-            if (string.IsNullOrEmpty(authenticatedEmail))
+            if (string.IsNullOrEmpty(userEmail))
             {
-                logger.LogWarning("Failed to assign user. No valid authenticated user email found.");
-                return Result.Failure(new[] { "No valid authenticated user email found." });
+                logger.LogWarning("User assignment failed. No valid user email found in HttpContext.");
+                return Result.Failure(new[] { "No valid user email found in HttpContext." });
             }
 
-            // Determine agency email: Admin must provide it, otherwise retrieve from user context
-            string resolvedAgencyEmail = request.AgencyEmail ?? authenticatedEmail;
+            // Determine which agency email to use
+            string agencyEmail = request.AgencyEmail ?? userEmail;
 
+            // Validate authorization
             if (request.AgencyEmail != null && !isAdmin)
             {
                 logger.LogWarning("Unauthorized assignment attempt. Only administrators can assign users to another agency.");
                 return Result.Failure(new[] { "Only administrators can assign users to another agency." });
             }
 
-            var agency = await agencyService.GetByEmailAsync(resolvedAgencyEmail);
+            if (request.AgencyEmail == null && !isAgency)
+            {
+                logger.LogWarning("Unauthorized assignment attempt. User must have Agency role.");
+                return Result.Failure(new[] { "User must have Agency role to assign users." });
+            }
+
+            // Get agency
+            var agency = await agencyService.GetByEmailAsync(agencyEmail);
             if (agency == null)
             {
-                logger.LogWarning("Failed to assign user. No agency found for email {AgencyEmail}.", resolvedAgencyEmail);
-                return Result.Failure(new[] { "No agency found for this email." });
+                logger.LogWarning("Failed to assign user. No agency found for email {AgencyEmail}.", agencyEmail);
+                return Result.Failure(new[] { "Agency not found." });
             }
 
-            var userExists = await agencyService.GetAgencyUserByEmailAsync(request.UserEmail);
-            if (userExists == null)
+            // Validate agency is approved
+            if (!agency.IsApproved)
             {
-                logger.LogWarning("Failed to assign user. No user found for email {UserEmail}.", request.UserEmail);
-                return Result.Failure(new[] { "No user found for this email." });
+                logger.LogWarning("Failed to assign user. Agency {AgencyEmail} is not approved.", agencyEmail);
+                return Result.Failure(new[] { "Cannot assign users to an unapproved agency." });
             }
 
-            var result = await agencyService.AssignUserToAgencyAsync(agency.Id, userExists.Email, userExists.FullName, request.Roles, cancellationToken);
+            // Check if user already exists
+            var existingUser = await agencyUserService.GetByEmailAsync(request.UserEmail);
+            if (existingUser != null)
+            {
+                logger.LogWarning("Failed to assign user. User {UserEmail} already exists.", request.UserEmail);
+                return Result.Failure(new[] { "A user with this email already exists." });
+            }
+
+            // Validate roles
+            if (!request.Roles.Any())
+            {
+                logger.LogWarning("Failed to assign user. No roles provided.");
+                return Result.Failure(new[] { "At least one role must be provided." });
+            }
+
+            foreach (var role in request.Roles)
+            {
+                if (!CommonModelConstants.AgencyRole.ValidRoles.Contains(role))
+                {
+                    logger.LogWarning("Failed to assign user. Invalid role: {Role}", role);
+                    return Result.Failure(new[] { $"Invalid role: {role}" });
+                }
+            }
+
+            // Create and assign the user
+            var result = await agencyService.AssignUserToAgencyAsync(
+                agency.Id,
+                request.UserEmail,
+                request.UserEmail.Split('@')[0], // Use email prefix as temporary name
+                request.Roles,
+                cancellationToken);
 
             if (!result.Succeeded)
             {
-                logger.LogWarning("Failed to assign user to agency {AgencyId}. Reason: {Errors}", agency.Id, string.Join(", ", result.Errors));
-                return Result.Failure(result.Errors);
+                logger.LogWarning("Failed to assign user to agency. Errors: {Errors}", string.Join(", ", result.Errors));
+                return result;
             }
 
-            logger.LogInformation("Successfully assigned user {UserEmail} to agency {AgencyEmail}.", request.UserEmail, resolvedAgencyEmail);
+            logger.LogInformation("Successfully assigned user {UserEmail} to agency {AgencyEmail}.", request.UserEmail, agencyEmail);
             return Result.Success;
         }
     }

@@ -5,8 +5,8 @@ using System.Security.Claims;
 
 public class CreateAppointmentCommand : IRequest<Result>
 {
-    public string? AgencyEmail { get; } // Optional: Admin must provide, otherwise retrieved from context
-    public string UserEmail { get; }
+    public string? AgencyEmail { get; }  // Optional: Admin can specify, otherwise uses logged-in Agency user's email
+    public string UserEmail { get; }  // This is the customer's email
     public DateTime Date { get; }
     public string AppointmentName { get; }
 
@@ -39,49 +39,71 @@ public class CreateAppointmentCommand : IRequest<Result>
 
         public async Task<Result> Handle(CreateAppointmentCommand request, CancellationToken cancellationToken)
         {
+            // Get user context
             var user = httpContextAccessor.HttpContext?.User;
-            var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
+            var userEmail = user?.FindFirst(ClaimTypes.Name)?.Value;
             var isAdmin = user?.IsInRole(CommonModelConstants.Role.Administrator) ?? false;
+            var isAgency = user?.IsInRole(CommonModelConstants.Role.Agency) ?? false;
 
             if (string.IsNullOrEmpty(userEmail))
             {
-                logger.LogWarning("Failed to create appointment. No valid user email found in HttpContext.");
+                logger.LogWarning("Appointment creation failed. No valid user email found in HttpContext.");
                 return Result.Failure(new[] { "No valid user email found in HttpContext." });
             }
 
-            // Determine agency email: Admin must provide it, otherwise retrieve from user context
+            // Determine which agency email to use
             string agencyEmail = request.AgencyEmail ?? userEmail;
 
+            // Validate authorization
             if (request.AgencyEmail != null && !isAdmin)
             {
                 logger.LogWarning("Unauthorized appointment creation attempt. Only administrators can create for another agency.");
                 return Result.Failure(new[] { "Only administrators can create appointments for another agency." });
             }
 
+            if (request.AgencyEmail == null && !isAgency)
+            {
+                logger.LogWarning("Unauthorized appointment creation attempt. User must have Agency role.");
+                return Result.Failure(new[] { "User must have Agency role to create appointments." });
+            }
+
+            // Get agency
             var agency = await agencyService.GetByEmailAsync(agencyEmail);
             if (agency == null)
             {
                 logger.LogWarning("Failed to create appointment. No agency found for email {AgencyEmail}.", agencyEmail);
-                return Result.Failure(new[] { "No agency found for this email." });
+                return Result.Failure(new[] { "Agency not found." });
             }
 
-            var userExists = await agencyService.GetAgencyUserByEmailAsync(request.UserEmail);
-            if (userExists == null)
+            // Validate agency is approved
+            if (!agency.IsApproved)
             {
-                logger.LogWarning("Failed to create appointment. No user found for email {UserEmail}.", request.UserEmail);
-                return Result.Failure(new[] { "No user found for this email." });
+                logger.LogWarning("Failed to create appointment. Agency {AgencyEmail} is not approved.", agencyEmail);
+                return Result.Failure(new[] { "Agency is not approved for bookings." });
             }
 
-            var result = await appointmentService.CreateAppointmentAsync(agency.Id, request.UserEmail, request.AppointmentName, request.Date, cancellationToken);
+            // Validate appointment slot availability
+            if (!await appointmentService.HasAvailableSlotAsync(agency.Id, request.Date))
+            {
+                logger.LogWarning("Failed to create appointment. No available slots for {Date} at Agency {AgencyName}.", request.Date, agency.Name);
+                return Result.Failure(new[] { "No available slots for the selected date and time." });
+            }
+
+            // Create the appointment
+            var result = await appointmentService.CreateAppointmentAsync(
+                agency.Id,
+                request.UserEmail,
+                request.AppointmentName,
+                request.Date,
+                cancellationToken);
+
             if (!result.Succeeded)
             {
-                logger.LogWarning("Failed to create appointment '{AppointmentName}' for Agency {AgencyEmail}, User {UserEmail}. Reason: {Errors}",
-                    request.AppointmentName, agencyEmail, request.UserEmail, string.Join(", ", result.Errors));
-                return Result.Failure(result.Errors);
+                logger.LogWarning("Failed to create appointment. Errors: {Errors}", string.Join(", ", result.Errors));
+                return result;
             }
 
-            logger.LogInformation("Appointment '{AppointmentName}' created successfully for Agency {AgencyEmail}, User {UserEmail}.",
-                request.AppointmentName, agencyEmail, request.UserEmail);
+            logger.LogInformation("Successfully created appointment for Agency {AgencyName} at {Date}.", agency.Name, request.Date);
             return Result.Success;
         }
     }

@@ -9,7 +9,10 @@ public class OutboxDispatcherService : BackgroundService
     private readonly IEventDispatcher dispatcher;
     private readonly ILogger<OutboxDispatcherService> logger;
 
-    public OutboxDispatcherService(IDocumentStore store, IEventDispatcher dispatcher, ILogger<OutboxDispatcherService> logger)
+    public OutboxDispatcherService(
+        IDocumentStore store,
+        IEventDispatcher dispatcher,
+        ILogger<OutboxDispatcherService> logger)
     {
         this.store = store;
         this.dispatcher = dispatcher;
@@ -22,15 +25,19 @@ public class OutboxDispatcherService : BackgroundService
 
         while (!cancellationToken.IsCancellationRequested)
         {
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+
             try
             {
                 using var session = store.LightweightSession();
 
-                var pending = session.Query<OutboxMessage>()
+                var pending = await session.Query<OutboxMessage>()
                     .Where(x => x.ProcessedAt == null && x.RetryCount < 5)
                     .OrderBy(x => x.CreatedAt)
                     .Take(10)
-                    .ToList();
+                    .ToListAsync(cancellationToken);
+
+                var modified = false;
 
                 foreach (var message in pending)
                 {
@@ -44,24 +51,29 @@ public class OutboxDispatcherService : BackgroundService
                         await dispatcher.Dispatch(domainEvent, cancellationToken);
 
                         message.ProcessedAt = DateTime.UtcNow;
+                        modified = true;
+
                         logger.LogInformation("Dispatched event {EventType} with ID {MessageId}", message.EventType, message.Id);
                     }
                     catch (Exception ex)
                     {
                         message.RetryCount++;
                         message.Error = ex.Message;
+                        modified = true;
+
                         logger.LogError(ex, "Failed to dispatch event {EventType} with ID {MessageId}, retry count: {RetryCount}", message.EventType, message.Id, message.RetryCount);
                     }
                 }
 
-                await session.SaveChangesAsync();
+                if (modified)
+                {
+                    await session.SaveChangesAsync(cancellationToken);
+                }
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error in OutboxDispatcherService loop");
             }
-
-            await Task.Delay(1000, cancellationToken);
         }
 
         logger.LogInformation("OutboxDispatcherService stopped");

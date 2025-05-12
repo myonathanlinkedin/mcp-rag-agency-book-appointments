@@ -24,6 +24,22 @@ public class CommonModelConstants
         public const string Agency = "Agency";
     }
 
+    public class AgencyRole
+    {
+        public const string Customer = "Customer";
+        public const string Manager = "Manager";
+        public const string Staff = "Staff";
+        public const string Receptionist = "Receptionist";
+
+        public static readonly IReadOnlyCollection<string> ValidRoles = new[]
+        {
+            Customer,
+            Manager,
+            Staff,
+            Receptionist
+        };
+    }
+
     public class Policy
     {
         public const string AdminAccess = "AdminAccess";

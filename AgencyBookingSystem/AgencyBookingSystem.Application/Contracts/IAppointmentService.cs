@@ -32,4 +32,6 @@
 
     // Fetch appointments for a specific user on a given date
     Task<List<AppointmentDto>> GetAppointmentsByDateForUserAsync(DateTime date, string userEmail);
+    // Check any available slot
+    Task<bool> HasAvailableSlotAsync(Guid agencyId, DateTime date);
 }

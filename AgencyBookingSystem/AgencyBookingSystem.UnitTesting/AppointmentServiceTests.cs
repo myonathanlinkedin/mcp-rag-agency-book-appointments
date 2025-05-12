@@ -13,7 +13,7 @@ public class AppointmentServiceTests
     private readonly Mock<IEventDispatcher> mockEventDispatcher;
     private readonly Mock<ILogger<AppointmentService>> mockLogger;
     private readonly Mock<IProducer<Null, string>> mockKafkaProducer;
-    private readonly string kafkaTopic = "appointments-topic";
+    private readonly ApplicationSettings appSettings;
     private readonly AppointmentService appointmentService;
     private Message<Null, string> lastKafkaMessage;
 
@@ -27,6 +27,16 @@ public class AppointmentServiceTests
         this.mockLogger = new Mock<ILogger<AppointmentService>>();
         this.mockKafkaProducer = new Mock<IProducer<Null, string>>();
 
+        // Initialize application settings with test values
+        this.appSettings = new ApplicationSettings
+        {
+            Kafka = new ApplicationSettings.KafkaSettings(
+                BootstrapServers: "test-server:9092",
+                GroupId: "test-group",
+                Topic: "book-topic"
+            )
+        };
+
         this.appointmentService = new AppointmentService(
             this.mockAppointmentRepository.Object,
             this.mockAgencyUserService.Object,
@@ -35,7 +45,7 @@ public class AppointmentServiceTests
             this.mockLogger.Object,
             this.mockKafkaProducer.Object,
             this.mockAppointmentSlotRepository.Object,
-            this.kafkaTopic
+            this.appSettings.Kafka.Topic
         );
     }
 
