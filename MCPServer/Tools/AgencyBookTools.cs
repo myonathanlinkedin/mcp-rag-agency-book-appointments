@@ -3,7 +3,7 @@ using Serilog;
 using System.ComponentModel;
 using Microsoft.AspNetCore.Http;
 
-public class AgencyBookTools : BaseTool
+public sealed class AgencyBookTools : BaseTool
 {
     private readonly IAgencyBookAPI agencyBookApi;
 
@@ -12,22 +12,23 @@ public class AgencyBookTools : BaseTool
         this.agencyBookApi = agencyBookApi ?? throw new ArgumentNullException(nameof(agencyBookApi));
     }
 
-    private const string CreateAgencyDescription = "Create a new agency. Provides basic information including the name, email, and maximum appointments per day.";
-    private const string AssignUserToAgencyDescription = "Assign a user to an agency by specifying the user's email and roles.";
-    private const string CancelAppointmentDescription = "Cancel an existing appointment using the appointment's ID.";
-    private const string CreateAppointmentDescription = "Create an appointment by specifying the user's email, the date of the appointment, and the appointment's name.";
-    private const string GetAppointmentsByDateDescription = "Retrieve all appointments for a specific date.";
-    private const string HandleNoShowDescription = "Handle a no-show for an appointment by specifying the appointment's ID.";
-    private const string RescheduleAppointmentDescription = "Reschedule an existing appointment to a new date and time.";
-    private const string UpdateAgencySettingsDescription = "Update agency settings, including max appointments per day and holidays.";
-    private const string InitializeAppointmentSlotsDescription = "Initialize appointment slots for an agency for a given date range.";
-    private const string GetAgencyByEmailDescription = "Get agency details by email address.";
-    private const string GetApprovedAgenciesDescription = "Get a list of all approved agencies.";
-    private const string GetAvailableSlotsDescription = "Get available appointment slots for a specific agency and date.";
-    private const string GetUpcomingAppointmentsDescription = "Get upcoming appointments for a specific agency starting from a date.";
-    private const string GetNextAvailableDateDescription = "Get the next available date for booking an appointment.";
-    private const string IsBookingAllowedDescription = "Check if booking is allowed for a specific agency.";
-    private const string HasAvailableSlotDescription = "Check if there are any available slots for a specific date.";
+    private const string CreateAgencyDescription = "Create a new agency with name, email, and daily appointment limit.";
+    private const string AssignUserToAgencyDescription = "Assign a user to an agency using their email and role(s).";
+    private const string CancelAppointmentDescription = "Cancel an appointment by its ID.";
+    private const string CreateAppointmentDescription = "Schedule an appointment with a user's email, date, and title.";
+    private const string GetAppointmentsByDateDescription = "List all appointments on a given date.";
+    private const string HandleNoShowDescription = "Mark an appointment as a no-show using its ID.";
+    private const string RescheduleAppointmentDescription = "Move an appointment to a new date and time.";
+    private const string UpdateAgencySettingsDescription = "Modify agency settings like max appointments and holidays.";
+    private const string InitializeAppointmentSlotsDescription = "Generate available slots for an agency over a date range.";
+    private const string GetAgencyByEmailDescription = "Look up agency details using its email.";
+    private const string GetApprovedAgenciesDescription = "List all agencies that have been approved.";
+    private const string GetAvailableSlotsDescription = "View open appointment slots for an agency on a specific date.";
+    private const string GetUpcomingAppointmentsDescription = "List upcoming appointments for an agency starting from a date.";
+    private const string GetNextAvailableDateDescription = "Find the next date with available appointment slots.";
+    private const string IsBookingAllowedDescription = "Check if the agency currently allows bookings.";
+    private const string HasAvailableSlotDescription = "Determine if any slots are open on a specific date.";
+
 
     [McpServerTool, Description(CreateAgencyDescription)]
     public async Task<string> CreateAgencyAsync(
@@ -185,7 +186,7 @@ public class AgencyBookTools : BaseTool
     public async Task<string> UpdateAgencySettingsAsync(
         [Description("Optional: Agency email. If provided, admin must execute")] string? agencyEmail,
         [Description("Maximum number of appointments allowed per day")] int maxAppointmentsPerDay,
-        [Description("List of holiday dates and their descriptions")] List<Holiday> holidays,
+        [Description("List of holiday dates and their descriptions")] List<object> holidays,
         [Description("Optional: Set agency approval status. Only admins can set this")] bool? isApproved = null)
     {
         try
@@ -278,7 +279,7 @@ public class AgencyBookTools : BaseTool
     }
 
     [McpServerTool, Description(GetAgencyByEmailDescription)]
-    public async Task<Agency> GetAgencyByEmailAsync(
+    public async Task<object> GetAgencyByEmailAsync(
         [Description("Email address of the agency to retrieve")] string email)
     {
         try
@@ -298,12 +299,12 @@ public class AgencyBookTools : BaseTool
     }
 
     [McpServerTool, Description(GetApprovedAgenciesDescription)]
-    public async Task<List<Agency>> GetApprovedAgenciesAsync()
+    public async Task<List<object>> GetApprovedAgenciesAsync()
     {
         try
         {
             var token = GetTokenFromHttpContext();
-            if (token == LogAndReturnMissingToken()) return new List<Agency>();
+            if (token == LogAndReturnMissingToken()) return new List<object>();
 
             var agencies = await agencyBookApi.GetApprovedAgenciesAsync(GetBearerToken());
             Log.Information("Retrieved {Count} approved agencies", agencies.Count);
@@ -312,19 +313,19 @@ public class AgencyBookTools : BaseTool
         catch (Exception ex)
         {
             Log.Error("Exception while retrieving approved agencies. Error: {Error}", ex.Message);
-            return new List<Agency>();
+            return new List<object>();
         }
     }
 
     [McpServerTool, Description(GetAvailableSlotsDescription)]
-    public async Task<List<AppointmentSlot>> GetAvailableSlotsAsync(
+    public async Task<List<object>> GetAvailableSlotsAsync(
         [Description("Unique identifier of the agency")] Guid agencyId,
         [Description("Date to check for available slots")] DateTime date)
     {
         try
         {
             var token = GetTokenFromHttpContext();
-            if (token == LogAndReturnMissingToken()) return new List<AppointmentSlot>();
+            if (token == LogAndReturnMissingToken()) return new List<object>();
 
             var slots = await agencyBookApi.GetAvailableSlotsAsync(agencyId, date, GetBearerToken());
             Log.Information("Retrieved {Count} available slots for agency {AgencyId} on {Date}", slots.Count, agencyId, date);
@@ -333,19 +334,19 @@ public class AgencyBookTools : BaseTool
         catch (Exception ex)
         {
             Log.Error("Exception while retrieving available slots for agency {AgencyId}. Error: {Error}", agencyId, ex.Message);
-            return new List<AppointmentSlot>();
+            return new List<object>();
         }
     }
 
     [McpServerTool, Description(GetUpcomingAppointmentsDescription)]
-    public async Task<List<Appointment>> GetUpcomingAppointmentsAsync(
+    public async Task<List<object>> GetUpcomingAppointmentsAsync(
         [Description("Unique identifier of the agency")] Guid agencyId,
         [Description("Starting date to retrieve upcoming appointments")] DateTime fromDate)
     {
         try
         {
             var token = GetTokenFromHttpContext();
-            if (token == LogAndReturnMissingToken()) return new List<Appointment>();
+            if (token == LogAndReturnMissingToken()) return new List<object>();
 
             var appointments = await agencyBookApi.GetUpcomingAppointmentsAsync(agencyId, fromDate, GetBearerToken());
             Log.Information("Retrieved {Count} upcoming appointments for agency {AgencyId} from {Date}", appointments.Count, agencyId, fromDate);
@@ -354,7 +355,7 @@ public class AgencyBookTools : BaseTool
         catch (Exception ex)
         {
             Log.Error("Exception while retrieving upcoming appointments for agency {AgencyId}. Error: {Error}", agencyId, ex.Message);
-            return new List<Appointment>();
+            return new List<object>();
         }
     }
 

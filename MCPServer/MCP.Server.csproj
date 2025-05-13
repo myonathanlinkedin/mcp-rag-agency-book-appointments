@@ -31,9 +31,8 @@
 		<PackageReference Include="Serilog.Sinks.File" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\AgencyBookingSystem\AgencyBookingSystem.Domain\AgencyBookingSystem.Domain.csproj" />
 	  <ProjectReference Include="..\Common\Common.Application\Common.Application.csproj" />
-	  <ProjectReference Include="..\RAGScanner\RAGScanner.Domain\RAGScanner.Domain.csproj" />
+	  <ProjectReference Include="..\Common\Common.Domain\Common.Domain.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="appsettings.json">

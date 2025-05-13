@@ -6,5 +6,5 @@ public interface IRAGApi
     Task<HttpResponseMessage> ScanUrlsAsync([Body] object payload, [Header("Authorization")] string token);
 
     [Post("/api/RAGScanner/RAGSearch/RAGSearchAsync")]
-    Task<List<RAGSearchResult>> RAGSearchAsync([Body] object payload, [Header("Authorization ")] string token);
+    Task<List<object>> RAGSearchAsync([Body] object payload, [Header("Authorization ")] string token);
 }

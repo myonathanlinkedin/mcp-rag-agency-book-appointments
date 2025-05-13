@@ -16,9 +16,7 @@ public class CreateAppointmentCommandValidator : AbstractValidator<CreateAppoint
         RuleFor(a => a.Date)
             .NotEmpty().WithMessage("Appointment date is required.")
             .GreaterThan(DateTime.UtcNow).WithMessage("Appointment date must be in the future.")
-            .LessThan(DateTime.UtcNow.AddMonths(6)).WithMessage("Appointments cannot be booked more than 6 months in advance.")
-            .Must(date => date.Minute == 0 && date.Second == 0).WithMessage("Appointments must start at the hour (e.g., 9:00, 10:00).")
-            .Must(date => date.Hour >= 9 && date.Hour <= 17).WithMessage("Appointments must be between 9 AM and 5 PM.");
+            .LessThan(DateTime.UtcNow.AddMonths(6)).WithMessage("Appointments cannot be booked more than 6 months in advance.");
 
         RuleFor(a => a.AppointmentName)
             .NotEmpty().WithMessage("Appointment name is required.")

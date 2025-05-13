@@ -67,10 +67,6 @@ void RegisterRefitClients(WebApplicationBuilder builder, IConfiguration configur
 // Method to register transient services
 void RegisterServices(WebApplicationBuilder builder)
 {
-    // Register tool services (like RAGTools, IdentityTools)
-    builder.Services.AddScoped<RAGTools>();
-    builder.Services.AddScoped<IdentityTools>();
-    builder.Services.AddScoped<AgencyBookTools>();
     builder.Services.AddHttpContextAccessor();
 }
 
@@ -80,5 +76,6 @@ void AddMcpServer(WebApplicationBuilder builder)
     builder.Services.AddMcpServer()
         .WithHttpTransport()
         .WithTools<IdentityTools>()
-        .WithTools<RAGTools>();
+        .WithTools<RAGTools>()
+        .WithTools<AgencyBookTools>();
 }

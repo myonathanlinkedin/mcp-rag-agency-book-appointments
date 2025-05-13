@@ -3,7 +3,6 @@ using Serilog;
 using System.ComponentModel;
 using Microsoft.AspNetCore.Http;
 
-[McpServerToolType]
 public sealed class IdentityTools : BaseTool
 {
     private readonly IIdentityApi identityApi;
