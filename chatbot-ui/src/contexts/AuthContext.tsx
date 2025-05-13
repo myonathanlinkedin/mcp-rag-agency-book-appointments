@@ -13,50 +13,50 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
+interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
-  const { isAuthenticated, user, setTokens, clearTokens, accessToken, refreshToken } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const { accessToken, refreshToken, setTokens, clearTokens } = useAuthStore();
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const isAuthenticated = !!accessToken;
 
-  // Restore auth state on mount
+  // Initialize auth state from stored tokens
   useEffect(() => {
-    const restoreAuth = async () => {
-      if (!accessToken || !refreshToken) {
-        setIsLoading(false);
-        return;
-      }
-
+    if (accessToken) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      // Extract user info from token
       try {
-        // Set auth header for the request
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        
-        // Only verify token if we're not on the login page
-        if (window.location.pathname !== '/login') {
-          const response = await api.post('/auth/verify');
-          if (!response.data.valid && refreshToken) {
-            // If token is invalid, try to refresh
-            const refreshResponse = await api.post('/auth/refresh');
-            const { accessToken: newAccessToken } = refreshResponse.data;
-            useAuthStore.getState().updateAccessToken(newAccessToken);
-            api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-          }
-        }
+        const base64Url = accessToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const payload = JSON.parse(jsonPayload);
+        setUser({
+          id: payload.nameid,
+          email: payload.unique_name
+        });
       } catch (error) {
-        console.error('Auth restoration failed:', error);
-        // Only clear tokens and redirect if we're not on the login page
-        if (window.location.pathname !== '/login') {
-          clearTokens();
-          router.push('/login');
-        }
-      } finally {
-        setIsLoading(false);
+        console.error('Failed to decode token:', error);
+        clearTokens();
       }
-    };
-
-    restoreAuth();
-  }, [accessToken, refreshToken, clearTokens, router]);
+    }
+  }, [accessToken, clearTokens]);
 
   // Set up token refresh interval
   useEffect(() => {
@@ -64,27 +64,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const refreshInterval = setInterval(async () => {
       try {
-        const response = await api.post('/auth/refresh');
-        const { accessToken: newAccessToken } = response.data;
-        useAuthStore.getState().updateAccessToken(newAccessToken);
+        const response = await api.post('/api/Identity/RefreshToken/RefreshTokenAsync', {
+          userId: user?.id,
+          refreshToken
+        });
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+        setTokens({ accessToken: newAccessToken, refreshToken: newRefreshToken });
         api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
       } catch (error) {
         console.error('Token refresh failed:', error);
-        // Only clear tokens and redirect if we're not on the login page
         if (window.location.pathname !== '/login') {
           clearTokens();
           router.push('/login');
         }
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 4 * 60 * 1000); // 4 minutes (token expires in 5 minutes)
 
     return () => clearInterval(refreshInterval);
-  }, [isAuthenticated, refreshToken, clearTokens, router]);
+  }, [isAuthenticated, refreshToken, user?.id, setTokens, clearTokens, router]);
 
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post<TokenResponse>('/api/Identity/Login/LoginAsync', {
+        email,
+        password
+      });
+      
       const { accessToken, refreshToken } = response.data;
       
       // Set auth header
@@ -103,15 +109,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       setIsLoading(true);
-      // Only call logout endpoint if we have a token
       if (accessToken) {
-        await api.post('/auth/logout');
+        // No need to call logout endpoint as we're using JWT
+        clearTokens();
+        delete api.defaults.headers.common['Authorization'];
+        setUser(null);
       }
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
-      clearTokens();
-      delete api.defaults.headers.common['Authorization'];
       router.push('/login');
       setIsLoading(false);
     }
@@ -122,12 +128,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }; 

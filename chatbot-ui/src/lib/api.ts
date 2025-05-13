@@ -4,7 +4,7 @@ import { RateLimit } from 'async-sema';
 import { Logger } from '@/lib/logger';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7190',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -60,17 +60,18 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = useAuthStore.getState().refreshToken;
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
+        const userId = useAuthStore.getState().user?.id;
+        if (!refreshToken || !userId) {
+          throw new Error('No refresh token or user ID available');
         }
 
-        const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
-          { refreshToken }
-        );
+        const response = await api.post('/api/Identity/RefreshToken/RefreshTokenAsync', {
+          userId,
+          refreshToken
+        });
 
-        const { accessToken } = response.data;
-        useAuthStore.getState().updateAccessToken(accessToken);
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        useAuthStore.getState().setTokens({ accessToken, refreshToken: newRefreshToken });
 
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;

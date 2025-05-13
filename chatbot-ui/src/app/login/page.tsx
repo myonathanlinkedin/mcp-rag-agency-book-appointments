@@ -28,7 +28,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().refine((email) => {
+    // Custom email validation that allows localhost
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[a-zA-Z0-9._%+-]+@localhost$/;
+    return emailRegex.test(email);
+  }, 'Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 

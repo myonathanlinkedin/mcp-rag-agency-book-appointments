@@ -71,18 +71,22 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/chat', { message: input });
+      const response = await api.post('/api/Prompt/SendUserPrompt/SendUserPromptAsync', {
+        prompt: input
+      });
+      
       const assistantMessage: Message = {
-        id: response.data.id,
-        content: response.data.content,
+        id: Date.now().toString(),
+        content: response.data,
         role: 'assistant',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (err) {
+      const error = err as { response?: { data?: { errors?: string[] } } };
       toast({
         title: 'Error',
-        description: 'Failed to send message',
+        description: error.response?.data?.errors?.join(', ') || 'Failed to send message',
         status: 'error',
         duration: 5000,
         isClosable: true,
