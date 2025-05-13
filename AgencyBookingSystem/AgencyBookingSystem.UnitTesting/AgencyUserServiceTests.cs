@@ -68,11 +68,16 @@ public class AgencyUserServiceTests
     {
         // Arrange
         var email = "user@example.com";
+        var agencyId = Guid.NewGuid();
         var userResult = AgencyUser.Create(
-            Guid.NewGuid(),
+            agencyId,
             email,
             "Test User",
-            new[] { "Role1" });
+            new[] { CommonModelConstants.AgencyRole.Customer });
+        if (!userResult.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create test user: {string.Join(", ", userResult.Errors)}");
+        }
         var expectedUser = userResult.Data;
         
         this.mockAgencyUserRepository
@@ -84,7 +89,7 @@ public class AgencyUserServiceTests
         
         // Assert
         result.Should().NotBeNull();
-        result.Email.Should().Be(email);
+        result!.Email.Should().Be(email);
         this.mockAgencyUserRepository.Verify(repo => repo.GetByEmailAsync(email), Times.Once);
     }
 
@@ -110,16 +115,26 @@ public class AgencyUserServiceTests
     public async Task GetAllAsync_ShouldReturnAllAgencyUsers()
     {
         // Arrange
+        var agencyId = Guid.NewGuid();
         var user1Result = AgencyUser.Create(
-            Guid.NewGuid(),
+            agencyId,
             "user1@example.com",
             "User 1",
-            new[] { "Role1" });
+            new[] { CommonModelConstants.AgencyRole.Customer });
+        if (!user1Result.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create test user 1: {string.Join(", ", user1Result.Errors)}");
+        }
+
         var user2Result = AgencyUser.Create(
-            Guid.NewGuid(),
+            agencyId,
             "user2@example.com",
             "User 2",
-            new[] { "Role2" });
+            new[] { CommonModelConstants.AgencyRole.Customer });
+        if (!user2Result.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create test user 2: {string.Join(", ", user2Result.Errors)}");
+        }
         
         var users = new List<AgencyUser>
         {
@@ -146,11 +161,16 @@ public class AgencyUserServiceTests
     public async Task UpsertAsync_ShouldCallRepositoryUpsert()
     {
         // Arrange
+        var agencyId = Guid.NewGuid();
         var userResult = AgencyUser.Create(
-            Guid.NewGuid(),
+            agencyId,
             "test@user.com",
             "Test User",
-            new[] { "Role1" });
+            new[] { CommonModelConstants.AgencyRole.Customer });
+        if (!userResult.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create test user: {string.Join(", ", userResult.Errors)}");
+        }
         var user = userResult.Data;
         
         // Act

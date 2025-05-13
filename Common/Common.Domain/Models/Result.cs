@@ -1,25 +1,18 @@
 public class Result
 {
-    private readonly List<string> errors;
-
-    internal Result(bool succeeded, List<string> errors)
+    protected Result(bool succeeded, IEnumerable<string> errors)
     {
         Succeeded = succeeded;
-        this.errors = errors;
+        Errors = errors.ToArray();
     }
 
     public bool Succeeded { get; }
 
-    public List<string> Errors
-        => Succeeded
-            ? []
-            : errors;
+    public string[] Errors { get; }
 
-    public static Result Success
-        => new(true, new List<string>());
+    public static Result Success => new Result(true, Array.Empty<string>());
 
-    public static Result Failure(IEnumerable<string> errors)
-        => new(false, errors.ToList());
+    public static Result Failure(IEnumerable<string> errors) => new Result(false, errors);
 
     public static implicit operator Result(string error)
         => Failure(new List<string> { error });
@@ -34,35 +27,44 @@ public class Result
         => result.Succeeded;
 }
 
-public class Result<TData> : Result
+public class Result<T> : Result
 {
-    private readonly TData data;
+    private readonly T? data;
 
-    private Result(bool succeeded, TData data, List<string> errors)
+    protected internal Result(T? data, bool succeeded, IEnumerable<string> errors)
         : base(succeeded, errors)
-        => this.data = data;
+    {
+        this.data = data;
+    }
 
-    public TData Data
-        => Succeeded
-            ? data
-            : throw new InvalidOperationException(
-                $"{nameof(this.Data)} is not available with a failed result. Use {this.Errors} instead.");
+    public T Data
+    {
+        get
+        {
+            if (!Succeeded || data == null)
+            {
+                throw new InvalidOperationException($"Data is not available with a failed result. Use {typeof(T).Name} instead.");
+            }
 
-    public static Result<TData> SuccessWith(TData data)
-        => new(true, data, new List<string>());
+            return data;
+        }
+    }
 
-    public new static Result<TData> Failure(IEnumerable<string> errors)
-        => new(false, default!, errors.ToList());
+    public T? DataOrDefault => Succeeded ? data : default;
 
-    public static implicit operator Result<TData>(string error)
+    public static Result<T> SuccessWith(T data) => new Result<T>(data, true, Array.Empty<string>());
+
+    public static new Result<T> Failure(IEnumerable<string> errors) => new Result<T>(default, false, errors);
+
+    public static implicit operator Result<T>(string error)
         => Failure(new List<string> { error });
 
-    public static implicit operator Result<TData>(List<string> errors)
+    public static implicit operator Result<T>(List<string> errors)
         => Failure(errors);
 
-    public static implicit operator Result<TData>(TData data)
+    public static implicit operator Result<T>(T data)
         => SuccessWith(data);
 
-    public static implicit operator bool(Result<TData> result)
+    public static implicit operator bool(Result<T> result)
         => result.Succeeded;
 } 

@@ -231,19 +231,39 @@ public class AgencyServiceTests
         // Arrange
         var email = "user@example.com";
         var fullName = "John Doe";
-        var roles = new List<string> { "Agent" };
+        var roles = new List<string> { CommonModelConstants.AgencyRole.Customer };
         
         var agencyResult = Agency.Create("Test Agency", "agency@test.com", false, 10);
+        if (!agencyResult.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create test agency: {string.Join(", ", agencyResult.Errors)}");
+        }
         var agency = agencyResult.Data;
-        agency.Approve(); // Make sure agency is approved
+        
+        // Create an already approved agency
+        var approvedAgency = new Agency(
+            agency.Id,
+            agency.Name,
+            agency.Email,
+            agency.RequiresApproval,
+            agency.MaxAppointmentsPerDay);
+        approvedAgency.Approve();
         
         this.mockAgencyRepository
             .Setup(repo => repo.GetByIdAsync(agency.Id))
-            .ReturnsAsync(agency);
+            .ReturnsAsync(approvedAgency);
         
         this.mockAgencyUserRepository
             .Setup(repo => repo.GetByEmailAsync(email))
             .ReturnsAsync((AgencyUser)null); // User doesn't exist yet
+
+        this.mockAgencyUserRepository
+            .Setup(repo => repo.AddAsync(It.IsAny<AgencyUser>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        this.mockAgencyRepository
+            .Setup(repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         
         // Act
         var result = await this.agencyService.AssignUserToAgencyAsync(agency.Id, email, fullName, roles);
@@ -251,11 +271,25 @@ public class AgencyServiceTests
         // Assert
         result.Succeeded.Should().BeTrue();
         
-        // Verify agency was updated with the new user
+        // Verify agency was updated
         this.mockAgencyRepository.Verify(
-            repo => repo.UpsertAsync(
-                It.Is<Agency>(a => a.Id == agency.Id),
+            repo => repo.Update(
+                It.Is<Agency>(a => a.Id == agency.Id)),
+            Times.Once);
+        
+        // Verify user was added
+        this.mockAgencyUserRepository.Verify(
+            repo => repo.AddAsync(
+                It.Is<AgencyUser>(u => 
+                    u.Email == email && 
+                    u.FullName == fullName &&
+                    u.AgencyId == agency.Id),
                 It.IsAny<CancellationToken>()),
+            Times.Once);
+        
+        // Verify changes were saved
+        this.mockAgencyRepository.Verify(
+            repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.Once);
         
         // Verify event was dispatched
@@ -265,7 +299,7 @@ public class AgencyServiceTests
                     e.AgencyId == agency.Id && 
                     e.UserEmail == email && 
                     e.FullName == fullName &&
-                    e.Roles.Contains("Agent")),
+                    e.Roles.Contains(CommonModelConstants.AgencyRole.Customer)),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -275,12 +309,17 @@ public class AgencyServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
+        var agencyId = Guid.NewGuid();
         var expectedEmail = "user@example.com";
         var userResult = AgencyUser.Create(
-            Guid.NewGuid(),
+            agencyId,
             expectedEmail,
             "Test User",
-            new[] { "Role1" });
+            new[] { CommonModelConstants.AgencyRole.Customer });
+        if (!userResult.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create test user: {string.Join(", ", userResult.Errors)}");
+        }
         var user = userResult.Data;
         
         this.mockAgencyUserRepository

@@ -11,8 +11,7 @@ public class JobStatus : Entity, IAggregateRoot
     [Required]
     public string Message { get; private set; }
 
-    private readonly List<string> urls = new();
-    public IReadOnlyCollection<string> Urls => urls.AsReadOnly();
+    public List<string> Urls { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
 
@@ -29,10 +28,12 @@ public class JobStatus : Entity, IAggregateRoot
         IEnumerable<string> urls,
         DateTime createdAt) : base(id)
     {
+        this.Urls = new List<string>();
+
         JobId = jobId;
         Status = status;
         Message = message;
-        this.urls.AddRange(urls);
+        this.Urls.AddRange(urls);
         CreatedAt = createdAt;
         UpdatedAt = null;
     }
@@ -82,18 +83,17 @@ public class JobStatus : Entity, IAggregateRoot
 
     public Result AddUrl(string url)
     {
-        if (string.IsNullOrWhiteSpace(url))
+        if (!string.IsNullOrWhiteSpace(url))
         {
-            return Result.Failure(new[] { "URL cannot be empty." });
-        }
 
-        if (urls.Contains(url))
-        {
-            return Result.Failure(new[] { "URL already exists." });
-        }
+            if (Urls.Contains(url))
+            {
+                return Result.Failure(new[] { "URL already exists." });
+            }
 
-        urls.Add(url);
-        UpdatedAt = DateTime.UtcNow;
+            Urls.Add(url);
+            UpdatedAt = DateTime.UtcNow;
+        }
 
         return Result.Success;
     }
