@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
+import { jwtDecode } from 'jwt-decode';
 
 interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
@@ -42,24 +43,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (accessToken) {
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      // Extract user info from token
+      // Extract user info from token using jwt-decode
       try {
-        const base64Url = accessToken.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        const payload = JSON.parse(jsonPayload);
+        const decoded = jwtDecode(accessToken) as {
+          nameid: string;
+          unique_name: string;
+          exp: number;
+        };
+        
         setUser({
-          id: payload.nameid,
-          email: payload.unique_name
+          id: decoded.nameid,
+          email: decoded.unique_name
         });
+
+        // Check if token is about to expire
+        const expirationTime = decoded.exp * 1000; // Convert to milliseconds
+        const currentTime = Date.now();
+        const timeUntilExpiry = expirationTime - currentTime;
+
+        if (timeUntilExpiry < 0) {
+          console.warn('Token has expired');
+          clearTokens();
+          router.push('/login');
+        }
       } catch (error) {
         console.error('Failed to decode token:', error);
         clearTokens();
       }
     }
-  }, [accessToken, clearTokens]);
+  }, [accessToken, clearTokens, router]);
 
   // Set up token refresh interval
   useEffect(() => {
@@ -67,10 +79,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const refreshInterval = setInterval(async () => {
       try {
+        // Get user ID from the current access token
+        const currentToken = useAuthStore.getState().accessToken;
+        if (!currentToken) {
+          throw new Error('No access token available');
+        }
+
+        const decoded = jwtDecode(currentToken) as {
+          nameid: string;
+          unique_name: string;
+        };
+
         const response = await api.post('/api/Identity/RefreshToken/RefreshTokenAsync', {
-          userId: user?.id,
+          userId: decoded.nameid, // Use ID from current token
           refreshToken
         });
+        
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
         setTokens({ accessToken: newAccessToken, refreshToken: newRefreshToken });
         api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
@@ -84,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 4 * 60 * 1000); // 4 minutes (token expires in 5 minutes)
 
     return () => clearInterval(refreshInterval);
-  }, [isAuthenticated, refreshToken, user?.id, setTokens, clearTokens, router]);
+  }, [isAuthenticated, refreshToken, router, setTokens, clearTokens]);
 
   const login = async (email: string, password: string) => {
     try {

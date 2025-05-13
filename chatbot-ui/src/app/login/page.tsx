@@ -23,8 +23,10 @@ import {
   Link,
   HStack,
   useColorMode,
+  InputRightElement,
+  IconButton,
 } from '@chakra-ui/react';
-import { FiMail, FiLock, FiLogIn } from 'react-icons/fi';
+import { FiMail, FiLock, FiLogIn, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import NextLink from 'next/link';
@@ -45,6 +47,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const toast = useToast();
   const { colorMode } = useColorMode();
+  const [show, setShow] = useState(false);
 
   const {
     register,
@@ -222,7 +225,7 @@ export default function LoginPage() {
                           <FiLock color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.400'} />
                         </InputLeftElement>
                         <Input
-                          type="password"
+                          type={show ? "text" : "password"}
                           {...register('password')}
                           placeholder="Password"
                           size="md"
@@ -239,6 +242,20 @@ export default function LoginPage() {
                           }}
                           h="40px"
                         />
+                        <InputRightElement width="4.5rem">
+                          <IconButton
+                            aria-label={show ? 'Hide password' : 'Show password'}
+                            h="1.75rem"
+                            size="sm"
+                            onClick={() => setShow(!show)}
+                            icon={show ? <FiEyeOff /> : <FiEye />}
+                            variant="ghost"
+                            color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                            _hover={{
+                              bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'gray.100'
+                            }}
+                          />
+                        </InputRightElement>
                       </InputGroup>
                       <FormErrorMessage fontSize="xs">
                         {errors.password && errors.password.message}

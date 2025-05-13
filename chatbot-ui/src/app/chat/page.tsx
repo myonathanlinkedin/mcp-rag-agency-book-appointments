@@ -30,6 +30,7 @@ import type { Components } from 'react-markdown';
 import api from '@/lib/api';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { SettingsMenu } from '@/components/SettingsMenu';
+import { TipsPopup, shouldShowTips } from '@/components/TipsPopup';
 
 interface Message {
   id: string;
@@ -42,20 +43,57 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { logout, user } = useAuth();
   const toast = useToast();
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const { colorMode } = useColorMode();
 
+  // Initialize tips popup
+  useEffect(() => {
+    // Check if we should show tips after a short delay to ensure smooth page load
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        setShowTips(shouldShowTips());
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      const scrollHeight = messagesContainerRef.current.scrollHeight;
+      const height = messagesContainerRef.current.clientHeight;
+      const maxScrollTop = scrollHeight - height;
+      messagesContainerRef.current.scrollTop = maxScrollTop > 0 ? maxScrollTop : 0;
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Prevent body scrolling when messages container is focused
+  useEffect(() => {
+    const messagesContainer = messagesContainerRef.current;
+    if (!messagesContainer) return;
+
+    const preventScroll = (e: WheelEvent) => {
+      const isAtTop = messagesContainer.scrollTop === 0;
+      const isAtBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight <= messagesContainer.scrollTop + 1;
+
+      if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+        e.preventDefault();
+      }
+    };
+
+    messagesContainer.addEventListener('wheel', preventScroll, { passive: false });
+    return () => messagesContainer.removeEventListener('wheel', preventScroll);
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -70,6 +108,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    scrollToBottom();
 
     try {
       const response = await api.post('/api/Prompt/SendUserPrompt/SendUserPromptAsync', {
@@ -83,6 +122,7 @@ export default function ChatPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      scrollToBottom();
     } catch (err) {
       const error = err as { response?: { data?: { errors?: string[] } } };
       toast({
@@ -116,6 +156,7 @@ export default function ChatPage() {
         display="flex" 
         flexDirection="column"
       >
+        <TipsPopup isOpen={showTips} onClose={() => setShowTips(false)} />
         {/* Header */}
         <Box
           as="header"
@@ -187,8 +228,11 @@ export default function ChatPage() {
           flexDirection="column" 
           py={6}
           px={4}
+          position="relative"
+          height="calc(100vh - 70px)" // Subtract header height
+          overflow="hidden"
         >
-          <Box 
+          <Box
             flex="1" 
             display="flex" 
             flexDirection="column"
@@ -198,37 +242,46 @@ export default function ChatPage() {
             borderColor={colorMode === 'dark' ? 'linkedin.dark.border' : 'linkedin.light.border'}
             boxShadow="sm"
             overflow="hidden"
+            position="relative"
           >
             {/* Messages */}
             <Box 
-              ref={messagesEndRef}
+              ref={messagesContainerRef}
               flex="1"
               overflowY="auto"
               p={6}
               bg={colorMode === 'dark' ? 'linkedin.dark.card' : 'linkedin.light.card'}
+              position="relative"
               css={{
                 '&::-webkit-scrollbar': {
                   width: '4px',
                 },
                 '&::-webkit-scrollbar-track': {
                   width: '6px',
-                  background: 'transparent',
+                  background: colorMode === 'dark' ? 'linkedin.dark.card' : 'linkedin.light.card',
                 },
                 '&::-webkit-scrollbar-thumb': {
                   background: colorMode === 'dark' ? 'linkedin.dark.border' : 'gray.300',
                   borderRadius: '24px',
-                  '&:hover': {
-                    background: colorMode === 'dark' ? 'linkedin.dark.hover' : 'gray.400',
-                  },
                 },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: colorMode === 'dark' ? 'linkedin.dark.hover' : 'gray.400',
+                },
+                scrollbarWidth: 'thin',
+                scrollbarColor: `${colorMode === 'dark' ? 'linkedin.dark.border' : 'gray.300'} transparent`,
+                // Prevent elastic scrolling on macOS
+                overscrollBehavior: 'contain',
+                // Smooth scrolling
+                scrollBehavior: 'smooth',
               }}
             >
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={6} align="stretch">
                 {messages.map((message) => (
                   <Box
                     key={message.id}
                     alignSelf={message.role === 'user' ? 'flex-end' : 'flex-start'}
                     maxW="70%"
+                    data-message-role={message.role}
                   >
                     <HStack
                       spacing={3}
@@ -243,6 +296,11 @@ export default function ChatPage() {
                       border="1px"
                       borderColor={colorMode === 'dark' ? 'linkedin.dark.border' : 'linkedin.light.border'}
                       width="100%"
+                      boxShadow="sm"
+                      _hover={{
+                        borderColor: colorMode === 'dark' ? 'linkedin.dark.hover' : 'gray.400',
+                      }}
+                      transition="all 0.2s"
                     >
                       <Avatar
                         size="sm"
@@ -251,7 +309,12 @@ export default function ChatPage() {
                         color="white"
                         flexShrink={0}
                       />
-                      <Box flex="1" overflowWrap="break-word" wordBreak="break-word">
+                      <Box 
+                        flex="1" 
+                        overflowWrap="break-word" 
+                        wordBreak="break-word"
+                        minW="0" // Ensure proper text wrapping
+                      >
                         <ReactMarkdown
                           components={{
                             code: ({ className, children, ...props }) => {
@@ -335,7 +398,7 @@ export default function ChatPage() {
                     </HStack>
                   </Box>
                 ))}
-                <div ref={messagesEndRef} />
+                <Box ref={messagesEndRef} />
               </VStack>
             </Box>
 
@@ -345,6 +408,10 @@ export default function ChatPage() {
               bg={colorMode === 'dark' ? 'linkedin.dark.card' : 'linkedin.light.card'} 
               borderTop="1px" 
               borderColor={colorMode === 'dark' ? 'linkedin.dark.border' : 'linkedin.light.border'}
+              position="sticky"
+              bottom={0}
+              width="100%"
+              zIndex={1}
             >
               <HStack>
                 <Input
