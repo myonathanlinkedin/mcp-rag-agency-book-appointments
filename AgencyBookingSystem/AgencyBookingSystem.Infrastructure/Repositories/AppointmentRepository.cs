@@ -1,9 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using Microsoft.Extensions.Logging;
 
-internal class AppointmentRepository : DataRepository<AgencyBookingDbContext, Appointment>, IAppointmentRepository
+internal class AppointmentRepository : BufferedDataRepository<AgencyBookingDbContext, Appointment>, IAppointmentRepository
 {
-    public AppointmentRepository(AgencyBookingDbContext db) : base(db) { }
+    public AppointmentRepository(
+        AgencyBookingDbContext db,
+        ILogger<AppointmentRepository> logger)
+        : base(db, logger)
+    {
+    }
 
     public override async Task<Appointment?> GetByIdAsync(Guid id)
     {

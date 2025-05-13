@@ -1,8 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-internal class AppointmentSlotRepository : DataRepository<AgencyBookingDbContext, AppointmentSlot>, IAppointmentSlotRepository
+internal class AppointmentSlotRepository : BufferedDataRepository<AgencyBookingDbContext, AppointmentSlot>, IAppointmentSlotRepository
 {
-    public AppointmentSlotRepository(AgencyBookingDbContext db) : base(db) { }
+    public AppointmentSlotRepository(
+        AgencyBookingDbContext db,
+        ILogger<AppointmentSlotRepository> logger)
+        : base(db, logger)
+    {
+    }
 
     public async Task<List<AppointmentSlot>> GetSlotsByAgencyAsync(Guid agencyId, DateTime date)
     {

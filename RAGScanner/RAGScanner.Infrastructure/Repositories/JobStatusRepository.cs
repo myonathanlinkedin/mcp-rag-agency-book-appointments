@@ -1,13 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
+using Microsoft.Extensions.DependencyInjection;
 
-internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJobStatusRepository
+internal class JobStatusRepository : BufferedDataRepository<RAGDbContext, JobStatus>, IJobStatusRepository
 {
-    private readonly ILogger<JobStatusRepository> logger;
+    private readonly ILogger<JobStatusRepository> _logger;
 
-    public JobStatusRepository(RAGDbContext db, ILogger<JobStatusRepository> logger) : base(db)
-        => this.logger = logger;
+    public JobStatusRepository(
+        RAGDbContext db,
+        ILogger<JobStatusRepository> logger)
+        : base(db, logger)
+    {
+        _logger = logger;
+    }
 
     public async Task<string> CreateJobAsync(List<string> urls)
     {
@@ -22,7 +28,7 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
         if (!jobStatusResult.Succeeded)
         {
             var errorMessage = string.Join("; ", jobStatusResult.Errors);
-            logger.LogError("Failed to create JobStatus: {Error}", errorMessage);
+            _logger.LogError("Failed to create JobStatus: {Error}", errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
 
@@ -30,15 +36,13 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
 
         try
         {
-            await Data.JobStatuses.AddAsync(jobStatus);
-            await Data.SaveChangesAsync();
-
-            logger.LogInformation("Created job with ID {JobId}", jobId);
+            await SaveAsync(jobStatus);
+            _logger.LogInformation("Created job with ID {JobId}", jobId);
             return jobId;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create job with ID {JobId}", jobId);
+            _logger.LogError(ex, "Failed to create job with ID {JobId}", jobId);
             throw;
         }
     }
@@ -60,7 +64,7 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to retrieve job status for JobId {JobId}", jobId);
+            _logger.LogError(ex, "Failed to retrieve job status for JobId {JobId}", jobId);
             throw;
         }
     }
@@ -69,43 +73,24 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
     {
         try
         {
-            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
-            
             var job = await Data.JobStatuses
                 .FirstOrDefaultAsync(js => js.JobId == jobId);
 
             if (job == null)
             {
-                logger.LogWarning("Attempted to update non-existent job with ID {JobId}", jobId);
+                _logger.LogWarning("Attempted to update non-existent job with ID {JobId}", jobId);
                 return;
             }
 
-            Data.Entry(job).State = EntityState.Detached;
-
-            job = await Data.JobStatuses
-                .FirstOrDefaultAsync(js => js.JobId == jobId);
-
-            if (job != null)
-            {
-                job.UpdateStatus(status.ToString(), message ?? job.Message);
-                
-                try
-                {
-                    await Data.SaveChangesAsync();
-                    scope.Complete();
-                    logger.LogInformation("Updated job {JobId} with status: {Status}, message: {Message}", 
-                        jobId, status, job.Message);
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    logger.LogWarning(ex, "Concurrency conflict detected while updating job {JobId}. Retrying operation.", jobId);
-                    throw;
-                }
-            }
+            job.UpdateStatus(status.ToString(), message ?? job.Message);
+            await UpsertAsync(job, CancellationToken.None);
+            
+            _logger.LogInformation("Updated job {JobId} with status: {Status}, message: {Message}", 
+                jobId, status, job.Message);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to update job status for JobId {JobId}", jobId);
+            _logger.LogError(ex, "Failed to update job status for JobId {JobId}", jobId);
             throw;
         }
     }

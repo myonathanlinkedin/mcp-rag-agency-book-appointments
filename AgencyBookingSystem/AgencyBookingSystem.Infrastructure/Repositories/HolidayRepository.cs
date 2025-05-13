@@ -1,13 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
 
-internal class HolidayRepository : DataRepository<AgencyBookingDbContext, Holiday>, IHolidayRepository
+internal class HolidayRepository : BufferedDataRepository<AgencyBookingDbContext, Holiday>, IHolidayRepository
 {
-    public HolidayRepository(AgencyBookingDbContext db) : base(db) { }
+    public HolidayRepository(
+        AgencyBookingDbContext db,
+        ILogger<HolidayRepository> logger)
+        : base(db, logger)
+    {
+    }
 
     public async Task<List<Holiday>> GetHolidaysByAgencyAsync(Guid agencyId)
     {
