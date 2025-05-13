@@ -21,28 +21,25 @@ import {
   InputGroup,
   InputLeftElement,
   Link,
-  HStack,
   useColorMode,
 } from '@chakra-ui/react';
-import { FiMail, FiLock, FiLogIn } from 'react-icons/fi';
+import { FiMail } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import NextLink from 'next/link';
 
-const loginSchema = z.object({
+const resetPasswordSchema = z.object({
   email: z.string().refine((email) => {
-    // Custom email validation that allows localhost
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[a-zA-Z0-9._%+-]+@localhost$/;
     return emailRegex.test(email);
   }, 'Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { resetPassword } = useAuth();
   const toast = useToast();
   const { colorMode } = useColorMode();
 
@@ -50,18 +47,25 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true);
     try {
-      await login(data.email, data.password);
+      await resetPassword(data.email);
+      toast({
+        title: 'Reset password email sent',
+        description: 'Please check your email for reset instructions',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
     } catch (error) {
       toast({
-        title: 'Login failed',
-        description: 'Invalid email or password',
+        title: 'Reset password failed',
+        description: 'An error occurred while sending reset instructions',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -121,18 +125,18 @@ export default function LoginPage() {
               letterSpacing="tight"
               lineHeight="1.2"
             >
-              Welcome to your professional appointment assistant
+              Reset your password
             </Heading>
             <Text 
               color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.600'}
               fontSize="md"
               lineHeight="1.5"
             >
-              Your intelligent appointment booking assistant
+              We'll send you instructions to reset your password
             </Text>
           </Box>
 
-          {/* Right side - Login Form */}
+          {/* Right side - Reset Password Form */}
           <Box 
             w={{ base: 'full', md: '50%' }}
             p={12}
@@ -156,13 +160,13 @@ export default function LoginPage() {
                     fontWeight="bold"
                     letterSpacing="tight"
                   >
-                    Sign in
+                    Reset Password
                   </Heading>
                   <Text 
                     color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.600'}
                     fontSize="sm"
                   >
-                    Stay updated on your appointments
+                    Enter your email to receive reset instructions
                   </Text>
                 </Box>
 
@@ -200,46 +204,7 @@ export default function LoginPage() {
                           h="40px"
                         />
                       </InputGroup>
-                      <FormErrorMessage fontSize="xs">
-                        {errors.email && errors.email.message}
-                      </FormErrorMessage>
-                    </FormControl>
-
-                    <FormControl isInvalid={!!errors.password}>
-                      <FormLabel 
-                        fontWeight="medium" 
-                        fontSize="sm"
-                        color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.700'}
-                        mb={1}
-                      >
-                        Password
-                      </FormLabel>
-                      <InputGroup>
-                        <InputLeftElement pointerEvents="none">
-                          <FiLock color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.400'} />
-                        </InputLeftElement>
-                        <Input
-                          type="password"
-                          {...register('password')}
-                          placeholder="Password"
-                          size="md"
-                          bg={colorMode === 'dark' ? 'linkedin.dark.input' : 'linkedin.light.input'}
-                          fontSize="sm"
-                          borderColor={colorMode === 'dark' ? 'linkedin.dark.border' : 'linkedin.light.border'}
-                          color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.900'}
-                          _hover={{ 
-                            borderColor: colorMode === 'dark' ? 'linkedin.dark.hover' : 'gray.400' 
-                          }}
-                          _focus={{
-                            borderColor: 'brand.500',
-                            boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
-                          }}
-                          h="40px"
-                        />
-                      </InputGroup>
-                      <FormErrorMessage fontSize="xs">
-                        {errors.password && errors.password.message}
-                      </FormErrorMessage>
+                      <FormErrorMessage>{errors.email?.message}</FormErrorMessage>
                     </FormControl>
 
                     <Button
@@ -251,46 +216,32 @@ export default function LoginPage() {
                       width="full"
                       h="40px"
                       isLoading={isLoading}
-                      loadingText="Signing in..."
+                      loadingText="Sending Instructions..."
                     >
-                      Sign in
+                      Send Reset Instructions
                     </Button>
 
-                    <HStack spacing={2} justify="space-between" mt={4}>
+                    <Text 
+                      fontSize="sm" 
+                      color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.600'}
+                      textAlign="center"
+                      mt={4}
+                    >
+                      Remember your password?{' '}
                       <Link
                         as={NextLink}
-                        href="/register"
+                        href="/login"
                         color="brand.500"
-                        fontSize="sm"
                         fontWeight="semibold"
                         _hover={{ textDecoration: 'underline' }}
                       >
-                        Create account
+                        Sign in
                       </Link>
-                      <Link
-                        as={NextLink}
-                        href="/reset-password"
-                        color="brand.500"
-                        fontSize="sm"
-                        fontWeight="semibold"
-                        _hover={{ textDecoration: 'underline' }}
-                      >
-                        Forgot password?
-                      </Link>
-                    </HStack>
+                    </Text>
                   </VStack>
                 </form>
               </VStack>
             </Box>
-
-            <Text 
-              textAlign="center" 
-              fontSize="xs" 
-              color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.500'}
-              mt={6}
-            >
-              © 2025 Agent Book. All rights reserved. Developed by Mateus Yonathan.
-            </Text>
           </Box>
         </Flex>
       </Container>

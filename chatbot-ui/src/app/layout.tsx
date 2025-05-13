@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
-import { AuthProvider } from '@/contexts/AuthContext';
-import theme from '@/theme';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import { Providers } from './providers';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,12 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
-        <ColorModeScript initialColorMode="light" />
-        <ErrorBoundary>
-          <ChakraProvider theme={theme}>
-            <AuthProvider>{children}</AuthProvider>
-          </ChakraProvider>
-        </ErrorBoundary>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

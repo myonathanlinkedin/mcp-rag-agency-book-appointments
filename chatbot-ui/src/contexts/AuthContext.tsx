@@ -8,6 +8,9 @@ import api from '@/lib/api';
 interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  register: (email: string, password: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   isAuthenticated: boolean;
   user: { id: string; email: string } | null;
   isLoading: boolean;
@@ -123,8 +126,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const register = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      await api.post('/api/Identity/Register/RegisterAsync', {
+        email,
+        password,
+        confirmPassword: password
+      });
+      // After successful registration, redirect to login
+      router.push('/login');
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      setIsLoading(true);
+      await api.put('/api/Identity/ChangePassword/ChangePasswordAsync', {
+        currentPassword,
+        newPassword
+      });
+    } catch (error) {
+      console.error('Password change failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      setIsLoading(true);
+      await api.post('/api/Identity/ResetPassword/ResetPasswordAsync', {
+        email
+      });
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ login, logout, isAuthenticated, user, isLoading }}>
+    <AuthContext.Provider value={{ 
+      login, 
+      logout, 
+      register, 
+      changePassword, 
+      resetPassword, 
+      isAuthenticated, 
+      user, 
+      isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -20,29 +20,31 @@ import {
   Image,
   InputGroup,
   InputLeftElement,
-  Link,
-  HStack,
   useColorMode,
+  Link,
 } from '@chakra-ui/react';
-import { FiMail, FiLock, FiLogIn } from 'react-icons/fi';
+import { FiMail, FiLock, FiUserPlus } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import NextLink from 'next/link';
 
-const loginSchema = z.object({
+const registerSchema = z.object({
   email: z.string().refine((email) => {
-    // Custom email validation that allows localhost
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[a-zA-Z0-9._%+-]+@localhost$/;
     return emailRegex.test(email);
   }, 'Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { register: registerUser } = useAuth();
   const toast = useToast();
   const { colorMode } = useColorMode();
 
@@ -50,18 +52,25 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      await login(data.email, data.password);
+      await registerUser(data.email, data.password);
+      toast({
+        title: 'Registration successful',
+        description: 'Please check your email for verification instructions',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
     } catch (error) {
       toast({
-        title: 'Login failed',
-        description: 'Invalid email or password',
+        title: 'Registration failed',
+        description: 'An error occurred during registration',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -121,18 +130,18 @@ export default function LoginPage() {
               letterSpacing="tight"
               lineHeight="1.2"
             >
-              Welcome to your professional appointment assistant
+              Join Agent Book Today
             </Heading>
             <Text 
               color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.600'}
               fontSize="md"
               lineHeight="1.5"
             >
-              Your intelligent appointment booking assistant
+              Create your account and start managing appointments efficiently
             </Text>
           </Box>
 
-          {/* Right side - Login Form */}
+          {/* Right side - Register Form */}
           <Box 
             w={{ base: 'full', md: '50%' }}
             p={12}
@@ -156,13 +165,13 @@ export default function LoginPage() {
                     fontWeight="bold"
                     letterSpacing="tight"
                   >
-                    Sign in
+                    Create Account
                   </Heading>
                   <Text 
                     color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.600'}
                     fontSize="sm"
                   >
-                    Stay updated on your appointments
+                    Fill in your details to get started
                   </Text>
                 </Box>
 
@@ -242,44 +251,87 @@ export default function LoginPage() {
                       </FormErrorMessage>
                     </FormControl>
 
+                    <FormControl isInvalid={!!errors.confirmPassword}>
+                      <FormLabel 
+                        fontWeight="medium" 
+                        fontSize="sm"
+                        color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.700'}
+                        mb={1}
+                      >
+                        Confirm Password
+                      </FormLabel>
+                      <InputGroup>
+                        <InputLeftElement pointerEvents="none">
+                          <FiLock color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.400'} />
+                        </InputLeftElement>
+                        <Input
+                          type="password"
+                          {...register('confirmPassword')}
+                          placeholder="Confirm Password"
+                          size="md"
+                          bg={colorMode === 'dark' ? 'linkedin.dark.input' : 'linkedin.light.input'}
+                          fontSize="sm"
+                          borderColor={colorMode === 'dark' ? 'linkedin.dark.border' : 'linkedin.light.border'}
+                          color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.900'}
+                          _hover={{ 
+                            borderColor: colorMode === 'dark' ? 'linkedin.dark.hover' : 'gray.400' 
+                          }}
+                          _focus={{
+                            borderColor: 'brand.500',
+                            boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
+                          }}
+                          h="40px"
+                        />
+                      </InputGroup>
+                      <FormErrorMessage fontSize="xs">
+                        {errors.confirmPassword && errors.confirmPassword.message}
+                      </FormErrorMessage>
+                    </FormControl>
+
                     <Button
                       type="submit"
-                      colorScheme="brand"
                       size="md"
+                      width="full"
+                      isLoading={isLoading}
+                      leftIcon={<FiUserPlus />}
+                      mt={2}
+                      bg="brand.600"
+                      color="white"
+                      h="40px"
                       fontSize="sm"
                       fontWeight="semibold"
-                      width="full"
-                      h="40px"
-                      isLoading={isLoading}
-                      loadingText="Signing in..."
+                      _hover={{
+                        bg: 'brand.700',
+                      }}
+                      _active={{
+                        bg: 'brand.800',
+                      }}
                     >
-                      Sign in
+                      Create Account
                     </Button>
-
-                    <HStack spacing={2} justify="space-between" mt={4}>
-                      <Link
-                        as={NextLink}
-                        href="/register"
-                        color="brand.500"
-                        fontSize="sm"
-                        fontWeight="semibold"
-                        _hover={{ textDecoration: 'underline' }}
-                      >
-                        Create account
-                      </Link>
-                      <Link
-                        as={NextLink}
-                        href="/reset-password"
-                        color="brand.500"
-                        fontSize="sm"
-                        fontWeight="semibold"
-                        _hover={{ textDecoration: 'underline' }}
-                      >
-                        Forgot password?
-                      </Link>
-                    </HStack>
                   </VStack>
                 </form>
+
+                <Text 
+                  textAlign="center" 
+                  fontSize="sm" 
+                  color={colorMode === 'dark' ? 'linkedin.dark.text' : 'gray.600'}
+                  mt={4}
+                >
+                  Already have an account?{' '}
+                  <Link
+                    as={NextLink}
+                    href="/login"
+                    color="brand.600"
+                    fontWeight="semibold"
+                    _hover={{
+                      textDecoration: 'none',
+                      color: 'brand.700',
+                    }}
+                  >
+                    Sign in
+                  </Link>
+                </Text>
               </VStack>
             </Box>
 
