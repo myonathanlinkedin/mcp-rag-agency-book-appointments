@@ -37,6 +37,24 @@ public class AgencyUserService : IAgencyUserService
         return await agencyUserRepository.GetByEmailAsync(email);
     }
 
+    public async Task AddAsync(AgencyUser entity, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Adding new agency user: {Email}", entity.Email);
+        await agencyUserRepository.AddAsync(entity, cancellationToken);
+    }
+
+    public void Update(AgencyUser entity)
+    {
+        logger.LogInformation("Updating agency user: {Email}", entity.Email);
+        agencyUserRepository.Update(entity);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Saving changes for agency users");
+        await agencyUserRepository.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<Result> UpdateUserDetailsAsync(
         Guid userId,
         string fullName,

@@ -22,6 +22,25 @@ public class AgencyService : IAgencyService
         this.logger = logger;
     }
 
+    // Unit of work methods
+    public async Task AddAsync(Agency entity, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Adding new agency: {AgencyName}", entity.Name);
+        await agencyRepository.AddAsync(entity, cancellationToken);
+    }
+
+    public void Update(Agency entity)
+    {
+        logger.LogInformation("Updating agency: {AgencyName}", entity.Name);
+        agencyRepository.Update(entity);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Saving changes for agencies");
+        await agencyRepository.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<Agency?> GetByIdAsync(Guid id)
     {
         logger.LogInformation("Fetching agency with ID: {Id}", id);
@@ -126,6 +145,7 @@ public class AgencyService : IAgencyService
         List<string> roles,
         CancellationToken cancellationToken = default)
     {
+        // Validate agency exists and is approved
         var agency = await agencyRepository.GetByIdAsync(agencyId);
         if (agency == null)
         {
@@ -139,27 +159,39 @@ public class AgencyService : IAgencyService
             return Result.Failure(new[] { "Cannot assign users to an unapproved agency." });
         }
 
+        // Check if user already exists
         var existingUser = await agencyUserRepository.GetByEmailAsync(email);
         if (existingUser != null)
         {
-            logger.LogWarning("User assignment failed. Email {Email} is already in use.", email);
+            logger.LogWarning("User assignment failed. User with email {Email} already exists.", email);
             return Result.Failure(new[] { "A user with this email already exists." });
         }
 
+        // Create new user
         var userResult = AgencyUser.Create(agencyId, email, fullName, roles);
         if (!userResult.Succeeded)
         {
+            logger.LogWarning("User creation failed. Errors: {Errors}", string.Join(", ", userResult.Errors));
             return userResult;
         }
 
         var user = userResult.Data;
+
+        // Set up the back-reference
         var assignResult = agency.AssignUser(user);
         if (!assignResult.Succeeded)
         {
             return assignResult;
         }
 
-        await agencyRepository.UpsertAsync(agency, cancellationToken);
+        // Track all changes
+        await agencyUserRepository.AddAsync(user, cancellationToken);
+        agencyRepository.Update(agency);
+
+        // Save all changes in one transaction
+        await agencyRepository.SaveChangesAsync(cancellationToken);
+
+        // Dispatch event after successful save
         await eventDispatcher.Dispatch(new AgencyUserAssignedEvent(
             user.Id,
             agency.Id,
@@ -293,15 +325,20 @@ public class AgencyService : IAgencyService
             return Result.Failure(new[] { "Agency not found." });
         }
 
+        // Add holiday to agency using domain method
         var addHolidayResult = agency.AddHoliday(date, reason);
         if (!addHolidayResult.Succeeded)
         {
             return addHolidayResult;
         }
 
-        await agencyRepository.UpsertAsync(agency, cancellationToken);
-        logger.LogInformation("Successfully added holiday for Agency {AgencyId} on {Date}.", agencyId, date);
+        // Track changes
+        agencyRepository.Update(agency);
 
+        // Save all changes
+        await agencyRepository.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Successfully added holiday for Agency {AgencyId} on {Date}.", agencyId, date);
         return Result.Success;
     }
 
@@ -317,12 +354,14 @@ public class AgencyService : IAgencyService
             return Result.Failure(new[] { "Agency not found." });
         }
 
+        // Remove holiday from agency using domain method
         var removeHolidayResult = agency.RemoveHoliday(holidayId);
         if (!removeHolidayResult.Succeeded)
         {
             return removeHolidayResult;
         }
 
+        // Save changes - DbContext will handle the transaction
         await agencyRepository.UpsertAsync(agency, cancellationToken);
         logger.LogInformation("Successfully removed holiday {HolidayId} for Agency {AgencyId}.", holidayId, agencyId);
 
@@ -348,15 +387,24 @@ public class AgencyService : IAgencyService
             return Result.Failure(new[] { "Agency is not approved." });
         }
 
+        // Create the slot
+        var slot = AppointmentSlot.Create(agencyId, startTime, startTime.AddHours(1), capacity);
+
+        // Add it to the agency using domain method
         var addSlotResult = agency.AddAppointmentSlot(startTime, capacity);
         if (!addSlotResult.Succeeded)
         {
             return addSlotResult;
         }
 
-        await agencyRepository.UpsertAsync(agency, cancellationToken);
-        logger.LogInformation("Successfully added appointment slot for Agency {AgencyId} at {StartTime}.", agencyId, startTime);
+        // Track all changes
+        await appointmentSlotRepository.AddAsync(slot, cancellationToken);
+        agencyRepository.Update(agency);
 
+        // Save all changes in one transaction
+        await agencyRepository.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Successfully added appointment slot for Agency {AgencyId} at {StartTime}.", agencyId, startTime);
         return Result.Success;
     }
 

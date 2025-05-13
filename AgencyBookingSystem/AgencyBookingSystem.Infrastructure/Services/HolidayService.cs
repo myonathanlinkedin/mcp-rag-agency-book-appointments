@@ -27,7 +27,7 @@ public class HolidayService : IHolidayService
 
     public async Task UpsertAsync(Holiday entity, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Saving holiday for Agency {AgencyId} on {Date}.", entity.AgencyId, entity.Date);
+        logger.LogInformation("Saving holiday for date: {Date}", entity.Date);
         await holidayRepository.UpsertAsync(entity, cancellationToken);
     }
 
@@ -102,5 +102,25 @@ public class HolidayService : IHolidayService
         logger.LogInformation("Holiday {HolidayId} deleted successfully.", holidayId);
 
         return Result.Success;
+    }
+
+    public async Task DeleteHolidaysForAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Deleting all holidays for agency: {AgencyId}", agencyId);
+        await holidayRepository.DeleteForAgencyAsync(agencyId, cancellationToken);
+    }
+
+    public async Task AddHolidayAsync(Guid agencyId, Holiday holiday, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Adding holiday for agency {AgencyId} on date {Date}", agencyId, holiday.Date);
+        
+        var holidayResult = Holiday.Create(agencyId, holiday.Date, holiday.Reason);
+        if (!holidayResult.Succeeded)
+        {
+            throw new InvalidOperationException($"Failed to create holiday: {string.Join(", ", holidayResult.Errors)}");
+        }
+
+        await holidayRepository.AddAsync(holidayResult.Data, cancellationToken);
+        await holidayRepository.SaveChangesAsync(cancellationToken);
     }
 }

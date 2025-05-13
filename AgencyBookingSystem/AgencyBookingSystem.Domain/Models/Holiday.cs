@@ -3,15 +3,24 @@
 public class Holiday : Entity, IAggregateRoot
 {
     public Guid AgencyId { get; private set; }
-    
+
     [Required]
     public DateTime Date { get; private set; }
-    
+
     [Required]
     [StringLength(200)]
     public string Reason { get; private set; }
 
-    public Holiday() : base() { } // Parameterless constructor for EF Core
+    public Holiday() : base()
+    {
+        // Parameterless constructor for EF Core
+    }
+
+    public Holiday(DateTime date, string reason) : base()
+    {
+        this.Date = date.Date; // Ensure we only store the date part
+        this.Reason = reason;
+    }
 
     // Main constructor
     public Holiday(

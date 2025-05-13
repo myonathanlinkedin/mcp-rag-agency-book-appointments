@@ -22,6 +22,7 @@ public class OutboxDispatcherService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("OutboxDispatcherService started");
+        using var session = store.LightweightSession();
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -29,8 +30,6 @@ public class OutboxDispatcherService : BackgroundService
 
             try
             {
-                using var session = store.LightweightSession();
-
                 var pending = await session.Query<OutboxMessage>()
                     .Where(x => x.ProcessedAt == null && x.RetryCount < 5)
                     .OrderBy(x => x.CreatedAt)

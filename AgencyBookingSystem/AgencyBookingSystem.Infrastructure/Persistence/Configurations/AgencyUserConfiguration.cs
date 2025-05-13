@@ -30,5 +30,10 @@ public class AgencyUserConfiguration : IEntityTypeConfiguration<AgencyUser>
             .WithMany(a => a.AgencyUsers)
             .HasForeignKey(au => au.AgencyId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Add unique index on Email and AgencyId combination
+        builder.HasIndex(e => new { e.Email, e.AgencyId })
+            .IsUnique()
+            .HasDatabaseName("IX_AgencyUser_Email_AgencyId");
     }
 } 

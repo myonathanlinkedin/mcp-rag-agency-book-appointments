@@ -15,15 +15,18 @@ public class CancelAppointmentCommand : IRequest<Result>
     public class CancelAppointmentCommandHandler : IRequestHandler<CancelAppointmentCommand, Result>
     {
         private readonly IAppointmentService appointmentService;
+        private readonly IAgencyService agencyService;
         private readonly ILogger<CancelAppointmentCommandHandler> logger;
         private readonly IHttpContextAccessor httpContextAccessor;
 
         public CancelAppointmentCommandHandler(
             IAppointmentService appointmentService,
+            IAgencyService agencyService,
             ILogger<CancelAppointmentCommandHandler> logger,
             IHttpContextAccessor httpContextAccessor)
         {
             this.appointmentService = appointmentService;
+            this.agencyService = agencyService;
             this.logger = logger;
             this.httpContextAccessor = httpContextAccessor;
         }
@@ -50,7 +53,14 @@ public class CancelAppointmentCommand : IRequest<Result>
             {
                 // Ensure the appointment belongs to the agency associated with the email
                 var appointment = await appointmentService.GetByIdAsync(request.AppointmentId);
-                if (appointment == null || appointment.AgencyUser?.Email != userEmail)
+                if (appointment == null)
+                {
+                    logger.LogWarning("Cancellation failed. Appointment {AppointmentId} not found.", request.AppointmentId);
+                    return Result.Failure(new[] { "Appointment not found." });
+                }
+
+                var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
+                if (agency == null || agency.Email != userEmail)
                 {
                     logger.LogWarning("Cancellation failed. Appointment {AppointmentId} does not belong to agency with email {UserEmail}.", request.AppointmentId, userEmail);
                     return Result.Failure(new[] { "Appointment does not belong to your agency." });

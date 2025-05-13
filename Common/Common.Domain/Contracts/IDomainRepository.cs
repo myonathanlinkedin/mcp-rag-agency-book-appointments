@@ -17,4 +17,9 @@ public interface IDomainRepository<TEntity>
 
     Task UpsertAsync(TEntity entity, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    // New unit of work methods
+    Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
+    void Update(TEntity entity);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

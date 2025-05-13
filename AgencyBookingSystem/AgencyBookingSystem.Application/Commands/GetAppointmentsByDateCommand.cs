@@ -5,9 +5,12 @@ using System.Security.Claims;
 
 public class GetAppointmentsByDateCommand : IRequest<Result<List<AppointmentDto>>>
 {
-    public DateTime Date { get; }
+    public DateTime FilterDate { get; }
 
-    public GetAppointmentsByDateCommand(DateTime date) => Date = date;
+    public GetAppointmentsByDateCommand(DateTime filterDate)
+    {
+        FilterDate = filterDate;
+    }
 
     public class GetAppointmentsByDateCommandHandler : IRequestHandler<GetAppointmentsByDateCommand, Result<List<AppointmentDto>>>
     {
@@ -27,7 +30,7 @@ public class GetAppointmentsByDateCommand : IRequest<Result<List<AppointmentDto>
 
         public async Task<Result<List<AppointmentDto>>> Handle(GetAppointmentsByDateCommand request, CancellationToken cancellationToken)
         {
-            logger.LogInformation("Fetching appointments for date {Date}.", request.Date);
+            logger.LogInformation("Fetching appointments for date {Date}.", request.FilterDate);
 
             var user = httpContextAccessor.HttpContext?.User;
             var userEmail = user?.FindFirst(ClaimTypes.Name)?.Value;
@@ -40,16 +43,16 @@ public class GetAppointmentsByDateCommand : IRequest<Result<List<AppointmentDto>
             }
 
             List<AppointmentDto> appointmentDtos = isAdmin
-                ? await appointmentService.GetAppointmentsByDateAsync(request.Date)
-                : await appointmentService.GetAppointmentsByDateForUserAsync(request.Date, userEmail);
+                ? await appointmentService.GetAppointmentsByDateAsync(request.FilterDate)
+                : await appointmentService.GetAppointmentsByDateForUserAsync(request.FilterDate, userEmail);
 
             if (appointmentDtos is null || !appointmentDtos.Any())
             {
-                logger.LogWarning("No appointments found for date {Date}.", request.Date);
+                logger.LogWarning("No appointments found for date {Date}.", request.FilterDate);
                 return Result<List<AppointmentDto>>.Failure(new[] { "No appointments found.", "Try a different date." });
             }
 
-            logger.LogInformation("Successfully fetched {AppointmentCount} appointments for date {AppointmentDate}.", appointmentDtos.Count, request.Date);
+            logger.LogInformation("Successfully fetched {AppointmentCount} appointments for date {AppointmentDate}.", appointmentDtos.Count, request.FilterDate);
             return Result<List<AppointmentDto>>.SuccessWith(appointmentDtos);
         }
     }

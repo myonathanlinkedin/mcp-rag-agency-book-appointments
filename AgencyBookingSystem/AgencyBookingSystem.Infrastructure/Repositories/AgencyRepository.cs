@@ -10,14 +10,30 @@ internal class AgencyRepository : DataRepository<AgencyBookingDbContext, Agency>
     public AgencyRepository(AgencyBookingDbContext db) : base(db) { }
 
     public async Task<List<Agency>> GetAgenciesWithUsersAsync()
-        => await All().Include(a => a.AgencyUsers).ToListAsync();
+    {
+        Expression<Func<Agency, object>> includeUsers = a => a.AgencyUsers;
+        return await GetAllWithIncludesAsync(includeUsers);
+    }
 
     public async Task<Agency?> GetByEmailAsync(string email)
-        => await All().FirstOrDefaultAsync(a => a.Email == email);
+    {
+        Expression<Func<Agency, bool>> predicate = a => a.Email == email;
+        Expression<Func<Agency, object>> includeUsers = a => a.AgencyUsers;
+        var agencies = await FindWithIncludesAsync(predicate, includeUsers);
+        return agencies.FirstOrDefault();
+    }
 
     public async Task<List<Agency>> GetApprovedAgenciesAsync()
-        => await All().Where(a => !a.RequiresApproval).ToListAsync();
+    {
+        Expression<Func<Agency, bool>> predicate = a => !a.RequiresApproval;
+        Expression<Func<Agency, object>> includeUsers = a => a.AgencyUsers;
+        return await FindWithIncludesAsync(predicate, includeUsers);
+    }
 
     public async Task<bool> ExistsAsync(Guid agencyId)
-        => await All().AnyAsync(a => a.Id == agencyId);
+    {
+        Expression<Func<Agency, bool>> predicate = a => a.Id == agencyId;
+        var agencies = await FindAsync(predicate);
+        return agencies.Any();
+    }
 }

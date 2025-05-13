@@ -64,7 +64,7 @@ public class Appointment : Entity, IAggregateRoot
             agencyUserId: agencyUserId,
             name: name,
             date: date,
-            status: AppointmentStatus.Pending,
+            status: AppointmentStatus.Initiated,
             token: Guid.NewGuid().ToString("N"),
             agencyUser: agencyUser);
 
@@ -83,9 +83,6 @@ public class Appointment : Entity, IAggregateRoot
         if (Status == AppointmentStatus.Cancelled)
             return Result.Failure(new[] { "Cannot reschedule a cancelled appointment." });
 
-        if (Status == AppointmentStatus.Completed)
-            return Result.Failure(new[] { "Cannot reschedule a completed appointment." });
-
         if (Status == AppointmentStatus.NoShow)
             return Result.Failure(new[] { "Cannot reschedule a no-show appointment." });
 
@@ -96,7 +93,7 @@ public class Appointment : Entity, IAggregateRoot
             return Result.Failure(new[] { "Appointments cannot be rescheduled more than 6 months in advance." });
 
         Date = newDate;
-        Status = AppointmentStatus.Pending;
+        Status = AppointmentStatus.Initiated;
         Token = Guid.NewGuid().ToString("N"); // Generate new token for security
 
         return Result.Success;
@@ -106,9 +103,6 @@ public class Appointment : Entity, IAggregateRoot
     {
         if (Status == AppointmentStatus.Cancelled)
             return Result.Failure(new[] { "Appointment is already cancelled." });
-
-        if (Status == AppointmentStatus.Completed)
-            return Result.Failure(new[] { "Cannot cancel a completed appointment." });
 
         if (Status == AppointmentStatus.NoShow)
             return Result.Failure(new[] { "Cannot cancel an appointment that is marked as no-show." });
@@ -122,26 +116,17 @@ public class Appointment : Entity, IAggregateRoot
 
     public Result MarkAsNoShow()
     {
-        if (Status != AppointmentStatus.Pending)
-            return Result.Failure(new[] { "Only pending appointments can be marked as no-show." });
+        if (Status != AppointmentStatus.Initiated && Status != AppointmentStatus.Confirmed)
+            return Result.Failure(new[] { "Only initiated or confirmed appointments can be marked as no-show." });
 
         Status = AppointmentStatus.NoShow;
         return Result.Success;
     }
 
-    public Result Complete()
-    {
-        if (Status != AppointmentStatus.Pending && Status != AppointmentStatus.Confirmed)
-            return Result.Failure(new[] { "Only pending or confirmed appointments can be completed." });
-
-        Status = AppointmentStatus.Completed;
-        return Result.Success;
-    }
-
     public Result Confirm()
     {
-        if (Status != AppointmentStatus.Pending)
-            return Result.Failure(new[] { "Only pending appointments can be confirmed." });
+        if (Status != AppointmentStatus.Initiated)
+            return Result.Failure(new[] { "Only initiated appointments can be confirmed." });
 
         Status = AppointmentStatus.Confirmed;
         return Result.Success;

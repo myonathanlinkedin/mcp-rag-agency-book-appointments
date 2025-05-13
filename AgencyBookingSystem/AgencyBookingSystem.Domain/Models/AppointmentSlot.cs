@@ -1,15 +1,34 @@
-﻿public class AppointmentSlot : Entity, IAggregateRoot
+﻿using System.ComponentModel.DataAnnotations;
+
+public class AppointmentSlot : Entity, IAggregateRoot
 {
     public Guid Id { get; private set; }
     public Guid AgencyId { get; private set; }
+    
+    [Required]
     public DateTime StartTime { get; private set; }
+    
+    [Required]
     public DateTime EndTime { get; private set; }
+    
+    [Required]
+    [Range(1, 50)]
     public int Capacity { get; private set; }
+
     public bool HasCapacity => Capacity > 0;
 
-    public AppointmentSlot() : base() { } // Parameterless constructor for EF Core  
+    public AppointmentSlot() : base()
+    {
+        // Default constructor for EF Core
+    }
 
-    public AppointmentSlot(Guid id, Guid agencyId, DateTime startTime, DateTime endTime, int capacity) : base(id)
+    // Main constructor
+    public AppointmentSlot(
+        Guid id,
+        Guid agencyId,
+        DateTime startTime,
+        DateTime endTime,
+        int capacity) : base(id)
     {
         Id = id;
         AgencyId = agencyId;
@@ -18,12 +37,19 @@
         Capacity = capacity;
     }
 
-    // Factory method with validation
-    public static AppointmentSlot Create(Guid agencyId, DateTime startTime, DateTime endTime, int capacity)
+    // Factory method
+    public static AppointmentSlot Create(
+        Guid agencyId,
+        DateTime startTime,
+        DateTime endTime,
+        int capacity)
     {
-        var slot = new AppointmentSlot(Guid.NewGuid(), agencyId, startTime, endTime, capacity);
-        slot.Validate();
-        return slot;
+        return new AppointmentSlot(
+            id: Guid.NewGuid(),
+            agencyId: agencyId,
+            startTime: startTime,
+            endTime: endTime,
+            capacity: capacity);
     }
 
     // Validation for appointment slot
@@ -57,5 +83,34 @@
         {
             throw new InvalidOperationException("Capacity cannot be less than 0.");
         }
+    }
+
+    // Domain methods
+    public Result UpdateCapacity(int newCapacity)
+    {
+        if (newCapacity < 1 || newCapacity > 50)
+        {
+            return Result.Failure(new[] { "Capacity must be between 1 and 50." });
+        }
+
+        Capacity = newCapacity;
+        return Result.Success;
+    }
+
+    public Result UpdateTimes(DateTime newStartTime, DateTime newEndTime)
+    {
+        if (newStartTime >= newEndTime)
+        {
+            return Result.Failure(new[] { "Start time must be before end time." });
+        }
+
+        if (newStartTime < DateTime.Now)
+        {
+            return Result.Failure(new[] { "Cannot set slot time in the past." });
+        }
+
+        StartTime = newStartTime;
+        EndTime = newEndTime;
+        return Result.Success;
     }
 }

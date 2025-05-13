@@ -10,14 +10,14 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
 
     protected DataRepository(TDbContext db) => Data = db;
 
-    protected IQueryable<TEntity> All() => Data.Set<TEntity>();
+    protected virtual IQueryable<TEntity> All() => Data.Set<TEntity>();
 
-    protected IQueryable<TEntity> AllAsNoTracking() => All().AsNoTracking();
+    protected virtual IQueryable<TEntity> AllAsNoTracking() => All().AsNoTracking();
 
-    public async Task SaveAsync(TEntity entity, CancellationToken cancellationToken = default) =>
+    public virtual async Task SaveAsync(TEntity entity, CancellationToken cancellationToken = default) =>
         await UpsertAsync(entity, cancellationToken);
 
-    public async Task UpsertAsync(TEntity entity, CancellationToken cancellationToken) =>
+    public virtual async Task UpsertAsync(TEntity entity, CancellationToken cancellationToken) =>
         await TryExecuteAsync(async () =>
         {
             if (Data.Entry(entity).State == EntityState.Detached)
@@ -28,34 +28,34 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
             await Data.SaveChangesAsync(cancellationToken);
         });
 
-    public async Task<TEntity?> GetByIdAsync(Guid id) =>
+    public virtual async Task<TEntity?> GetByIdAsync(Guid id) =>
         await TryExecuteAsync(() => All().FirstOrDefaultAsync(e => e.Id == id));
 
-    public async Task<TEntity?> GetByIdWithIncludesAsync(Guid id, params Expression<Func<TEntity, object>>[] includes) =>
+    public virtual async Task<TEntity?> GetByIdWithIncludesAsync(Guid id, params Expression<Func<TEntity, object>>[] includes) =>
         await TryExecuteAsync(() => WithIncludes(includes).FirstOrDefaultAsync(e => e.Id == id));
 
-    public async Task<TEntity?> GetByIdWithAllIncludesAsync(Guid id) =>
+    public virtual async Task<TEntity?> GetByIdWithAllIncludesAsync(Guid id) =>
         await TryExecuteAsync(() => WithAllIncludes().FirstOrDefaultAsync(e => e.Id == id));
 
-    public async Task<List<TEntity>> GetAllAsync() =>
+    public virtual async Task<List<TEntity>> GetAllAsync() =>
         await TryExecuteAsync(() => All().ToListAsync());
 
-    public async Task<List<TEntity>> GetAllWithIncludesAsync(params Expression<Func<TEntity, object>>[] includes) =>
+    public virtual async Task<List<TEntity>> GetAllWithIncludesAsync(params Expression<Func<TEntity, object>>[] includes) =>
         await TryExecuteAsync(() => WithIncludes(includes).ToListAsync());
 
-    public async Task<List<TEntity>> GetAllWithAllIncludesAsync() =>
+    public virtual async Task<List<TEntity>> GetAllWithAllIncludesAsync() =>
         await TryExecuteAsync(() => WithAllIncludes().ToListAsync());
 
-    public async Task<List<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate) =>
+    public virtual async Task<List<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate) =>
         await TryExecuteAsync(() => All().Where(predicate).ToListAsync());
 
-    public async Task<List<TEntity>> FindWithIncludesAsync(Expression<Func<TEntity, bool>> predicate, params Expression<Func<TEntity, object>>[] includes) =>
+    public virtual async Task<List<TEntity>> FindWithIncludesAsync(Expression<Func<TEntity, bool>> predicate, params Expression<Func<TEntity, object>>[] includes) =>
         await TryExecuteAsync(() => WithIncludes(includes).Where(predicate).ToListAsync());
 
-    public async Task<List<TEntity>> FindWithAllIncludesAsync(Expression<Func<TEntity, bool>> predicate) =>
+    public virtual async Task<List<TEntity>> FindWithAllIncludesAsync(Expression<Func<TEntity, bool>> predicate) =>
         await TryExecuteAsync(() => WithAllIncludes().Where(predicate).ToListAsync());
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+    public virtual async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
         await TryExecuteAsync(async () =>
         {
             var entity = await GetByIdAsync(id);
@@ -66,7 +66,22 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
             }
         });
 
-    protected IQueryable<TEntity> WithIncludes(params Expression<Func<TEntity, object>>[] includes)
+    public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
+    }
+
+    public virtual void Update(TEntity entity)
+    {
+        Data.Update(entity);
+    }
+
+    public virtual async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await Data.SaveChangesAsync(cancellationToken);
+    }
+
+    protected virtual IQueryable<TEntity> WithIncludes(params Expression<Func<TEntity, object>>[] includes)
     {
         var query = All();
         foreach (var include in includes)
@@ -74,7 +89,7 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
         return query;
     }
 
-    protected IQueryable<TEntity> WithAllIncludes()
+    protected virtual IQueryable<TEntity> WithAllIncludes()
     {
         var query = All();
         var navProps = Data.Model.FindEntityType(typeof(TEntity))?.GetNavigations();

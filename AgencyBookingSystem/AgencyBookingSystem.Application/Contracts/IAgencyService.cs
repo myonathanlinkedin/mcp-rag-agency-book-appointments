@@ -5,6 +5,11 @@
     Task<List<Agency>> GetApprovedAgenciesAsync();
     Task<bool> ExistsAsync(Guid agencyId);
 
+    // Unit of work methods
+    Task AddAsync(Agency entity, CancellationToken cancellationToken = default);
+    void Update(Agency entity);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
     // Assign a user to an agency with validation & notification support
     Task<Result> AssignUserToAgencyAsync(Guid agencyId, string email, string fullName, List<string> roles, CancellationToken cancellationToken = default);
 

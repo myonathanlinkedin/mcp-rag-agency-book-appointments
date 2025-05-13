@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 
 public class AgencyUser : Entity, IAggregateRoot
 {
@@ -154,6 +155,14 @@ public class AgencyUser : Entity, IAggregateRoot
         {
             errors.Add("Email must not exceed 150 characters.");
         }
+        else if (Email.Contains(" "))
+        {
+            errors.Add("Email cannot contain spaces.");
+        }
+        else if (!Regex.IsMatch(Email, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"))
+        {
+            errors.Add("Email must be in a valid format.");
+        }
 
         if (string.IsNullOrWhiteSpace(FullName))
         {
@@ -167,6 +176,22 @@ public class AgencyUser : Entity, IAggregateRoot
         if (!roles.Any())
         {
             errors.Add("At least one role must be assigned.");
+        }
+        else if (roles.Count > 5)
+        {
+            errors.Add("A user cannot have more than 5 roles.");
+        }
+        else if (roles.Any(role => string.IsNullOrWhiteSpace(role)))
+        {
+            errors.Add("Role names cannot be empty.");
+        }
+        else if (roles.Any(role => role.Length > 50))
+        {
+            errors.Add("Role names cannot exceed 50 characters.");
+        }
+        else if (roles.Any(role => !CommonModelConstants.AgencyRole.ValidRoles.Contains(role)))
+        {
+            errors.Add("One or more roles are invalid. Valid roles are: " + string.Join(", ", CommonModelConstants.AgencyRole.ValidRoles));
         }
 
         return errors.Any() ? Result.Failure(errors) : Result.Success;

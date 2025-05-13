@@ -45,7 +45,7 @@ public class AppointmentServiceTests
             this.mockLogger.Object,
             this.mockKafkaProducer.Object,
             this.mockAppointmentSlotRepository.Object,
-            this.appSettings.Kafka.Topic
+            this.appSettings
         );
     }
 
@@ -105,7 +105,7 @@ public class AppointmentServiceTests
             agencyUser.Id,
             "Test Appointment",
             DateTime.UtcNow.AddDays(1),
-            AppointmentStatus.Pending,
+            AppointmentStatus.Initiated,
             Guid.NewGuid().ToString("N"),
             agencyUser);
 
@@ -305,7 +305,7 @@ public class AppointmentServiceTests
             agencyUser.Id,
             "Test Appointment",
             DateTime.UtcNow.AddDays(1),
-            AppointmentStatus.Pending,
+            AppointmentStatus.Initiated,
             Guid.NewGuid().ToString("N"),
             agencyUser);
 
@@ -399,7 +399,7 @@ public class AppointmentServiceTests
             agencyUser.Id,
             "Test Appointment",
             currentDate,
-            AppointmentStatus.Pending,
+            AppointmentStatus.Initiated,
             Guid.NewGuid().ToString("N"),
             agencyUser);
 
@@ -424,7 +424,7 @@ public class AppointmentServiceTests
             Guid.NewGuid(), // Different user
             "Other Appointment",
             newDate,
-            AppointmentStatus.Pending,
+            AppointmentStatus.Initiated,
             Guid.NewGuid().ToString("N"),
             agencyUser);
 
@@ -485,7 +485,7 @@ public class AppointmentServiceTests
         
         // Verify appointment was updated with new date and status
         VerifyRepositoryUpsert(
-            a => a.Date == newDate && a.Status == AppointmentStatus.Pending,
+            a => a.Date == newDate && a.Status == AppointmentStatus.Initiated,
             Times.Once());
         
         // Verify old slot capacity was increased
@@ -634,7 +634,7 @@ public class AppointmentServiceTests
             a => a.AgencyId == agencyId && 
                  a.Name == appointmentName && 
                  a.Date == date && 
-                 a.Status == AppointmentStatus.Pending,
+                 a.Status == AppointmentStatus.Initiated,
             Times.Once());
 
         // Verify slot capacity was decreased
@@ -796,7 +796,7 @@ public class AppointmentServiceTests
         result[0].AgencyEmail.Should().Be("test@agency.com");
         result[0].UserEmail.Should().Be("user@test.com");
         result[0].Date.Should().Be(date);
-        result[0].Status.Should().Be(AppointmentStatus.Pending);
+        result[0].Status.Should().Be(AppointmentStatus.Initiated);
     }
 
     [Fact]
@@ -845,6 +845,6 @@ public class AppointmentServiceTests
         result[0].AgencyEmail.Should().Be("agency@test.com");
         result[0].UserEmail.Should().Be(userEmail);
         result[0].Date.Should().Be(date);
-        result[0].Status.Should().Be(AppointmentStatus.Pending);
+        result[0].Status.Should().Be(AppointmentStatus.Initiated);
     }
 }

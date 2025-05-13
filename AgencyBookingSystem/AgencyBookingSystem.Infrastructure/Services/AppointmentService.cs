@@ -12,7 +12,7 @@ public class AppointmentService : IAppointmentService
     private readonly IEventDispatcher eventDispatcher; 
     private readonly ILogger<AppointmentService> logger;
     private readonly IProducer<Null, string> kafkaProducer;
-    private readonly string kafkaTopic;
+    private readonly ApplicationSettings settings;
 
     public AppointmentService(
         IAppointmentRepository appointmentRepository,
@@ -22,7 +22,7 @@ public class AppointmentService : IAppointmentService
         ILogger<AppointmentService> logger,
         IProducer<Null, string> kafkaProducer,
         IAppointmentSlotRepository appointmentSlotRepository,
-        string kafkaTopic)
+        ApplicationSettings settings)
     {
         this.appointmentRepository = appointmentRepository;
         this.appointmentSlotRepository = appointmentSlotRepository;
@@ -31,7 +31,7 @@ public class AppointmentService : IAppointmentService
         this.eventDispatcher = eventDispatcher;
         this.logger = logger;
         this.kafkaProducer = kafkaProducer;
-        this.kafkaTopic = kafkaTopic;
+        this.settings = settings;
     }
 
     private async Task PublishToKafkaAsync(string action, Appointment appointment, Agency agency, AgencyUser agencyUser)
@@ -72,9 +72,9 @@ public class AppointmentService : IAppointmentService
         };
 
         var messageJson = JsonConvert.SerializeObject(message);
-        await kafkaProducer.ProduceAsync(kafkaTopic, new Message<Null, string> { Value = messageJson });
+        await kafkaProducer.ProduceAsync(settings.Kafka.Topic, new Message<Null, string> { Value = messageJson });
 
-        logger.LogInformation("Published {Action} event for Appointment ID {AppointmentId} to Kafka topic {KafkaTopic}.", action, appointment.Id, kafkaTopic);
+        logger.LogInformation("Published {Action} event for Appointment ID {AppointmentId} to Kafka topic {KafkaTopic}.", action, appointment.Id, settings.Kafka.Topic);
     }
 
     public async Task<Appointment?> GetByIdAsync(Guid id)
@@ -165,7 +165,7 @@ public class AppointmentService : IAppointmentService
             throw new InvalidOperationException(noShowResult.Errors.First());
         }
 
-        // Save appointment
+        // Save changes
         await appointmentRepository.UpsertAsync(appointment);
 
         // Publish event
@@ -206,9 +206,8 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "Appointment not found." });
         }
 
-        // Validate appointment is not already cancelled or completed
+        // Validate appointment is not already cancelled or no-show
         if (appointment.Status == AppointmentStatus.Cancelled || 
-            appointment.Status == AppointmentStatus.Completed ||
             appointment.Status == AppointmentStatus.NoShow)
         {
             logger.LogWarning("Reschedule failed. Appointment {AppointmentId} is {Status}.", appointmentId, appointment.Status);
@@ -312,7 +311,6 @@ public class AppointmentService : IAppointmentService
         if (oldSlot != null)
         {
             oldSlot.IncreaseCapacity();
-            await appointmentSlotRepository.UpsertAsync(oldSlot, cancellationToken);
         }
 
         // Update appointment
@@ -324,20 +322,28 @@ public class AppointmentService : IAppointmentService
 
         // Update new slot capacity
         availableSlot.DecreaseCapacity();
-        await appointmentSlotRepository.UpsertAsync(availableSlot, cancellationToken);
 
-        // Save appointment
-        await appointmentRepository.UpsertAsync(appointment, cancellationToken);
+        // Track all changes
+        appointmentRepository.Update(appointment);
+        if (oldSlot != null)
+        {
+            appointmentSlotRepository.Update(oldSlot);
+        }
+        appointmentSlotRepository.Update(availableSlot);
+
+        // Save all changes in one transaction
+        await appointmentRepository.SaveChangesAsync(cancellationToken);
 
         // Get agency user for event
         var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
-        if (agencyUser == null)
+        if (agencyUser != null)
+        {
+            await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Rescheduled, appointment, agency, agencyUser);
+        }
+        else
         {
             logger.LogWarning("Agency user not found for appointment {AppointmentId}.", appointmentId);
-            return Result.Success; // Still return success since the appointment was rescheduled
         }
-
-        await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Rescheduled, appointment, agency, agencyUser);
 
         logger.LogInformation("Appointment {AppointmentId} rescheduled successfully to {NewDate}.", appointmentId, newDate);
         return Result.Success;
@@ -367,6 +373,54 @@ public class AppointmentService : IAppointmentService
         {
             logger.LogWarning("Appointment creation failed. Invalid email format: {Email}", email);
             return Result.Failure(new[] { "Invalid email format." });
+        }
+
+        // Get or validate existing agency user
+        var agencyUser = await agencyUserService.GetByEmailAsync(email);
+        if (agencyUser != null)
+        {
+            // Get all appointments for this user on the same date
+            var existingAppointments = await appointmentRepository.GetByDateAndUserAsync(date, email);
+            if (existingAppointments != null)
+            {
+                // Check for active appointments in the same time slot
+                var sameTimeSlotAppointment = existingAppointments.FirstOrDefault(a => 
+                    a.Date == date && 
+                    a.Status != AppointmentStatus.Cancelled && 
+                    a.Status != AppointmentStatus.NoShow);
+
+                if (sameTimeSlotAppointment != null)
+                {
+                    logger.LogWarning("Appointment creation failed. User {Email} already has an appointment at {Date}.", email, date);
+                    return Result.Failure(new[] { "You already have an appointment scheduled for this time slot." });
+                }
+
+                // Check for maximum appointments per day
+                var activeAppointmentsOnDate = existingAppointments.Count(a => 
+                    a.Date.Date == date.Date && 
+                    a.Status != AppointmentStatus.Cancelled && 
+                    a.Status != AppointmentStatus.NoShow);
+
+                const int MaxAppointmentsPerUserPerDay = 3; // You might want to move this to configuration
+                if (activeAppointmentsOnDate >= MaxAppointmentsPerUserPerDay)
+                {
+                    logger.LogWarning("Appointment creation failed. User {Email} has reached maximum appointments for {Date}.", email, date.Date);
+                    return Result.Failure(new[] { $"You cannot book more than {MaxAppointmentsPerUserPerDay} appointments per day." });
+                }
+
+                // Check for overlapping appointments (within 2 hours before or after)
+                var overlappingAppointment = existingAppointments.FirstOrDefault(a => 
+                    a.Status != AppointmentStatus.Cancelled && 
+                    a.Status != AppointmentStatus.NoShow &&
+                    Math.Abs((a.Date - date).TotalHours) <= 2);
+
+                if (overlappingAppointment != null)
+                {
+                    logger.LogWarning("Appointment creation failed. User {Email} has an overlapping appointment at {ExistingDate}.", 
+                        email, overlappingAppointment.Date);
+                    return Result.Failure(new[] { "You have another appointment scheduled within 2 hours of this time slot." });
+                }
+            }
         }
 
         // Validate appointment must start at the hour
@@ -452,11 +506,11 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "Agency not found." });
         }
 
-        // Get or create agency user
+        // Get or create agency user with proper validation
         var agencyUser = await agencyUserService.GetByEmailAsync(email);
         if (agencyUser == null)
         {
-            // Create new agency user with default role
+            // Create new agency user with customer role
             var userResult = AgencyUser.Create(
                 agencyId,
                 email,
@@ -472,16 +526,22 @@ public class AppointmentService : IAppointmentService
             }
 
             agencyUser = userResult.Data;
-            await agencyUserService.UpsertAsync(agencyUser, cancellationToken);
-            logger.LogInformation("Created new agency user for email {Email}", email);
+            
+            // Set up back-reference for new user
+            var assignResult = agency.AssignUser(agencyUser);
+            if (!assignResult.Succeeded)
+            {
+                return assignResult;
+            }
         }
 
         // Get available slot
         var slots = await appointmentSlotRepository.GetSlotsByAgencyAsync(agencyId, date);
         if (slots == null || !slots.Any())
         {
-            logger.LogWarning("No available slots for {Date} at Agency {AgencyName}.", date, agency.Name);
-            return Result.Failure(new[] { "No available slots for the selected date." });
+            logger.LogWarning("Appointment creation failed. No slots available for agency {AgencyId} on {Date}.", 
+                agencyId, date.ToString("yyyy-MM-dd"));
+            return Result.Failure(new[] { "No appointment slots available for the selected date." });
         }
 
         var availableSlot = slots.FirstOrDefault(s => s.HasCapacity && s.StartTime == date);
@@ -489,20 +549,6 @@ public class AppointmentService : IAppointmentService
         {
             logger.LogWarning("No available slots for {Date} at Agency {AgencyName}.", date, agency.Name);
             return Result.Failure(new[] { "No available slots for the selected date." });
-        }
-
-        // Validate appointment capacity
-        var existingAppointments = await appointmentRepository.GetByDateAsync(date);
-        if (existingAppointments == null)
-        {
-            existingAppointments = new List<Appointment>();
-        }
-
-        var appointmentsCount = existingAppointments.Count(a => a.AgencyId == agencyId);
-        if (appointmentsCount >= agency.MaxAppointmentsPerDay)
-        {
-            logger.LogWarning("Appointment creation failed. Maximum appointments reached for {Date} at Agency {AgencyName}.", date, agency.Name);
-            return Result.Failure(new[] { "Maximum appointments reached for this date. Please choose another date." });
         }
 
         // Create appointment using domain factory method
@@ -522,12 +568,20 @@ public class AppointmentService : IAppointmentService
 
         // Update slot capacity
         availableSlot.DecreaseCapacity();
-        await appointmentSlotRepository.UpsertAsync(availableSlot, cancellationToken);
 
-        // Save appointment
-        await appointmentRepository.UpsertAsync(appointment, cancellationToken);
+        // Track all changes
+        if (agencyUser.Id == Guid.Empty)
+        {
+            await agencyUserService.AddAsync(agencyUser, cancellationToken);
+            agencyService.Update(agency);
+        }
+        appointmentSlotRepository.Update(availableSlot);
+        await appointmentRepository.AddAsync(appointment, cancellationToken);
 
-        // Publish event
+        // Save all changes in one transaction
+        await appointmentRepository.SaveChangesAsync(cancellationToken);
+
+        // Publish event after successful save
         await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Created, appointment, agency, agencyUser);
 
         logger.LogInformation("Appointment {AppointmentId} created successfully for Agency {AgencyId}.", appointment.Id, agencyId);
@@ -553,17 +607,11 @@ public class AppointmentService : IAppointmentService
             return Result.Failure(new[] { "Appointment not found." });
         }
 
-        // Validate appointment is not already cancelled or completed
+        // Validate appointment is not already cancelled or no-show
         if (appointment.Status == AppointmentStatus.Cancelled)
         {
             logger.LogWarning("Cancellation failed. Appointment {AppointmentId} is already cancelled.", appointmentId);
             return Result.Failure(new[] { "Appointment is already cancelled." });
-        }
-
-        if (appointment.Status == AppointmentStatus.Completed)
-        {
-            logger.LogWarning("Cancellation failed. Appointment {AppointmentId} is already completed.", appointmentId);
-            return Result.Failure(new[] { "Cannot cancel a completed appointment." });
         }
 
         if (appointment.Status == AppointmentStatus.NoShow)
