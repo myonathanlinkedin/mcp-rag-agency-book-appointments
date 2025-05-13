@@ -29,6 +29,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import type { Components } from 'react-markdown';
 import api from '@/lib/api';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { SettingsMenu } from '@/components/SettingsMenu';
 
 interface Message {
   id: string;
@@ -172,17 +173,7 @@ export default function ChatPage() {
                   color="white"
                 />
                 <ThemeSwitcher />
-                <IconButton
-                  aria-label="Logout"
-                  icon={<FiLogOut />}
-                  variant="ghost"
-                  colorScheme="gray"
-                  size="sm"
-                  onClick={logout}
-                  _hover={{
-                    bg: colorMode === 'dark' ? 'linkedin.dark.hover' : 'gray.100',
-                  }}
-                />
+                <SettingsMenu />
               </HStack>
             </Flex>
           </Container>
@@ -275,12 +266,14 @@ export default function ChatPage() {
                                     {...props}
                                     style={{
                                       background: message.role === 'user' 
-                                        ? (colorMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.2)')
+                                        ? (colorMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)')
                                         : (colorMode === 'dark' ? 'linkedin.dark.bg' : 'gray.100'),
                                       padding: '0.2em 0.4em',
                                       borderRadius: '3px',
                                       fontSize: '0.9em',
-                                      color: message.role === 'user' ? 'white' : (colorMode === 'dark' ? 'white' : 'gray.900'),
+                                      color: message.role === 'user' 
+                                        ? (colorMode === 'dark' ? 'white' : 'white')
+                                        : (colorMode === 'dark' ? 'white' : 'gray.900'),
                                       wordBreak: 'break-word',
                                     }}
                                   >
@@ -309,7 +302,11 @@ export default function ChatPage() {
                             },
                             p: ({ children, ...props }) => (
                               <Text 
-                                color={message.role === 'user' ? 'white' : (colorMode === 'dark' ? 'white' : 'gray.800')}
+                                color={
+                                  message.role === 'user'
+                                    ? (colorMode === 'dark' ? 'white' : 'white')
+                                    : (colorMode === 'dark' ? 'white' : 'gray.800')
+                                }
                                 whiteSpace="pre-wrap"
                                 wordBreak="break-word"
                                 {...props}

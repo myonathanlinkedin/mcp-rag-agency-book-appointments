@@ -112,6 +112,9 @@ export default function LoginPage() {
               w="84px"
               h="84px"
               mb={8}
+              bg={colorMode === 'dark' ? 'transparent' : 'brand.600'}
+              p={2}
+              borderRadius="md"
             />
             <Heading 
               size="lg" 

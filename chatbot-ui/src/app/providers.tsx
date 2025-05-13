@@ -34,13 +34,17 @@ const theme = extendTheme({
         bg: '#F3F2EF',
         card: '#FFFFFF',
         border: '#E0E0E0',
-        text: '#000000',
+        text: '#1A1D21',
         input: '#FFFFFF',
         hover: '#F5F5F5',
         message: {
-          user: '#E3F2FD',
+          user: '#0552B5',
           assistant: '#FFFFFF',
         },
+        messageText: {
+          user: '#FFFFFF',
+          assistant: '#1A1D21'
+        }
       },
     },
   },

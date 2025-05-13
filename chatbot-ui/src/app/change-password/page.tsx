@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Button,
@@ -43,6 +44,7 @@ export default function ChangePasswordPage() {
   const { changePassword } = useAuth();
   const toast = useToast();
   const { colorMode } = useColorMode();
+  const router = useRouter();
 
   const {
     register,
@@ -65,6 +67,8 @@ export default function ChangePasswordPage() {
         isClosable: true,
       });
       reset();
+      // Use router.push instead of window.location for client-side navigation
+      router.push('/login');
     } catch (error) {
       toast({
         title: 'Password change failed',
