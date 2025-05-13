@@ -251,14 +251,16 @@ export default function ChatPage() {
                       borderRadius="lg"
                       border="1px"
                       borderColor={colorMode === 'dark' ? 'linkedin.dark.border' : 'linkedin.light.border'}
+                      width="100%"
                     >
                       <Avatar
                         size="sm"
                         name={message.role === 'user' ? user?.email : 'Assistant'}
                         bg={message.role === 'user' ? 'brand.500' : 'gray.500'}
                         color="white"
+                        flexShrink={0}
                       />
-                      <Box flex={1}>
+                      <Box flex="1" overflowWrap="break-word" wordBreak="break-word">
                         <ReactMarkdown
                           components={{
                             code: ({ className, children, ...props }) => {
@@ -279,6 +281,7 @@ export default function ChatPage() {
                                       borderRadius: '3px',
                                       fontSize: '0.9em',
                                       color: message.role === 'user' ? 'white' : (colorMode === 'dark' ? 'white' : 'gray.900'),
+                                      wordBreak: 'break-word',
                                     }}
                                   >
                                     {children}
@@ -295,6 +298,8 @@ export default function ChatPage() {
                                   overflowX="auto"
                                   fontSize="sm"
                                   color="white"
+                                  whiteSpace="pre-wrap"
+                                  wordBreak="break-word"
                                 >
                                   <code className={className} {...props}>
                                     {children}
@@ -305,6 +310,8 @@ export default function ChatPage() {
                             p: ({ children, ...props }) => (
                               <Text 
                                 color={message.role === 'user' ? 'white' : (colorMode === 'dark' ? 'white' : 'gray.800')}
+                                whiteSpace="pre-wrap"
+                                wordBreak="break-word"
                                 {...props}
                               >
                                 {children}
