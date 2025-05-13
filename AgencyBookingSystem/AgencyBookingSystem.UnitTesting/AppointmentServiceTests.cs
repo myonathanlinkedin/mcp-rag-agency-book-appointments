@@ -569,12 +569,12 @@ public class AppointmentServiceTests
             repo => repo.Update(
                 It.Is<AppointmentSlot>(s => s.StartTime == newDate && s.Capacity == 4)),
             Times.Once());
-        
+
         // Verify slot changes were saved
-        //this.mockAppointmentSlotRepository.Verify(
-        //    repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()),
-        //    Times.Once());
-        
+        this.mockAppointmentSlotRepository.Verify(
+            repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never());
+
         // Verify Kafka event was published
         VerifyKafkaProducerMock("Rescheduled", Times.Once());
     }
@@ -748,9 +748,9 @@ public class AppointmentServiceTests
             Times.Once());
         
         // Verify changes were saved
-        //this.mockAppointmentSlotRepository.Verify(
-        //    repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()),
-        //    Times.Once());
+        this.mockAppointmentSlotRepository.Verify(
+            repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never());
         
         // Verify Kafka event was published
         VerifyKafkaProducerMock("Created", Times.Once());

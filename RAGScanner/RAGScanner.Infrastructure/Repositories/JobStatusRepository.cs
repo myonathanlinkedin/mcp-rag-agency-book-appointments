@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJobStatusRepository
 {
@@ -12,7 +13,6 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
     {
         var jobId = Guid.NewGuid().ToString();
 
-        // Corrected the instantiation of JobStatus.Create to a static method call
         var jobStatusResult = JobStatus.Create(
             jobId: jobId,
             status: JobStatusType.Pending.ToString(),
@@ -21,7 +21,6 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
 
         if (!jobStatusResult.Succeeded)
         {
-            // Fixed the error by joining the list of errors into a single string
             var errorMessage = string.Join("; ", jobStatusResult.Errors);
             logger.LogError("Failed to create JobStatus: {Error}", errorMessage);
             throw new InvalidOperationException(errorMessage);
@@ -70,7 +69,10 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
     {
         try
         {
-            var job = await Data.JobStatuses.FirstOrDefaultAsync(js => js.JobId == jobId);
+            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            
+            var job = await Data.JobStatuses
+                .FirstOrDefaultAsync(js => js.JobId == jobId);
 
             if (job == null)
             {
@@ -78,11 +80,28 @@ internal class JobStatusRepository : DataRepository<RAGDbContext, JobStatus>, IJ
                 return;
             }
 
-            job.UpdateStatus(status.ToString(), message ?? job.Message);
+            Data.Entry(job).State = EntityState.Detached;
 
-            await Data.SaveChangesAsync();
+            job = await Data.JobStatuses
+                .FirstOrDefaultAsync(js => js.JobId == jobId);
 
-            logger.LogInformation("Updated job {JobId} with status: {Status}, message: {Message}", jobId, status, job.Message);
+            if (job != null)
+            {
+                job.UpdateStatus(status.ToString(), message ?? job.Message);
+                
+                try
+                {
+                    await Data.SaveChangesAsync();
+                    scope.Complete();
+                    logger.LogInformation("Updated job {JobId} with status: {Status}, message: {Message}", 
+                        jobId, status, job.Message);
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    logger.LogWarning(ex, "Concurrency conflict detected while updating job {JobId}. Retrying operation.", jobId);
+                    throw;
+                }
+            }
         }
         catch (Exception ex)
         {

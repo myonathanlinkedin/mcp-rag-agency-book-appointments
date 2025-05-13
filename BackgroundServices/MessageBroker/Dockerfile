@@ -8,16 +8,14 @@ EXPOSE 9092
 FROM mcr.microsoft.com/dotnet/nightly/sdk:9.0-preview AS build
 WORKDIR /src
 
-# Copy csproj files and restore dependencies
-COPY ["BackgroundServices/MessageBroker/MessageBroker.Kafka.csproj", "MessageBroker/"]
-# Add any other project references here as needed
-RUN dotnet restore "MessageBroker/MessageBroker.Kafka.csproj"
-
-# Copy the rest of the source code
+# Copy the entire solution to maintain project references
 COPY . .
-WORKDIR "/src/MessageBroker"
+
+# Restore dependencies
+RUN dotnet restore "BackgroundServices/MessageBroker/MessageBroker.Kafka.csproj"
 
 # Build the application
+WORKDIR "/src/BackgroundServices/MessageBroker"
 RUN dotnet build "MessageBroker.Kafka.csproj" -c Release -o /app/build
 
 # Publish the application
