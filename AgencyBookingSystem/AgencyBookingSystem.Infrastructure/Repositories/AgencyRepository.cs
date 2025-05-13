@@ -41,7 +41,7 @@ internal class AgencyRepository : BufferedDataRepository<AgencyBookingDbContext,
             return await Data.Agencies
                 .Include(a => a.AgencyUsers)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.AgencyUsers.Any(u => u.Email == email));
+                .FirstOrDefaultAsync(a => a.Email == email);
         }
         catch (Exception ex)
         {
