@@ -9,24 +9,26 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 
 ✅ Built-in IdentityServer with Asymmetric JWT Signing 🔐  
 ✅ AI Chat Bots via PromptAPI 🤖  
-✅ **Retrieval-Augmented Generation (RAG)** – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
-✅ **Users can update the AI brain using RAG by scanning URLs & PDF documents on the fly** – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
+✅ retrieval-augmented generation (RAG) – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
+✅ users can update the AI brain using RAG by scanning URLs & PDF documents on the fly – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
 ✅ RAG with Hangfire for document scan, parse & upload to Qdrant ⚙️  
-✅ MCP Client/Server ready ⚡  
-✅ Supports Off Days & Max Daily Appointments 📅  
-✅ Real-Time Queue Grid via API ⏳  
-✅ Domain-Driven Development (DDD) architecture 🏗️  
-✅ Event Dispatcher for Domain Events 📨  
+✅ MCP client/server ready ⚡  
+✅ supports off days & max daily appointments 📅  
+✅ real-time queue grid via API ⏳  
+✅ domain-driven development (DDD) architecture 🏗️  
+✅ event dispatcher for domain events 📨  
 ✅ Apache Kafka & ElasticSearch for appointment indexing 📡  
-✅ Qdrant Vector Database for AI semantic search 🧠✨  
+✅ Qdrant vector database for AI semantic search 🧠✨  
 ✅ FluentValidation for validation logic ✅  
 ✅ Swagger, LINQ, IoC, WebAPI 🛠️  
-✅ Automatic email template generation by AI LLM 📧✨  
+✅ automatic email template generation by AI LLM 📧✨  
 ✅ API with Brain – users can type prompts in natural language 🧠📝  
-✅ Microservices-ready, modular & scalable 🏢🔄  
-✅ Cloud-ready (Azure/AWS) ☁️  
-✅ Refit-powered REST API clients 🔌
- 
+✅ microservices-ready, modular & scalable 🏢🔄  
+✅ cloud-ready (Azure/AWS) ☁️  
+✅ Refit-powered REST API clients 🔌  
+✅ producer-consumer pattern with buffer cache for real-time insert, save & update 📤📥  
+✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️
+
 ## **📜 Architecture Diagram**  
 ```plaintext
 User → API Gateway → Appointment Service → Event Processing (Kafka) → Search Index (ElasticSearch)  
@@ -48,22 +50,24 @@ User → API Gateway → Appointment Service → Event Processing (Kafka) → Se
 
 This ensures a **streamlined booking experience**, allowing agencies to manage **appointments efficiently** with **real-time indexing, AI-generated email templates, and AI-driven semantic search with Qdrant!**  
 
-## **🧰 Tech Stack**
+## 🧰 Tech Stack
 
-🟦 **.NET 9** – Modern, performant runtime for cloud-native applications  
-🛡️ **IdentityServer** – Secure authentication and token issuance  
-📅 **Hangfire** – Background job scheduling for asynchronous workflows  
-📡 **Apache Kafka** – Distributed event streaming platform  
-🔍 **ElasticSearch** – High-speed, full-text search for appointment indexing  
-🧠 **Qdrant** – Vector DB for semantic AI search  
-🧾 **PromptAPI** – LLM-based AI chatbot integration  
-🔌 **Refit** – Declarative REST API clients with interface-based contracts  
-✅ **FluentValidation** – Fluent rules for robust input validation  
-🧪 **Swagger / OpenAPI** – API documentation and test interface  
-☁️ **Azure / AWS Ready** – Cloud-native infrastructure compatible  
-📜 **Marten DB (PostgreSQL)** – Event sourcing and document database  
-🐘 **PostgreSQL** – Backing store for MartenDB event sourcing and ElasticSearch sync  
-🗄️ **MS SQL Server** – Primary application database for transactional data
+🟦 .NET 9 – modern, performant runtime for cloud-native applications  
+🛡️ IdentityServer – secure authentication and token issuance  
+📅 Hangfire – background job scheduling for asynchronous workflows  
+📡 Apache Kafka – distributed event streaming platform  
+🔍 ElasticSearch – high-speed, full-text search for appointment indexing  
+🧠 Qdrant – vector DB for semantic AI search  
+🧾 PromptAPI – LLM-based AI chatbot integration  
+🔌 Refit – declarative REST API clients with interface-based contracts  
+✅ FluentValidation – fluent rules for robust input validation  
+🧪 Swagger / OpenAPI – API documentation and test interface  
+☁️ Azure / AWS Ready – cloud-native infrastructure compatible  
+📜 Marten DB (PostgreSQL) – event sourcing and document database  
+🐘 PostgreSQL – backing store for MartenDB event sourcing and ElasticSearch sync  
+🗄️ MS SQL Server – primary application database for transactional data  
+🧱 producer/consumer repository pattern – buffer-backed async layer for write-heavy workloads  
+⚛️ Next.js / React.js – fast, modern frontend framework for interactive chatbot UI  
 
 ## **🛡️ Security & Access Control**  
 ⚠️ **Strict access policies & authentication layers**  
