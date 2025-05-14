@@ -7,6 +7,7 @@ using Qdrant.Client.Grpc;
 using Microsoft.Extensions.Options;
 using Marten;
 using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,9 +88,29 @@ var app = builder.Build();
 // Clear Redis cache on startup
 using (var scope = app.Services.CreateScope())
 {
-    var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
-    var settings = scope.ServiceProvider.GetRequiredService<ApplicationSettings>();
-    await cache.ClearRedisCache(settings.Redis.ConnectionString);
+    try
+    {
+        var settings = scope.ServiceProvider.GetRequiredService<ApplicationSettings>();
+        if (!string.IsNullOrEmpty(settings.Redis.ConnectionString))
+        {
+            var redis = await ConnectionMultiplexer.ConnectAsync(settings.Redis.ConnectionString);
+            var database = redis.GetDatabase();
+            var instancePrefix = settings.Redis.InstanceName ?? string.Empty;
+            
+            // Get all keys with the instance prefix
+            var server = redis.GetServer(redis.GetEndPoints().First());
+            var keys = server.Keys(pattern: $"{instancePrefix}*").ToArray();
+            
+            if (keys.Length > 0)
+            {
+                await database.KeyDeleteAsync(keys);
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error clearing Redis cache: {ex.Message}");
+    }
 }
 
 // Ensure cookies are only sent over HTTPS
