@@ -131,6 +131,8 @@ This project is based on my other project: https://github.com/myonathanlinkedin/
 
 ![image](https://github.com/user-attachments/assets/1ac458dd-9e2a-47e9-93e4-9637c618cc0d)
 
+![image](https://github.com/user-attachments/assets/c0ec5660-e194-4e7b-92fe-9cf2f75d9f7f)
+
 
 
 
