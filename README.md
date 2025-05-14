@@ -9,25 +9,25 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 
 ✅ Built-in IdentityServer with Asymmetric JWT Signing 🔐  
 ✅ AI Chat Bots via PromptAPI 🤖  
-✅ retrieval-augmented generation (RAG) – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
-✅ users can update the AI brain using RAG by scanning URLs & PDF documents on the fly – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
+✅ Retrieval-augmented generation (RAG) – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
+✅ Users can update the AI brain using RAG by scanning URLs & PDF documents on the fly – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
 ✅ RAG with Hangfire for document scan, parse & upload to Qdrant ⚙️  
 ✅ MCP client/server ready ⚡  
-✅ supports off days & max daily appointments 📅  
-✅ real-time queue grid via API ⏳  
-✅ domain-driven development (DDD) architecture 🏗️  
-✅ event dispatcher for domain events 📨  
+✅ Supports off days & max daily appointments 📅  
+✅ Real-time queue grid via API ⏳  
+✅ Domain-driven development (DDD) architecture 🏗️  
+✅ Event dispatcher for domain events 📨  
 ✅ Apache Kafka & ElasticSearch for appointment indexing 📡  
 ✅ Qdrant vector database for AI semantic search 🧠✨  
 ✅ FluentValidation for validation logic ✅  
 ✅ Swagger, LINQ, IoC, WebAPI 🛠️  
-✅ automatic email template generation by AI LLM 📧✨  
+✅ Automatic email template generation by AI LLM 📧✨  
 ✅ API with Brain – users can type prompts in natural language 🧠📝  
-✅ microservices-ready, modular & scalable 🏢🔄  
-✅ cloud-ready (Azure/AWS) ☁️  
+✅ Microservices-ready, modular & scalable 🏢🔄  
+✅ Cloud-ready (Azure/AWS) ☁️  
 ✅ Refit-powered REST API clients 🔌  
 ✅ producer-consumer pattern with buffer cache for real-time insert, save & update 📤📥  
-✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️
+✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️ – supports theme changes
 ✅ Redis implementation for faster public key retrieval 🧰🔑
 
 ## **📜 Architecture Diagram**  
@@ -107,3 +107,30 @@ Let’s **reshape the future** of scheduling with **AI, event-driven processing,
 ---
 
 This project is based on my other project: https://github.com/myonathanlinkedin/productinfo-mcp-rag
+
+---
+
+### 📸 Screenshots of the chatbots
+![image](https://github.com/user-attachments/assets/5026cb1c-0a32-40c0-b9e8-ab94668e063b)
+
+![image](https://github.com/user-attachments/assets/02d3a8f3-6661-4e10-a849-5966a3a5bb0f)
+
+![image](https://github.com/user-attachments/assets/df0b57ec-4fab-4f6d-8152-4c477b161639)
+
+![image](https://github.com/user-attachments/assets/0d117c9a-2ac0-446a-b2d3-5275ecbe26e4)
+
+![image](https://github.com/user-attachments/assets/e4ff7d1f-63d0-4a4f-9824-7994ad97aac5)
+
+![image](https://github.com/user-attachments/assets/96a8d654-aeef-492b-9482-a2c6f1b37eab)
+
+![image](https://github.com/user-attachments/assets/42267e9a-2f45-458d-bc2f-f6975b0a17f3)
+
+![image](https://github.com/user-attachments/assets/0f5e3f4c-85c1-45a8-aa93-0f301aede4de)
+
+![image](https://github.com/user-attachments/assets/24ecd2a1-ea6d-4e78-afd4-aa451babcf48)
+
+
+
+
+
+
