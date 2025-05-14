@@ -40,7 +40,8 @@ public class MCPServerRequester : IMCPServerRequester
     {
         try
         {
-            var userEmail = GetUserEmailFromContext();
+            var userEmail = useSession ? GetUserEmailFromContext() : string.Empty;
+
             List<ChatMessage> messages = useSession ? messageStore.GetMessages(userEmail) : new List<ChatMessage>();
 
             messages.Add(new ChatMessage(chatRole ?? ChatRole.User, prompt));

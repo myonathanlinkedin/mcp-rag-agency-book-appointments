@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+using Google.Protobuf.Collections;
 
 public class RetrieverService : IRetrieverService
 {
@@ -34,7 +35,7 @@ public class RetrieverService : IRetrieverService
         catch (Exception ex)
         {
             logger.LogError(ex, "Error retrieving all documents.");
-            return new List<DocumentVector>(); // ✅ No Result wrapper, returning empty list on failure
+            return new List<DocumentVector>();
         }
     }
 
@@ -46,7 +47,7 @@ public class RetrieverService : IRetrieverService
         if (embeddingVector == null || embeddingVector.Length == 0)
         {
             logger.LogError("Failed to generate embedding.");
-            return new List<DocumentVector>(); // ✅ No Result wrapper
+            return new List<DocumentVector>();
         }
 
         try
@@ -57,7 +58,7 @@ public class RetrieverService : IRetrieverService
         catch (Exception ex)
         {
             logger.LogError(ex, "Error during document search.");
-            return new List<DocumentVector>(); // ✅ Returning empty list on failure
+            return new List<DocumentVector>();
         }
     }
 
@@ -66,41 +67,17 @@ public class RetrieverService : IRetrieverService
         return points.Select(point => new DocumentVector
         {
             Metadata = MapMetadata(point),
-            Embedding = GetEmbeddingData(point)
+            Embedding = GetEmbeddingData(point),
+            Score = GetScore(point)
         }).ToList();
     }
 
-    private DocumentMetadata MapMetadata<T>(T point) where T : class
-    {
-        var payload = GetPayloadDictionary(point);
-        return new DocumentMetadata
-        {
-            Id = Guid.TryParse(GetUuid(point), out var guid) ? guid : Guid.Empty,
-            Url = payload.TryGetValue("url", out var urlValue) ? urlValue.StringValue : string.Empty,
-            SourceType = payload.TryGetValue("sourceType", out var sourceTypeValue) ? sourceTypeValue.StringValue : string.Empty,
-            Content = payload.TryGetValue("content", out var contentValue) ? contentValue.StringValue : string.Empty,
-            Title = payload.TryGetValue("title", out var titleValue) ? titleValue.StringValue : string.Empty,
-            ScrapedAt = payload.TryGetValue("scrapedAt", out var scrapedAtValue) &&
-                        DateTime.TryParse(scrapedAtValue.StringValue, out var scrapedAt)
-                        ? scrapedAt
-                        : default
-        };
-    }
-
-    private static Dictionary<string, Value> GetPayloadDictionary<T>(T point) where T : class =>
+    private static DocumentMetadata MapMetadata(object point) =>
         point switch
         {
-            RetrievedPoint retrieved => retrieved.Payload.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-            ScoredPoint scored => scored.Payload.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-            _ => new Dictionary<string, Value>()
-        };
-
-    private static string GetUuid<T>(T point) where T : class =>
-        point switch
-        {
-            RetrievedPoint retrieved => retrieved.Id?.Uuid ?? string.Empty,
-            ScoredPoint scored => scored.Id?.Uuid ?? string.Empty,
-            _ => string.Empty
+            RetrievedPoint retrieved => MapPayloadToMetadata(retrieved.Payload),
+            ScoredPoint scored => MapPayloadToMetadata(scored.Payload),
+            _ => new DocumentMetadata()
         };
 
     private static float[] GetEmbeddingData<T>(T point) where T : class =>
@@ -111,6 +88,41 @@ public class RetrieverService : IRetrieverService
             _ => Array.Empty<float>()
         };
 
+    private static float GetScore<T>(T point) where T : class =>
+        point switch
+        {
+            ScoredPoint scored => scored.Score,
+            _ => 0f
+        };
+
     private uint GetSmartTopK() => DefaultTopK;
     private uint GetSmartLimit() => DefaultTopK * 10;
+
+    private static DocumentMetadata MapPayloadToMetadata(MapField<string, Value> payload)
+    {
+        if (payload == null) return new DocumentMetadata();
+
+        return new DocumentMetadata
+        {
+            Id = GetGuidFromPayload(payload, "id"),
+            Content = GetStringFromPayload(payload, "content"),
+            Url = GetStringFromPayload(payload, "url"),
+            Title = GetStringFromPayload(payload, "title")
+        };
+    }
+
+    private static string GetStringFromPayload(MapField<string, Value> payload, string key)
+    {
+        if (payload.TryGetValue(key, out var value))
+        {
+            return value.StringValue;
+        }
+        return string.Empty;
+    }
+
+    private static Guid GetGuidFromPayload(MapField<string, Value> payload, string key)
+    {
+        var stringValue = GetStringFromPayload(payload, key);
+        return Guid.TryParse(stringValue, out var guid) ? guid : Guid.Empty;
+    }
 }
