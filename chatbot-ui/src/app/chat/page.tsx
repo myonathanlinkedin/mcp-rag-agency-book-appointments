@@ -27,6 +27,7 @@ import ReactMarkdown from 'react-markdown';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import type { Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import api from '@/lib/api';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { SettingsMenu } from '@/components/SettingsMenu';
@@ -316,7 +317,66 @@ export default function ChatPage() {
                         minW="0" // Ensure proper text wrapping
                       >
                         <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
                           components={{
+                            table: ({ children }) => (
+                              <Box overflowX="auto" my={4}>
+                                <Box
+                                  as="table"
+                                  width="100%"
+                                  style={{
+                                    borderCollapse: 'collapse',
+                                    tableLayout: 'fixed',
+                                  }}
+                                >
+                                  {children}
+                                </Box>
+                              </Box>
+                            ),
+                            thead: ({ children }) => (
+                              <Box
+                                as="thead"
+                                bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'gray.50'}
+                              >
+                                {children}
+                              </Box>
+                            ),
+                            th: ({ children }) => (
+                              <Box
+                                as="th"
+                                py={2}
+                                px={4}
+                                borderWidth="1px"
+                                borderColor={colorMode === 'dark' ? 'whiteAlpha.300' : 'gray.200'}
+                                textAlign="left"
+                                fontWeight="semibold"
+                                fontSize="sm"
+                              >
+                                {children}
+                              </Box>
+                            ),
+                            tr: ({ children }) => (
+                              <Box
+                                as="tr"
+                                _hover={{
+                                  bg: colorMode === 'dark' ? 'whiteAlpha.50' : 'gray.50',
+                                }}
+                              >
+                                {children}
+                              </Box>
+                            ),
+                            td: ({ children }) => (
+                              <Box
+                                as="td"
+                                py={2}
+                                px={4}
+                                borderWidth="1px"
+                                borderColor={colorMode === 'dark' ? 'whiteAlpha.300' : 'gray.200'}
+                                fontSize="sm"
+                              >
+                                {children}
+                              </Box>
+                            ),
                             code: ({ className, children, ...props }) => {
                               const match = /language-(\w+)/.exec(className || '');
                               const language = match ? match[1] : '';
