@@ -6,13 +6,13 @@ public class IdentityService : IIdentity
 {
     private const string InvalidErrorMessage = "Invalid credentials.";
     private readonly UserManager<User> userManager;
-    private readonly IJwtGenerator jwtGenerator;
+    private readonly IJwtGeneratorService jwtGenerator;
     private readonly IEventDispatcher eventDispatcher;
     private readonly ILogger<IdentityService> logger;
 
     public IdentityService(
         UserManager<User> userManager,
-        IJwtGenerator jwtGenerator,
+        IJwtGeneratorService jwtGenerator,
         IEventDispatcher eventDispatcher,
         ILogger<IdentityService> logger)
     {

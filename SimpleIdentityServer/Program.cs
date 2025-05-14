@@ -30,9 +30,8 @@ builder.Services
     .AddModelBinders()
     .AddSwaggerGen(c => c.SwaggerDoc("v1", new OpenApiInfo { Title = "Web API", Version = "v1" }))
     .AddHttpClient()
-    .AddMcpClient()
-    .AddMemoryCache()
-    .AddDistributedMemoryCache()
+    .AddMcpClient()    
+    .AddMemoryCache()    
     .AddSingleton(sp =>
     {
         var appSettings = sp.GetRequiredService<ApplicationSettings>();

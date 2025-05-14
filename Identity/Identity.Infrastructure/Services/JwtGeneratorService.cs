@@ -7,10 +7,10 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-public class JwtGeneratorService : IJwtGenerator
+public class JwtGeneratorService : IJwtGeneratorService
 {
     private readonly UserManager<User> userManager;
-    private readonly IRsaKeyProvider keyProvider;
+    private readonly IRsaKeyProviderService keyProvider;
     private readonly IDistributedCache distributedCache;
     private readonly string audience;
     private readonly string issuer;
@@ -21,7 +21,7 @@ public class JwtGeneratorService : IJwtGenerator
     public JwtGeneratorService(
         UserManager<User> userManager,
         ApplicationSettings appSettings,
-        IRsaKeyProvider keyProvider,
+        IRsaKeyProviderService keyProvider,
         IDistributedCache distributedCache)
     {
         this.userManager = userManager;

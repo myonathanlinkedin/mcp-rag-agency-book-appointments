@@ -1,6 +1,6 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 
-public interface IJwtGenerator
+public interface IJwtGeneratorService
 {
     Task<(string AccessToken, string RefreshToken)> GenerateToken(User user);
     JsonWebKey GetPublicKey();

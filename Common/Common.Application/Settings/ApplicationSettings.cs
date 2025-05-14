@@ -5,6 +5,7 @@
     public int KeyRotationIntervalSeconds { get; init; }
     public int TokenExpirationSeconds { get; init; }
     public int ResetTokenExpirationSeconds { get; init; }
+    public RedisSettings Redis { get; init; } = new();
     public ApiSettings Api { get; init; } = new();
     public QdrantSettings Qdrant { get; init; } = new();
     public ConnectionStringsSettings ConnectionStrings { get; init; } = new();
@@ -27,6 +28,6 @@
     public record MCPSettings(string ServerName = "", string Endpoint = "");
     public record MailHogSettings(string SmtpServer = "", int SmtpPort = 587, string FromAddress = "");
 
-    // ✅ Added Kafka Configuration
     public record KafkaSettings(string BootstrapServers = "", string GroupId = "", string Topic = "");
+    public record RedisSettings(string ConnectionString = "", string InstanceName = "");
 }

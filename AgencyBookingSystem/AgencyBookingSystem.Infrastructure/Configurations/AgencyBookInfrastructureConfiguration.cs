@@ -13,14 +13,14 @@ public static class AgencyBookInfrastructureConfiguration
         services.AddDBStorage<AgencyBookingDbContext>(
                 Assembly.GetExecutingAssembly(),
                 appSettings.ConnectionStrings.AgencyBookDBConnection)
-            .AddRAGScannerAssemblyServices();
+            .AddAgencyAssemblyServices();
 
         services.AddKafka(appSettings); 
 
         return services;
     }
 
-    private static IServiceCollection AddRAGScannerAssemblyServices(this IServiceCollection services)
+    private static IServiceCollection AddAgencyAssemblyServices(this IServiceCollection services)
     {
         var assembly = Assembly.GetExecutingAssembly();
 

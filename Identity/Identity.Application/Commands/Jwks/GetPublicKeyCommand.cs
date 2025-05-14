@@ -5,14 +5,17 @@ public class GetPublicKeyCommand : IRequest<Result<JsonWebKey>>
 {
     public class GetPublicKeyCommandHandler : IRequestHandler<GetPublicKeyCommand, Result<JsonWebKey>>
     {
-        private readonly IIdentity identity;
+        private readonly IJwksProviderService jwksProvider;
 
-        public GetPublicKeyCommandHandler(IIdentity identity)
-            => this.identity = identity;
+        public GetPublicKeyCommandHandler(IJwksProviderService jwksProvider)
+            => this.jwksProvider = jwksProvider;
 
-        public Task<Result<JsonWebKey>> Handle(
+        public async Task<Result<JsonWebKey>> Handle(
             GetPublicKeyCommand request,
             CancellationToken cancellationToken)
-            => Task.FromResult(this.identity.GetPublicKey());
+        {
+            var jwk = await jwksProvider.GetPublicKeyAsync();
+            return Result<JsonWebKey>.SuccessWith(jwk);
+        }
     }
 }
