@@ -28,6 +28,7 @@ import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import api from '@/lib/api';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { SettingsMenu } from '@/components/SettingsMenu';
@@ -318,6 +319,7 @@ export default function ChatPage() {
                       >
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
                           components={{
                             table: ({ children }) => (
                               <Box overflowX="auto" my={4}>
@@ -326,7 +328,6 @@ export default function ChatPage() {
                                   width="100%"
                                   style={{
                                     borderCollapse: 'collapse',
-                                    tableLayout: 'fixed',
                                   }}
                                 >
                                   {children}
@@ -351,6 +352,7 @@ export default function ChatPage() {
                                 textAlign="left"
                                 fontWeight="semibold"
                                 fontSize="sm"
+                                color={colorMode === 'dark' ? 'white' : 'gray.800'}
                               >
                                 {children}
                               </Box>
@@ -373,6 +375,7 @@ export default function ChatPage() {
                                 borderWidth="1px"
                                 borderColor={colorMode === 'dark' ? 'whiteAlpha.300' : 'gray.200'}
                                 fontSize="sm"
+                                color={colorMode === 'dark' ? 'white' : 'gray.800'}
                               >
                                 {children}
                               </Box>
