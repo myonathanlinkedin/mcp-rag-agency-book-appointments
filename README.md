@@ -117,6 +117,8 @@ This project is based on my other project: https://github.com/myonathanlinkedin/
 
 ![image](https://github.com/user-attachments/assets/df0b57ec-4fab-4f6d-8152-4c477b161639)
 
+![image](https://github.com/user-attachments/assets/0d117c9a-2ac0-446a-b2d3-5275ecbe26e4)
+
 ![image](https://github.com/user-attachments/assets/e4ff7d1f-63d0-4a4f-9824-7994ad97aac5)
 
 ![image](https://github.com/user-attachments/assets/96a8d654-aeef-492b-9482-a2c6f1b37eab)
