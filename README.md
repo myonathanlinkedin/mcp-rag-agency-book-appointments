@@ -9,22 +9,22 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 
 ✅ Built-in IdentityServer with Asymmetric JWT Signing 🔐  
 ✅ AI Chat Bots via PromptAPI 🤖  
-✅ retrieval-augmented generation (RAG) – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
-✅ users can update the AI brain using RAG by scanning URLs & PDF documents on the fly – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
+✅ Retrieval-augmented generation (RAG) – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
+✅ Users can update the AI brain using RAG by scanning URLs & PDF documents on the fly – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
 ✅ RAG with Hangfire for document scan, parse & upload to Qdrant ⚙️  
 ✅ MCP client/server ready ⚡  
-✅ supports off days & max daily appointments 📅  
-✅ real-time queue grid via API ⏳  
-✅ domain-driven development (DDD) architecture 🏗️  
-✅ event dispatcher for domain events 📨  
+✅ Supports off days & max daily appointments 📅  
+✅ Real-time queue grid via API ⏳  
+✅ Domain-driven development (DDD) architecture 🏗️  
+✅ Event dispatcher for domain events 📨  
 ✅ Apache Kafka & ElasticSearch for appointment indexing 📡  
 ✅ Qdrant vector database for AI semantic search 🧠✨  
 ✅ FluentValidation for validation logic ✅  
 ✅ Swagger, LINQ, IoC, WebAPI 🛠️  
-✅ automatic email template generation by AI LLM 📧✨  
+✅ Automatic email template generation by AI LLM 📧✨  
 ✅ API with Brain – users can type prompts in natural language 🧠📝  
-✅ microservices-ready, modular & scalable 🏢🔄  
-✅ cloud-ready (Azure/AWS) ☁️  
+✅ Microservices-ready, modular & scalable 🏢🔄  
+✅ Cloud-ready (Azure/AWS) ☁️  
 ✅ Refit-powered REST API clients 🔌  
 ✅ producer-consumer pattern with buffer cache for real-time insert, save & update 📤📥  
 ✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️ – supports theme changes
