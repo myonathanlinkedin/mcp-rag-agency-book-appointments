@@ -81,7 +81,6 @@
     <PackageVersion Include="FluentValidation" Version="11.9.1" />
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageVersion Include="MediatR" Version="12.3.0" />
-    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="7.5.0" />
     <PackageVersion Include="Scrutor" Version="4.2.2" />
   </ItemGroup>
 </Project>
