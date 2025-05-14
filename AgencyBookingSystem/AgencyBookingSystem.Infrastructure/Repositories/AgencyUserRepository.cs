@@ -6,11 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-internal class AgencyUserRepository : DataRepository<AgencyBookingDbContext, AgencyUser>, IAgencyUserRepository
+internal class AgencyUserRepository : BufferedDataRepository<AgencyBookingDbContext, AgencyUser>, IAgencyUserRepository
 {
     private readonly ILogger<AgencyUserRepository> logger;
 
-    public AgencyUserRepository(AgencyBookingDbContext db, ILogger<AgencyUserRepository> logger) : base(db)
+    public AgencyUserRepository(AgencyBookingDbContext db, ILogger<AgencyUserRepository> logger) : base(db, logger)
     {
         this.logger = logger;
     }
