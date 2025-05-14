@@ -28,6 +28,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ Refit-powered REST API clients 🔌  
 ✅ producer-consumer pattern with buffer cache for real-time insert, save & update 📤📥  
 ✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️
+✅ Redis implementation for faster public key retrieval 🧰🔑
 
 ## **📜 Architecture Diagram**  
 ```plaintext
@@ -68,6 +69,7 @@ This ensures a **streamlined booking experience**, allowing agencies to manage *
 🗄️ MS SQL Server – primary application database for transactional data  
 🧱 producer/consumer repository pattern – buffer-backed async layer for write-heavy workloads  
 ⚛️ Next.js / React.js – fast, modern frontend framework for interactive chatbot UI  
+🧠 Redis – in-memory cache for fast public key access and general-purpose caching  
 
 ## **🛡️ Security & Access Control**  
 ⚠️ **Strict access policies & authentication layers**  
