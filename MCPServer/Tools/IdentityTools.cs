@@ -2,6 +2,7 @@ using ModelContextProtocol.Server;
 using Serilog;
 using System.ComponentModel;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 public sealed class IdentityTools : BaseTool
 {
@@ -23,6 +24,8 @@ public sealed class IdentityTools : BaseTool
 
     private const string RefreshTokenDescription = "Refresh the user's authentication token. A valid Bearer token is required.";
 
+    
+
     [McpServerTool, Description(RegisterDescription)]
     public async Task<string> RegisterAsync([Description("Email address to register")] string email)
     {
@@ -37,13 +40,15 @@ public sealed class IdentityTools : BaseTool
                 Log.Information("User registered successfully: {Email}", email);
                 return "An email has been sent. Please check your inbox to complete the registration.";
             }
-            Log.Warning("Failed to register user: {Email}. Status code: {StatusCode}", email, response.StatusCode);
-            return $"Failed to register user. Status code: {response.StatusCode}";
+
+            var errorMessage = await GetErrorMessage(response);
+            Log.Warning("Failed to register user: {Email}. Error: {Error}", email, errorMessage);
+            return errorMessage;
         }
         catch (Exception ex)
         {
             Log.Error("Exception during user registration: {Email}. Error: {Error}", email, ex.Message);
-            return "An error occurred while registering the user.";
+            return $"An error occurred while registering the user: {ex.Message}";
         }
     }
 
@@ -65,13 +70,15 @@ public sealed class IdentityTools : BaseTool
                 Log.Information("Password changed successfully.");
                 return "Password changed successfully.";
             }
-            Log.Warning("Failed to change password. Status code: {StatusCode}", response.StatusCode);
-            return $"Failed to change password. Status code: {response.StatusCode}";
+
+            var errorMessage = await GetErrorMessage(response);
+            Log.Warning("Failed to change password. Error: {Error}", errorMessage);
+            return errorMessage;
         }
         catch (Exception ex)
         {
             Log.Error("Exception during password change. Error: {Error}", ex.Message);
-            return "An error occurred while changing the password.";
+            return $"An error occurred while changing the password: {ex.Message}";
         }
     }
 
@@ -87,13 +94,15 @@ public sealed class IdentityTools : BaseTool
                 Log.Information("Password reset successfully for {Email}", email);
                 return "Password has been reset. A new password has been sent to your email.";
             }
-            Log.Warning("Failed to reset password for {Email}. Status code: {StatusCode}", email, response.StatusCode);
-            return $"Failed to reset password. Status code: {response.StatusCode}.";
+
+            var errorMessage = await GetErrorMessage(response);
+            Log.Warning("Failed to reset password for {Email}. Error: {Error}", email, errorMessage);
+            return errorMessage;
         }
         catch (Exception ex)
         {
             Log.Error("Exception during password reset for {Email}. Error: {Error}", email, ex.Message);
-            return "An error occurred while resetting the password.";
+            return $"An error occurred while resetting the password: {ex.Message}";
         }
     }
 
@@ -115,13 +124,15 @@ public sealed class IdentityTools : BaseTool
                 Log.Information("Role '{RoleName}' successfully assigned to user '{Email}'.", roleName, email);
                 return $"Role '{roleName}' successfully assigned to user '{email}'.";
             }
-            Log.Warning("Failed to assign role '{RoleName}' to user '{Email}'. Status code: {StatusCode}", roleName, email, response.StatusCode);
-            return $"Failed to assign role. Status code: {response.StatusCode}.";
+
+            var errorMessage = await GetErrorMessage(response);
+            Log.Warning("Failed to assign role '{RoleName}' to user '{Email}'. Error: {Error}", roleName, email, errorMessage);
+            return errorMessage;
         }
         catch (Exception ex)
         {
             Log.Error("Exception during role assignment for {Email}. Error: {Error}", email, ex.Message);
-            return "An error occurred while assigning the role.";
+            return $"An error occurred while assigning the role: {ex.Message}";
         }
     }
 
@@ -143,13 +154,17 @@ public sealed class IdentityTools : BaseTool
                 Log.Information("Token refreshed successfully for UserId: {UserId}", userId);
                 return "Token refreshed successfully.";
             }
-            Log.Warning("Failed to refresh token for UserId: {UserId}. Status code: {StatusCode}", userId, response.StatusCode);
-            return $"Failed to refresh token. Status code: {response.StatusCode}.";
+
+            var errorMessage = await GetErrorMessage(response);
+            Log.Warning("Failed to refresh token for UserId: {UserId}. Error: {Error}", userId, errorMessage);
+            return errorMessage;
         }
         catch (Exception ex)
         {
             Log.Error("Exception occurred while refreshing token for UserId: {UserId}. Error: {Error}", userId, ex.Message);
-            return "An error occurred while refreshing the token.";
+            return $"An error occurred while refreshing the token: {ex.Message}";
         }
     }
+
+    
 }

@@ -18,7 +18,7 @@ public interface IAgencyBookAPI
     Task<HttpResponseMessage> UpdateAgencySettingsAsync([Body] object payload, [Header("Authorization")] string token);
 
     [Get("/api/AgencyBook/GetAppointmentsByDate/GetAppointmentsByDateAsync")]
-    Task<List<object>> GetAppointmentsByDateAsync([Query] DateTime date, [Header("Authorization")] string token);
+    Task<List<object>> GetAppointmentsByDateAsync([Body] object payload, [Header("Authorization")] string token);
 
     [Post("/api/AgencyBook/HandleNoShow/HandleNoShowAsync")]
     Task<HttpResponseMessage> HandleNoShowAsync([Body] object payload, [Header("Authorization")] string token);

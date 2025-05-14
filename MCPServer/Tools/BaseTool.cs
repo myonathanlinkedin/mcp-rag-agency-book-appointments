@@ -32,5 +32,29 @@ public class BaseTool
     {
         return $"Bearer {GetTokenFromHttpContext()}";
     }
+
+    protected async Task<string> GetErrorMessage(HttpResponseMessage response)
+    {
+        try
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return $"Request failed with status code: {response.StatusCode}";
+            }
+
+            var errorResponse = System.Text.Json.JsonSerializer.Deserialize<ErrorResponse>(content);
+            if (errorResponse?.Errors?.Any() == true)
+            {
+                return string.Join("; ", errorResponse.Errors);
+            }
+            return $"Request failed with status code: {response.StatusCode}";
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error parsing error response");
+            return $"Request failed with status code: {response.StatusCode}";
+        }
+    }
 }
 

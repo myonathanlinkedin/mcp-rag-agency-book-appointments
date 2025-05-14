@@ -1,6 +1,7 @@
 ﻿using ModelContextProtocol.Server;
 using Serilog;
 using System.ComponentModel;
+using System.Text.Json;
 
 public sealed class RAGTools : BaseTool
 {
@@ -28,6 +29,8 @@ public sealed class RAGTools : BaseTool
         this.ragApi = ragApi ?? throw new ArgumentNullException(nameof(ragApi));
     }
 
+    
+
     [McpServerTool, Description(ScanUrlsDescription)]
     public async Task<string> ScanUrlsAsync([Description("List of URLs to scan and process")] List<string> urls)
     {
@@ -50,15 +53,15 @@ public sealed class RAGTools : BaseTool
                 return "Successfully scanned and processed the URLs.";
             }
 
-            var errorContent = await response.Content.ReadAsStringAsync();
-            Log.Error("Failed to scan URLs: {Urls}, StatusCode: {StatusCode}, Error: {Error}",
-                string.Join(", ", urls), response.StatusCode, errorContent);
-            return $"Failed to scan URLs. Status code: {response.StatusCode}";
+            var errorMessage = await GetErrorMessage(response);
+            Log.Error("Failed to scan URLs: {Urls}. Error: {Error}",
+                string.Join(", ", urls), errorMessage);
+            return errorMessage;
         }
         catch (Exception ex)
         {
             Log.Error(ex, "An error occurred while scanning URLs: {Urls}", string.Join(", ", urls));
-            return "An error occurred while scanning URLs.";
+            return $"An error occurred while scanning URLs: {ex.Message}";
         }
     }
 
@@ -92,4 +95,6 @@ public sealed class RAGTools : BaseTool
             return new { Error = $"Unexpected error during RAG search: {ex.Message}" };
         }
     }
+
+    
 }
