@@ -129,6 +129,9 @@ This project is based on my other project: https://github.com/myonathanlinkedin/
 
 ![image](https://github.com/user-attachments/assets/24ecd2a1-ea6d-4e78-afd4-aa451babcf48)
 
+![image](https://github.com/user-attachments/assets/1ac458dd-9e2a-47e9-93e4-9637c618cc0d)
+
+
 
 
 
