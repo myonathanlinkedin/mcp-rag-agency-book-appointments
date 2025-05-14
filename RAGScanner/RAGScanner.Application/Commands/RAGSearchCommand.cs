@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 public class RAGSearchCommand : IRequest<List<RAGSearchResult>>
 {
     public string Query { get; set; } = string.Empty;
-    public int TopK { get; set; } = 1; // Number of top documents to retrieve
+    public int TopK { get; set; } = 5; // Number of top documents to retrieve
     public float MinScore { get; set; } = 0.3f; // Minimum similarity score threshold
 
     public class RAGSearchCommandHandler : IRequestHandler<RAGSearchCommand, List<RAGSearchResult>>

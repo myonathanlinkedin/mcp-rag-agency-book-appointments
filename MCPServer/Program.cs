@@ -76,6 +76,6 @@ void AddMcpServer(WebApplicationBuilder builder)
     builder.Services.AddMcpServer()
         .WithHttpTransport()
         .WithTools<IdentityTools>()
-        .WithTools<RAGTools>();
-        //.WithTools<AgencyBookTools>();
+        .WithTools<RAGTools>()
+        .WithTools<AgencyBookTools>();
 }

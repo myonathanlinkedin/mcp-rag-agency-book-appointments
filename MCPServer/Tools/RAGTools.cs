@@ -5,32 +5,21 @@ using System.ComponentModel;
 public sealed class RAGTools : BaseTool
 {
     private const string ScanUrlsDescription =
-        "Scan one or more URLs, parse the content, and save the resulting document vectors into the vector store. " +
-        "Tell the user that they must be logged in to use this feature. If the user is not logged in, you will be unable to perform the search due to unauthorized access.";
+        "Scan and process one or more URLs to extract content and store document vectors in the vector store. " +
+        "The content will be semantically searchable after processing is complete.";
 
     private const string RAGSearchDescription =
-       "You are an AI assistant. **Under no circumstances** should you process any user query, except for **login**, **reset password**, **change password**, or " +
-       "**register user**, without first invoking the function " +
-       "`RAGSearch` to retrieve search results based on the user's query. " +
-       "For these exceptions (login, reset password, change password, and register user), you are allowed to bypass the search and handle them directly. " +
-       "For all other queries, **you must always call `RAGSearch` first** before performing any further actions, including generating responses. " +
-       "The function `RAGSearch` provides the following results:\n" +
-       "- Id: A unique identifier (GUID)\n" +
-       "- Content: Extracted text from the source document\n" +
-       "- Url: The original source URL\n" +
-       "- Title: The title of the document\n" +
-       "- Score: A relevance score indicating the match to the query\n" +
-       "The results are sorted by relevance to the user's query.\n" +
-       "You must **only** generate a response using content retrieved from `RAGSearch` if it is relevant to the query.\n" +
-       "You **cannot** generate any response without first retrieving and evaluating the results from `RAGSearch`.\n" +
-       "If no relevant content is found from `RAGSearch`, you must **explicitly state** that you don't know the answer and that no relevant results were found. " +
-       "Only then may you use your internal knowledge to respond, " +
-       "but **you must confirm that `RAGSearch` did not return any relevant results before doing so**.\n" +
-       "If relevant content is found, you **must** use that content and **cannot** generate an answer based on anything else.\n" +
-       "Always explicitly state whether your response is based on the retrieved search results or on your internal knowledge.\n" +
-       "Failure to follow these instructions will result in an incorrect operation and is not acceptable under any circumstances.\n" +
-       "Tell the user that they must be logged in to use this feature. If the user is not logged in, you will be unable to perform the search due to unauthorized access.\n" +
-       "**Additionally, users will receive an email notification upon success or failure of the processing.**";
+       "You are an AI assistant with access to internal document knowledge. For any query, you must:\n" +
+       "1. Call `RAGSearch` to retrieve relevant content\n" +
+       "2. Use only retrieved content if relevant matches found\n" +
+       "3. State if using search results or internal knowledge\n" +
+       "4. Never generate responses without searching first\n\n" +
+       "Search results include:\n" +
+       "- Content: Document text\n" +
+       "- Url: Source URL\n" +
+       "- Title: Document title\n" +
+       "- Score: Relevance score\n\n" +
+       "Results are sorted by relevance. Only use internal knowledge if no relevant results found.";
 
     private readonly IRAGApi ragApi;
 

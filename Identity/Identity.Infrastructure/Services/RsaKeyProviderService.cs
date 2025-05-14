@@ -1,18 +1,26 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Caching.Distributed;
 
 public class RsaKeyProviderService : IRsaKeyProviderService
 {
     private const string SignatureUse = "sig";
+    private const string JwksCacheKey = "jwks_key";
     private RSA? rsa;
     private JsonWebKey jsonWebKey = null!;
     private string keyId = null!;
     private byte[] encryptedPrivateKey = null!;
     private readonly byte[] encryptionKey;
     private readonly byte[] encryptionIV;
+    private readonly IDistributedCache cache;
+    private readonly string cacheKeyPrefix;
 
-    public RsaKeyProviderService(ApplicationSettings appSettings)
+    public RsaKeyProviderService(
+        ApplicationSettings appSettings,
+        IDistributedCache cache)
     {
+        this.cache = cache;
+        this.cacheKeyPrefix = appSettings.Redis.InstanceName;
         var rotationInterval = TimeSpan.FromSeconds(appSettings.KeyRotationIntervalSeconds);
 
         // Secure AES encryption key and IV (would be ideally stored securely, e.g., using KMS)
@@ -29,7 +37,7 @@ public class RsaKeyProviderService : IRsaKeyProviderService
         new Timer(_ => GenerateKeys(), null, rotationInterval, rotationInterval);
     }
 
-    private void GenerateKeys()
+    private async void GenerateKeys()
     {
         DisposeKeys();
 
@@ -46,6 +54,10 @@ public class RsaKeyProviderService : IRsaKeyProviderService
 
         jsonWebKey = JsonWebKeyConverter.ConvertFromRSASecurityKey(rsaSecurityKey);
         jsonWebKey.Use = SignatureUse;
+
+        // Invalidate the Redis cache when new keys are generated
+        var cacheKey = $"{cacheKeyPrefix}{JwksCacheKey}";
+        await cache.RemoveAsync(cacheKey);
     }
 
     public RSA GetPrivateKey()
