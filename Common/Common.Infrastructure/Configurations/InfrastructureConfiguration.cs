@@ -3,7 +3,6 @@ using Marten.Events.Daemon.Resiliency;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text.Json;
@@ -58,10 +57,8 @@ public static class InfrastructureConfiguration
                 {
                     OnAuthenticationFailed = context =>
                     {
-                        var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<JwtBearerEvents>>(); // Get logger from DI container
-                        logger.LogError(context.Exception, "Token validation failed: {Message}", context.Exception.Message);
-                        logger.LogDebug("JWT Token: {Token}", token);
+                        // uncomment this to log the error
+                        //var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
                         return Task.CompletedTask;
                     }
                 };

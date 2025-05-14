@@ -12,7 +12,10 @@ public static class IdentityInfrastructureConfiguration
         services.AddIdentity(appSettings)
                 .AddDBStorage<IdentityDbContext>(Assembly.GetExecutingAssembly(), appSettings.ConnectionStrings.IdentityDBConnection)
                 .AddIdentityAssemblyServices();
-        
+
+        // Register RsaKeyProviderService as a singleton, do not modify this.
+        services.AddSingleton<IRsaKeyProviderService, RsaKeyProviderService>();
+
         // Configure Redis
         services.AddStackExchangeRedisCache(options =>
         {
