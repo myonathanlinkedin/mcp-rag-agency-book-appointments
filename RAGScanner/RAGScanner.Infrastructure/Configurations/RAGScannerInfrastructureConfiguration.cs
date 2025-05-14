@@ -12,7 +12,9 @@ public static class RAGScannerInfrastructureConfiguration
 
         services.AddDBStorage<RAGDbContext>(
                 Assembly.GetExecutingAssembly(),
-                appSettings.ConnectionStrings.RAGDBConnection).AddRAGScannerAssemblyServices();
+                appSettings.ConnectionStrings.RAGDBConnection)
+            .AddRAGScannerAssemblyServices()
+            .AddSingleton<ITextCleaningService, TextCleaningService>();
 
         return services;
     }
@@ -23,7 +25,7 @@ public static class RAGScannerInfrastructureConfiguration
 
         services.Scan(scan => scan
             .FromAssemblies(assembly)
-            .AddClasses(classes => classes.InNamespaceOf<DocumentParserService>()) // <- better: typesafe
+            .AddClasses(classes => classes.InNamespaceOf<DocumentParserService>())
             .AsImplementedInterfaces()
             .WithScopedLifetime());
 
