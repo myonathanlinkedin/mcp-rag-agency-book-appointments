@@ -11,6 +11,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Agent Book - Intelligent Chat Assistant",
   description: "Book appointments and get assistance through our intelligent chat interface",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
