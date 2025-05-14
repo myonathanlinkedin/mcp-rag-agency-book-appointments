@@ -1,6 +1,4 @@
-﻿namespace Common.Domain.Models.Enums;
-
-public enum OperationType
+﻿public enum OperationType
 {
     Save,
     Update,

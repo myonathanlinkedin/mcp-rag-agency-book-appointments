@@ -13,7 +13,7 @@
     public JwtSettings Jwt { get; init; } = new();
     public MCPSettings MCP { get; init; } = new();
     public MailHogSettings MailHog { get; init; } = new();
-    public KafkaSettings Kafka { get; init; } = new(); // ✅ Added Kafka Settings
+    public KafkaSettings Kafka { get; init; } = new();
     public string AllowedHosts { get; init; } = "*";
 
     public record ApiSettings(string ApiKey = "", string Endpoint = "", string LlmModel = "", string EmbeddingModel = "");
@@ -27,7 +27,6 @@
     public record JwtSettings(string JwksUrl = "");
     public record MCPSettings(string ServerName = "", string Endpoint = "");
     public record MailHogSettings(string SmtpServer = "", int SmtpPort = 587, string FromAddress = "");
-
     public record KafkaSettings(string BootstrapServers = "", string GroupId = "", string Topic = "");
-    public record RedisSettings(string ConnectionString = "", string InstanceName = "");
+    public record RedisSettings(string ConnectionString = "", string InstanceName = "", int CacheChatExpirationDays = 1);
 }

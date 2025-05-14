@@ -107,8 +107,8 @@ public static class McpClientServiceExtensions
             return mcpClient.ListToolsAsync().GetAwaiter().GetResult();
         });
 
-        // Register MCPServerRequester
-        services.AddSingleton<IChatMessageStore, ChatMessageStore>();
+        // Register MCPServerRequester and dependencies
+        services.AddSingleton<IChatMessageStore, RedisChatMessageStore>();
         services.AddScoped<IList<ChatMessage>, List<ChatMessage>>();
         services.AddScoped<IMCPServerRequester, MCPServerRequester>();
 

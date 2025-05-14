@@ -16,13 +16,6 @@ public static class IdentityInfrastructureConfiguration
         // Register RsaKeyProviderService as a singleton, do not modify this.
         services.AddSingleton<IRsaKeyProviderService, RsaKeyProviderService>();
 
-        // Configure Redis
-        services.AddStackExchangeRedisCache(options =>
-        {
-            options.Configuration = appSettings.Redis.ConnectionString;
-            options.InstanceName = appSettings.Redis.InstanceName;
-        });
-
         return services;
     }
 

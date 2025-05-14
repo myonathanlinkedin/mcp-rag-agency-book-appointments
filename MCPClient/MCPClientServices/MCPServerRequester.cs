@@ -2,6 +2,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
+using System.Security.Claims;
 using System.Text;
 
 public class MCPServerRequester : IMCPServerRequester
@@ -12,8 +13,6 @@ public class MCPServerRequester : IMCPServerRequester
     private readonly IChatMessageStore messageStore;
     private readonly IHttpContextAccessor httpContextAccessor;
 
-    private readonly string sessionId;
-
     public MCPServerRequester(IChatClient chatClient, IEnumerable<McpClientTool> tools, IChatMessageStore messageStore, ILogger<MCPServerRequester> logger, IHttpContextAccessor httpContextAccessor)
     {
         this.chatClient = chatClient;
@@ -21,41 +20,28 @@ public class MCPServerRequester : IMCPServerRequester
         this.logger = logger;
         this.messageStore = messageStore;
         this.httpContextAccessor = httpContextAccessor;
-
-        // Try to get the SessionId from cookies or session. If not found, generate a new one
-        sessionId = httpContextAccessor.HttpContext?.Request?.Cookies["SessionId"]
-                    ?? httpContextAccessor.HttpContext?.Session?.Id
-                    ?? Guid.NewGuid().ToString();
-
-        // Set the SessionId cookie if it is not already set
-        SetSessionCookie(sessionId);
     }
 
-    private void SetSessionCookie(string sessionId)
+    private string GetUserEmailFromContext()
     {
-        if (httpContextAccessor.HttpContext != null)
-        {
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = httpContextAccessor.HttpContext.Request.IsHttps,  // Ensure cookie is secure in HTTPS
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTime.Now.AddDays(1)  // Set expiration for 1 day
-            };
+        var user = httpContextAccessor.HttpContext?.User;
+        var userEmail = user?.FindFirst(ClaimTypes.Name)?.Value;
 
-            // Only set the cookie if it's not already set
-            if (httpContextAccessor.HttpContext.Request.Cookies["SessionId"] == null)
-            {
-                httpContextAccessor.HttpContext.Response.Cookies.Append("SessionId", sessionId, cookieOptions);
-            }
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            logger.LogWarning("User email not found in claims");
+            throw new UnauthorizedAccessException("User email not found. Please log in again.");
         }
+
+        return userEmail;
     }
 
     public async Task<Result<string>> RequestAsync(string prompt, ChatRole? chatRole = null, bool useSession = false, CancellationToken cancellationToken = default)
     {
         try
         {
-            List<ChatMessage> messages = useSession ? messageStore.GetMessages(sessionId) : new List<ChatMessage>();
+            var userEmail = GetUserEmailFromContext();
+            List<ChatMessage> messages = useSession ? messageStore.GetMessages(userEmail) : new List<ChatMessage>();
 
             messages.Add(new ChatMessage(chatRole ?? ChatRole.User, prompt));
 
@@ -74,9 +60,14 @@ public class MCPServerRequester : IMCPServerRequester
             messages.AddMessages(updates);
 
             if(useSession)
-                  messageStore.SaveMessages(sessionId, messages);
+                messageStore.SaveMessages(userEmail, messages);
 
             return Result<string>.SuccessWith(responseBuilder.ToString());
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            logger.LogWarning(ex, "Unauthorized access attempt");
+            return Result<string>.Failure(new List<string> { "Unauthorized: Please log in to continue." });
         }
         catch (Exception ex)
         {

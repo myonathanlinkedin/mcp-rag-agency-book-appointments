@@ -6,6 +6,7 @@ using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using Microsoft.Extensions.Options;
 using Marten;
+using Microsoft.Extensions.Caching.Distributed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +32,7 @@ builder.Services
     .AddSwaggerGen(c => c.SwaggerDoc("v1", new OpenApiInfo { Title = "Web API", Version = "v1" }))
     .AddHttpClient()
     .AddMcpClient()    
-    .AddMemoryCache()    
+    .AddMemoryCache()
     .AddSingleton(sp =>
     {
         var appSettings = sp.GetRequiredService<ApplicationSettings>();
@@ -82,6 +83,14 @@ builder.Logging.ClearProviders();
 builder.Logging.AddSerilog();
 
 var app = builder.Build();
+
+// Clear Redis cache on startup
+using (var scope = app.Services.CreateScope())
+{
+    var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+    var settings = scope.ServiceProvider.GetRequiredService<ApplicationSettings>();
+    await cache.ClearRedisCache(settings.Redis.ConnectionString);
+}
 
 // Ensure cookies are only sent over HTTPS
 app.UseCookiePolicy(new CookiePolicyOptions
