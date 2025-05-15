@@ -19,6 +19,9 @@ public class AppointmentSlotConfiguration : IEntityTypeConfiguration<Appointment
         builder.Property(e => e.AgencyId)
             .IsRequired();
 
+        builder.Property(e => e.RowVersion)
+            .IsRowVersion();
+
         // Configure relationships
         builder.HasOne<Agency>()
             .WithMany(a => a.Slots)

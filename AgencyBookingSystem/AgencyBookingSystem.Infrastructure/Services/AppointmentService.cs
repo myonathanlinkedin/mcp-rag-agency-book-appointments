@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 
 public class AppointmentService : IAppointmentService
 {
@@ -113,7 +114,7 @@ public class AppointmentService : IAppointmentService
 
         // Get available slot for the date
         var availableSlot = await appointmentSlotRepository.GetAvailableSlotAsync(agencyId, date);
-        if (availableSlot == null || !availableSlot.HasCapacity)
+        if (availableSlot == null || availableSlot.Capacity <= 0)
         {
             logger.LogInformation("No available slots for Agency {AgencyId} on {Date}.", agencyId, date);
             return false;
@@ -267,86 +268,100 @@ public class AppointmentService : IAppointmentService
         return Result.Success;
     }
 
-    public async Task<Result> RescheduleAppointmentAsync(Guid appointmentId, DateTime newDate, CancellationToken cancellationToken = default)
+    public async Task<Result> RescheduleAppointmentAsync(
+        Guid appointmentId,
+        DateTime newDate,
+        CancellationToken cancellationToken = default)
     {
-        // Validate appointment and new date
-        var validationResult = await ValidateRescheduleAsync(appointmentId, newDate);
-        if (!validationResult.Succeeded)
+        Result result = null;
+        await TransactionHelper.ExecuteInTransactionAsync(async () =>
         {
-            return validationResult;
-        }
+            try
+            {
+                // Get appointment
+                var appointment = await appointmentRepository.GetByIdAsync(appointmentId);
+                if (appointment == null)
+                {
+                    logger.LogWarning("Rescheduling failed. Appointment {AppointmentId} not found.", appointmentId);
+                    result = Result.Failure(new[] { "Appointment not found." });
+                    return;
+                }
 
-        var appointment = await appointmentRepository.GetByIdAsync(appointmentId);
-        if (appointment == null)
-        {
-            logger.LogWarning("Rescheduling failed. Appointment {AppointmentId} not found.", appointmentId);
-            return Result.Failure(new[] { "Appointment not found." });
-        }
+                // Get agency
+                var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
+                if (agency == null)
+                {
+                    logger.LogWarning("Rescheduling failed. Agency {AgencyId} not found.", appointment.AgencyId);
+                    result = Result.Failure(new[] { "Agency not found." });
+                    return;
+                }
 
-        var agency = await agencyService.GetByIdAsync(appointment.AgencyId);
-        if (agency == null)
-        {
-            logger.LogWarning("Rescheduling failed. Agency not found for appointment {AppointmentId}.", appointmentId);
-            return Result.Failure(new[] { "Agency not found." });
-        }
+                // Check if the new date is a holiday
+                if (agency.Holidays.Any(h => h.Date.Date == newDate.Date))
+                {
+                    logger.LogWarning("Rescheduling failed. {Date} is a holiday for Agency {AgencyName}.", newDate, agency.Name);
+                    result = Result.Failure(new[] { "Cannot reschedule to a holiday." });
+                    return;
+                }
 
-        // Get available slot for new date
-        var slots = await appointmentSlotRepository.GetSlotsByAgencyAsync(agency.Id, newDate);
-        if (slots == null)
-        {
-            logger.LogWarning("Rescheduling failed. No slots found for {Date} at Agency {AgencyName}.", newDate, agency.Name);
-            return Result.Failure(new[] { "No available slots for the selected date." });
-        }
+                // Get available slot for new date
+                var availableSlot = await appointmentSlotRepository.GetAvailableSlotAsync(agency.Id, newDate);
+                if (availableSlot == null)
+                {
+                    logger.LogWarning("Rescheduling failed. No available slots for {Date} at Agency {AgencyName}.", newDate, agency.Name);
+                    result = Result.Failure(new[] { "No available slots for the selected date." });
+                    return;
+                }
 
-        var availableSlot = slots.FirstOrDefault(s => s.HasCapacity && s.StartTime == newDate);
-        if (availableSlot == null)
-        {
-            logger.LogWarning("Rescheduling failed. No available slots for {Date} at Agency {AgencyName}.", newDate, agency.Name);
-            return Result.Failure(new[] { "No available slots for the selected date." });
-        }
+                // Get old slot to increase its capacity
+                var oldSlots = await appointmentSlotRepository.GetSlotsByAgencyAsync(agency.Id, appointment.Date);
+                var oldSlot = oldSlots?.FirstOrDefault(s => s.StartTime == appointment.Date);
+                if (oldSlot != null)
+                {
+                    oldSlot.IncreaseCapacity();
+                    appointmentSlotRepository.Update(oldSlot);
+                    await appointmentSlotRepository.SaveChangesAsync(cancellationToken);
+                }
 
-        // Get old slot to increase its capacity
-        var oldSlots = await appointmentSlotRepository.GetSlotsByAgencyAsync(agency.Id, appointment.Date);
-        var oldSlot = oldSlots?.FirstOrDefault(s => s.StartTime == appointment.Date);
-        if (oldSlot != null)
-        {
-            oldSlot.IncreaseCapacity();
-        }
+                // Update appointment
+                var rescheduleResult = appointment.Reschedule(newDate);
+                if (!rescheduleResult.Succeeded)
+                {
+                    result = rescheduleResult;
+                    return;
+                }
 
-        // Update appointment
-        var rescheduleResult = appointment.Reschedule(newDate);
-        if (!rescheduleResult.Succeeded)
-        {
-            return rescheduleResult;
-        }
+                // Update new slot capacity
+                availableSlot.DecreaseCapacity();
+                appointmentSlotRepository.Update(availableSlot);
+                await appointmentSlotRepository.SaveChangesAsync(cancellationToken);
 
-        // Update new slot capacity
-        availableSlot.DecreaseCapacity();
+                // Save appointment changes
+                appointmentRepository.Update(appointment);
+                await appointmentRepository.SaveChangesAsync(cancellationToken);
 
-        // Track all changes
-        appointmentRepository.Update(appointment);
-        if (oldSlot != null)
-        {
-            appointmentSlotRepository.Update(oldSlot);
-        }
-        appointmentSlotRepository.Update(availableSlot);
+                // Get agency user for event
+                var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
+                if (agencyUser != null)
+                {
+                    await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Rescheduled, appointment, agency, agencyUser);
+                }
+                else
+                {
+                    logger.LogWarning("Agency user not found for appointment {AppointmentId}.", appointmentId);
+                }
 
-        // Save all changes in one transaction
-        await appointmentRepository.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Appointment {AppointmentId} rescheduled successfully to {NewDate}.", appointmentId, newDate);
+                result = Result.Success;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error rescheduling appointment {AppointmentId}", appointmentId);
+                result = Result.Failure(new[] { "An error occurred while rescheduling the appointment." });
+            }
+        }, System.Transactions.IsolationLevel.RepeatableRead);
 
-        // Get agency user for event
-        var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
-        if (agencyUser != null)
-        {
-            await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Rescheduled, appointment, agency, agencyUser);
-        }
-        else
-        {
-            logger.LogWarning("Agency user not found for appointment {AppointmentId}.", appointmentId);
-        }
-
-        logger.LogInformation("Appointment {AppointmentId} rescheduled successfully to {NewDate}.", appointmentId, newDate);
-        return Result.Success;
+        return result;
     }
 
     public async Task<List<Appointment>> GetUpcomingAppointmentsAsync(Guid agencyId, DateTime fromDate)
@@ -475,7 +490,7 @@ public class AppointmentService : IAppointmentService
 
         // Get the specific hour slot for booking
         var availableSlot = await appointmentSlotRepository.GetAvailableSlotAsync(agencyId, date);
-        if (availableSlot == null || !availableSlot.HasCapacity)
+        if (availableSlot == null || availableSlot.Capacity <= 0)
         {
             logger.LogWarning("No available capacity for {Date} at Agency {AgencyName}.", date, agency.Name);
             return Result.Failure(new[] { "This time slot is fully booked. Please choose another time." });
@@ -491,101 +506,120 @@ public class AppointmentService : IAppointmentService
         DateTime date,
         CancellationToken cancellationToken = default)
     {
-        // Validate input parameters
+        // Validate input parameters outside transaction
         var validationResult = await ValidateAppointmentCreationAsync(agencyId, email, appointmentName, date);
         if (!validationResult.Succeeded)
         {
             return validationResult;
         }
 
-        // Get agency
-        var agency = await agencyService.GetByIdAsync(agencyId);
-        if (agency == null)
+        Result result = null;
+        await TransactionHelper.ExecuteInTransactionAsync(async () =>
         {
-            logger.LogWarning("Appointment creation failed. Agency {AgencyId} not found.", agencyId);
-            return Result.Failure(new[] { "Agency not found." });
-        }
-
-        // Get or create agency user with proper validation
-        var agencyUser = await agencyUserService.GetByEmailAsync(email);
-        if (agencyUser == null)
-        {
-            // Create new agency user with customer role
-            var userResult = AgencyUser.Create(
-                agencyId,
-                email,
-                email.Split('@')[0], // Use part before @ as temporary name
-                new[] { CommonModelConstants.AgencyRole.Customer }
-            );
-
-            if (!userResult.Succeeded)
+            try
             {
-                logger.LogWarning("Failed to create agency user for email {Email}. Errors: {Errors}", 
-                    email, string.Join(", ", userResult.Errors));
-                return Result.Failure(userResult.Errors);
-            }
+                // Get agency
+                var agency = await agencyService.GetByIdAsync(agencyId);
+                if (agency == null)
+                {
+                    logger.LogWarning("Appointment creation failed. Agency {AgencyId} not found.", agencyId);
+                    result = Result.Failure(new[] { "Agency not found." });
+                    return;
+                }
 
-            agencyUser = userResult.Data;
-            
-            // Set up back-reference for new user
-            var assignResult = agency.AssignUser(agencyUser);
-            if (!assignResult.Succeeded)
+                // Get or create agency user with proper validation
+                var agencyUser = await agencyUserService.GetByEmailAsync(email);
+                if (agencyUser == null)
+                {
+                    // Create new agency user with customer role
+                    var userResult = AgencyUser.Create(
+                        agencyId,
+                        email,
+                        email.Split('@')[0], // Use part before @ as temporary name
+                        new[] { CommonModelConstants.AgencyRole.Customer }
+                    );
+
+                    if (!userResult.Succeeded)
+                    {
+                        logger.LogWarning("Failed to create agency user for email {Email}. Errors: {Errors}", 
+                            email, string.Join(", ", userResult.Errors));
+                        result = Result.Failure(userResult.Errors);
+                        return;
+                    }
+
+                    agencyUser = userResult.Data;
+                    
+                    // Set up back-reference for new user
+                    var assignResult = agency.AssignUser(agencyUser);
+                    if (!assignResult.Succeeded)
+                    {
+                        result = assignResult;
+                        return;
+                    }
+
+                    // Save the new user
+                    await agencyUserService.AddAsync(agencyUser, cancellationToken);
+                    await agencyUserService.SaveChangesAsync(cancellationToken);
+                }
+
+                // Get available slot
+                var slots = await appointmentSlotRepository.GetSlotsByAgencyAsync(agencyId, date);
+                if (slots == null || !slots.Any())
+                {
+                    logger.LogWarning("Appointment creation failed. No slots available for agency {AgencyId} on {Date}.", 
+                        agencyId, date.ToString("yyyy-MM-dd"));
+                    result = Result.Failure(new[] { "No appointment slots available for the selected date." });
+                    return;
+                }
+
+                var availableSlot = slots.FirstOrDefault(s => s.Capacity > 0 && s.StartTime == date);
+                if (availableSlot == null)
+                {
+                    logger.LogWarning("No available slots for {Date} at Agency {AgencyName}.", date, agency.Name);
+                    result = Result.Failure(new[] { "No available slots for the selected date." });
+                    return;
+                }
+
+                // Create appointment using domain factory method
+                var appointmentResult = Appointment.Create(
+                    agencyId,
+                    agencyUser.Id,
+                    appointmentName,
+                    date,
+                    agencyUser);
+
+                if (!appointmentResult.Succeeded)
+                {
+                    result = appointmentResult;
+                    return;
+                }
+
+                var appointment = appointmentResult.Data;
+
+                // Update slot capacity
+                availableSlot.DecreaseCapacity();
+
+                // Save all changes
+                appointmentSlotRepository.Update(availableSlot);
+                await appointmentSlotRepository.SaveChangesAsync(cancellationToken);
+
+                await appointmentRepository.AddAsync(appointment, cancellationToken);
+                await appointmentRepository.SaveChangesAsync(cancellationToken);
+
+                // Publish event
+                await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Created, appointment, agency, agencyUser);
+
+                logger.LogInformation("Appointment created successfully for user {Email} at agency {AgencyId}.", email, agencyId);
+                result = Result.Success;
+            }
+            catch (Exception ex)
             {
-                return assignResult;
+                logger.LogError(ex, "Error creating appointment for user {Email} at agency {AgencyId}", email, agencyId);
+                result = Result.Failure(new[] { "An error occurred while creating the appointment." });
             }
-        }
+        }, System.Transactions.IsolationLevel.RepeatableRead);
 
-        // Get available slot
-        var slots = await appointmentSlotRepository.GetSlotsByAgencyAsync(agencyId, date);
-        if (slots == null || !slots.Any())
-        {
-            logger.LogWarning("Appointment creation failed. No slots available for agency {AgencyId} on {Date}.", 
-                agencyId, date.ToString("yyyy-MM-dd"));
-            return Result.Failure(new[] { "No appointment slots available for the selected date." });
-        }
-
-        var availableSlot = slots.FirstOrDefault(s => s.HasCapacity && s.StartTime == date);
-        if (availableSlot == null)
-        {
-            logger.LogWarning("No available slots for {Date} at Agency {AgencyName}.", date, agency.Name);
-            return Result.Failure(new[] { "No available slots for the selected date." });
-        }
-
-        // Create appointment using domain factory method
-        var appointmentResult = Appointment.Create(
-            agencyId,
-            agencyUser.Id,
-            appointmentName,
-            date,
-            agencyUser);
-
-        if (!appointmentResult.Succeeded)
-        {
-            return appointmentResult;
-        }
-
-        var appointment = appointmentResult.Data;
-
-        // Update slot capacity
-        availableSlot.DecreaseCapacity();
-
-        // Track all changes
-        if (agencyUser.Id == Guid.Empty)
-        {
-            await agencyUserService.AddAsync(agencyUser, cancellationToken);
-            agencyService.Update(agency);
-        }
-        appointmentSlotRepository.Update(availableSlot);
-        await appointmentRepository.AddAsync(appointment, cancellationToken);
-
-        // Save all changes in one transaction
-        await appointmentRepository.SaveChangesAsync(cancellationToken);
-
-        // Publish event after successful save
-        await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Created, appointment, agency, agencyUser);
-
-        logger.LogInformation("Appointment {AppointmentId} created successfully for Agency {AgencyId}.", appointment.Id, agencyId);
-        return Result.Success;
+        return result;
     }
 
     public async Task<bool> ExistsAsync(Guid appointmentId)
@@ -702,7 +736,7 @@ public class AppointmentService : IAppointmentService
 
         // Get available slot for today
         var availableSlot = await appointmentSlotRepository.GetAvailableSlotAsync(agencyId, DateTime.UtcNow);
-        if (availableSlot == null || !availableSlot.HasCapacity)
+        if (availableSlot == null || availableSlot.Capacity <= 0)
         {
             logger.LogInformation("No available slots for Agency {AgencyId} today.", agencyId);
             return false;

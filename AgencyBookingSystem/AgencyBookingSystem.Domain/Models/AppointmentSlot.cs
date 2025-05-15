@@ -12,12 +12,13 @@ public class AppointmentSlot : Entity, IAggregateRoot
     public DateTime EndTime { get; private set; }
     
     [Required]
-    [Range(1, 50)]
+    [Range(0, 50)]
     public int Capacity { get; private set; }
 
-    public bool HasCapacity => Capacity > 0;
+    [Timestamp]
+    public byte[] RowVersion { get; private set; }
 
-    public AppointmentSlot() : base()
+    private AppointmentSlot() : base()
     {
         // Default constructor for EF Core
     }
@@ -35,6 +36,7 @@ public class AppointmentSlot : Entity, IAggregateRoot
         StartTime = startTime;
         EndTime = endTime;
         Capacity = capacity;
+        Validate();
     }
 
     // Factory method
@@ -52,6 +54,46 @@ public class AppointmentSlot : Entity, IAggregateRoot
             capacity: capacity);
     }
 
+    public Result DecreaseCapacity()
+    {
+        if (Capacity <= 0)
+        {
+            return Result.Failure(new[] { "No capacity available." });
+        }
+
+        Capacity--;
+        return Result.Success;
+    }
+
+    public Result IncreaseCapacity()
+    {
+        if (Capacity >= 50)
+        {
+            return Result.Failure(new[] { "Maximum capacity reached." });
+        }
+
+        Capacity++;
+        return Result.Success;
+    }
+
+    public Result UpdateCapacity(int newCapacity)
+    {
+        if (newCapacity < 0 || newCapacity > 50)
+        {
+            return Result.Failure(new[] { "Capacity must be between 0 and 50." });
+        }
+
+        Capacity = newCapacity;
+        return Result.Success;
+    }
+
+    public void UpdateTimes(DateTime startTime, DateTime endTime)
+    {
+        StartTime = startTime;
+        EndTime = endTime;
+        Validate();
+    }
+
     // Validation for appointment slot
     private void Validate()
     {
@@ -64,53 +106,10 @@ public class AppointmentSlot : Entity, IAggregateRoot
         {
             throw new ArgumentException("Appointment duration cannot exceed 1 hour.");
         }
-    }
 
-    // Increase capacity by 1
-    public void IncreaseCapacity()
-    {
-        Capacity++;
-    }
-
-    // Decrease capacity by 1
-    public void DecreaseCapacity()
-    {
-        if (Capacity > 0)
+        if (Capacity < 0 || Capacity > 50)
         {
-            Capacity--;
+            throw new ArgumentException("Capacity must be between 0 and 50.");
         }
-        else
-        {
-            throw new InvalidOperationException("Capacity cannot be less than 0.");
-        }
-    }
-
-    // Domain methods
-    public Result UpdateCapacity(int newCapacity)
-    {
-        if (newCapacity < 1 || newCapacity > 50)
-        {
-            return Result.Failure(new[] { "Capacity must be between 1 and 50." });
-        }
-
-        Capacity = newCapacity;
-        return Result.Success;
-    }
-
-    public Result UpdateTimes(DateTime newStartTime, DateTime newEndTime)
-    {
-        if (newStartTime >= newEndTime)
-        {
-            return Result.Failure(new[] { "Start time must be before end time." });
-        }
-
-        if (newStartTime < DateTime.Now)
-        {
-            return Result.Failure(new[] { "Cannot set slot time in the past." });
-        }
-
-        StartTime = newStartTime;
-        EndTime = newEndTime;
-        return Result.Success;
     }
 }

@@ -105,13 +105,12 @@ public static class InfrastructureConfiguration
         => serviceProvider.GetRequiredService<ApplicationSettings>();
 
     private static IServiceCollection AddDatabase<TDbContext>(
-        this IServiceCollection services,
-        string connectionString)
-        where TDbContext : DbContext =>
-        services.AddDbContext<TDbContext>(options => options
-            .UseSqlServer(connectionString, sql => sql
-                .EnableRetryOnFailure(10, TimeSpan.FromSeconds(30), null)
-                .MigrationsAssembly(typeof(TDbContext).Assembly.FullName)));
+       this IServiceCollection services,
+       string connectionString)
+       where TDbContext : DbContext =>
+       services.AddDbContext<TDbContext>(options => options
+           .UseSqlServer(connectionString, sqlOptions =>
+               sqlOptions.MigrationsAssembly(typeof(TDbContext).Assembly.FullName))); // UseSqlServer with MigrationsAssembly
 
     private static IServiceCollection AddRepositories(this IServiceCollection services, Assembly assembly) =>
         services.Scan(scan => scan
@@ -120,5 +119,5 @@ public static class InfrastructureConfiguration
                 .AssignableTo(typeof(IDomainRepository<>))
                 .AssignableTo(typeof(IQueryRepository<>)))
             .AsImplementedInterfaces()
-            .WithTransientLifetime());
+            .WithScopedLifetime());
 }
