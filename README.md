@@ -28,7 +28,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ Refit-powered REST API clients 🔌  
 ✅ producer-consumer pattern with buffer cache for real-time insert, save & update 📤📥  
 ✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️ – supports theme changes
-✅ Redis implementation for faster public key retrieval 🧰🔑
+✅ Redis implementation for faster public key retrieval and chat store caching 🧰🔑
 
 ## **📜 Architecture Diagram**  
 ```plaintext
