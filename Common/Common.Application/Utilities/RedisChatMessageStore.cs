@@ -16,7 +16,7 @@ public class RedisChatMessageStore : IChatMessageStore
         this.cacheKeyPrefix = appSettings.Redis.InstanceName;
         this.cacheOptions = new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(appSettings.Redis.CacheChatExpirationDays)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(appSettings.Redis.CacheChatExpirationMinutes)
         };
     }
 

@@ -28,5 +28,5 @@
     public record MCPSettings(string ServerName = "", string Endpoint = "");
     public record MailHogSettings(string SmtpServer = "", int SmtpPort = 587, string FromAddress = "");
     public record KafkaSettings(string BootstrapServers = "", string GroupId = "", string Topic = "");
-    public record RedisSettings(string ConnectionString = "", string InstanceName = "", int CacheChatExpirationDays = 1);
+    public record RedisSettings(string ConnectionString = "", string InstanceName = "", int CacheChatExpirationMinutes = 1);
 }
