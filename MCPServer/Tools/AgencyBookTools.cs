@@ -156,7 +156,8 @@ public sealed class AgencyBookTools : BaseTool
     }
 
     [McpServerTool, Description(CancelAppointmentDescription)]
-    public async Task<object> CancelAppointmentAsync(string appointmentId)
+    public async Task<object> CancelAppointmentAsync(
+        [Description("Unique identifier of the appointment (format: GUID string)")] string appointmentId)
     {
         try
         {
@@ -192,7 +193,11 @@ public sealed class AgencyBookTools : BaseTool
     }
 
     [McpServerTool, Description(CreateAppointmentDescription)]
-    public async Task<object> CreateAppointmentAsync(string? agencyEmail, string userEmail, DateTime date, string appointmentName)
+    public async Task<object> CreateAppointmentAsync(
+        [Description("Optional: Agency email. If not provided, the current user's agency will be used")] string? agencyEmail,
+        [Description("Email address of the user the appointment is for")] string userEmail,
+        [Description("Date and time of the appointment (format: yyyy-MM-dd HH:mm:ss)")] DateTime date,
+        [Description("Title or reason for the appointment")] string appointmentName)
     {
         try
         {
@@ -223,7 +228,11 @@ public sealed class AgencyBookTools : BaseTool
     }
 
     [McpServerTool, Description(UpdateAgencySettingsDescription)]
-    public async Task<object> UpdateAgencySettingsAsync(string? agencyEmail, int maxAppointmentsPerDay, List<object> holidays, bool? isApproved = null)
+    public async Task<object> UpdateAgencySettingsAsync(
+        [Description("Optional: Agency email. If not provided, updates the current agency")] string? agencyEmail,
+        [Description("Maximum number of appointments allowed per day")] int maxAppointmentsPerDay,
+        [Description("List of holiday dates where appointments are not allowed")] List<object> holidays,
+        [Description("Optional: Approval status of the agency")] bool? isApproved = null)
     {
         try
         {
