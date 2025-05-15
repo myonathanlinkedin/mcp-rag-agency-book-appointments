@@ -14,7 +14,6 @@ public class MartenEventRepository : IEventRepository
         if (outboxMessage == null)
             return;
 
-        // Use LightweightSession instead of the deprecated OpenSession
         using var session = documentStore.LightweightSession();
         session.Events.StartStream<IAggregateRoot>(outboxMessage.Id, outboxMessage);
         await session.SaveChangesAsync();
@@ -25,9 +24,22 @@ public class MartenEventRepository : IEventRepository
         if (events == null || !events.Any())
             return;
 
-        // Use LightweightSession instead of the deprecated OpenSession
         using var session = documentStore.LightweightSession();
-        session.Events.StartStream<IAggregateRoot>(aggregateId, events.ToArray());
+        
+        // Check if stream exists
+        var streamExists = await session.Events.FetchStreamStateAsync(aggregateId);
+        
+        if (streamExists == null)
+        {
+            // Start new stream if it doesn't exist
+            session.Events.StartStream<IAggregateRoot>(aggregateId, events.ToArray());
+        }
+        else
+        {
+            // Append to existing stream
+            session.Events.Append(aggregateId, events.ToArray());
+        }
+        
         await session.SaveChangesAsync();
     }
 
