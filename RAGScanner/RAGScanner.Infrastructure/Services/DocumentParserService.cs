@@ -1,4 +1,4 @@
-﻿using HtmlAgilityPack;
+using HtmlAgilityPack;
 using System.Text;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
@@ -174,25 +174,32 @@ public class DocumentParserService : IDocumentParserService
 
     private void ExtractPdfStructuredContent(Page page, StringBuilder sb)
     {
+        var words = page.GetWords()?.ToList() ?? new List<Word>();
+        if (!words.Any())
+        {
+            return; // Skip processing for empty pages
+        }
+
+        // Calculate average word height for the page
+        var avgWordHeight = words.Average(w => w.BoundingBox.Height);
+
         // Group words by their vertical position to identify lines
-        var wordsByLine = page.GetWords()
+        var wordsByLine = words
             .GroupBy(w => Math.Round(w.BoundingBox.Bottom))
             .OrderByDescending(g => g.Key);
 
-        // Calculate average word height for the page
-        var avgWordHeight = page.GetWords()
-            .Average(w => w.BoundingBox.Height);
-
         foreach (var line in wordsByLine)
         {
-            var words = line.OrderBy(w => w.BoundingBox.Left);
-            var lineText = string.Join(" ", words.Select(w => w.Text));
+            var lineWords = line.OrderBy(w => w.BoundingBox.Left).ToList();
+            if (!lineWords.Any()) continue;
+
+            var lineText = string.Join(" ", lineWords.Select(w => w.Text));
 
             if (!string.IsNullOrWhiteSpace(lineText))
             {
                 // Detect headings based on word height and other characteristics
-                var avgLineHeight = words.Average(w => w.BoundingBox.Height);
-                var isLikelyHeading = IsLikelyHeading(words.ToList(), avgWordHeight);
+                var avgLineHeight = lineWords.Average(w => w.BoundingBox.Height);
+                var isLikelyHeading = IsLikelyHeading(lineWords, avgWordHeight);
 
                 if (isLikelyHeading)
                 {
