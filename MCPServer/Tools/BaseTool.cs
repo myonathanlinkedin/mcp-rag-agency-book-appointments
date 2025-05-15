@@ -43,12 +43,7 @@ public class BaseTool
                 return $"Request failed with status code: {response.StatusCode}";
             }
 
-            var errorResponse = System.Text.Json.JsonSerializer.Deserialize<ErrorResponse>(content);
-            if (errorResponse?.Errors?.Any() == true)
-            {
-                return string.Join("; ", errorResponse.Errors);
-            }
-            return $"Request failed with status code: {response.StatusCode}";
+            return $"Request failed with status code: {response.StatusCode}, details: {content}";
         }
         catch (Exception ex)
         {

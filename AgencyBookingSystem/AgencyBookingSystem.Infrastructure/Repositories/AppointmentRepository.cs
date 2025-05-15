@@ -38,9 +38,14 @@ internal class AppointmentRepository : BufferedDataRepository<AgencyBookingDbCon
         return await FindWithIncludesAsync(predicate, includeUser);
     }
 
-    public async Task<List<Appointment>> GetByDateAndUserAsync(DateTime date, string userEmail)
+    public async Task<List<Appointment>> GetByDateAndUserAsync(DateTime date, string agencyEmail)
     {
-        Expression<Func<Appointment, bool>> predicate = a => a.Date.Date == date.Date && a.AgencyUser.Email == userEmail;
+        var agency = await Data.Agencies.FirstOrDefaultAsync(a => a.Email == agencyEmail);
+
+        if (agency == null)
+            return new List<Appointment>();
+
+        Expression<Func<Appointment, bool>> predicate = a => a.Date.Date == date.Date && a.AgencyId == agency.Id;
         Expression<Func<Appointment, object>> includeUser = a => a.AgencyUser;
         return await FindWithIncludesAsync(predicate, includeUser);
     }
