@@ -41,7 +41,7 @@ public sealed class AgencyBookTools : BaseTool
                 Log.Information("Agency created successfully: {Name}, {Email}", name, email);
                 return new { Message = "Agency created successfully." };
             }
-            
+
             var errorMessage = await GetErrorMessage(response);
             Log.Warning("Failed to create agency: {Name}, {Email}. Error: {Error}", name, email, errorMessage);
             return new { Error = new List<string> { errorMessage } };
@@ -94,15 +94,20 @@ public sealed class AgencyBookTools : BaseTool
     }
 
     [McpServerTool, Description(GetAppointmentsByDateDescription)]
-    public async Task<object> GetAppointmentsByDateAsync(DateTime date)
+    public async Task<object> GetAppointmentsByDateAsync(
+       [Description("Date to retrieve appointments for. Accepts formats like '2025-05-28', '28 May 2025', or 'today'")] string date)
     {
         try
         {
-            var token = GetTokenFromHttpContext();
-            if (token == LogAndReturnMissingToken()) return new { Error = new List<string> { "Authentication token is missing or invalid." } };
+            if (!DateTime.TryParse(date, out var parsedDate))
+                return new { Error = new List<string> { "Invalid date format. Try formats like '2025-05-28' or '28 May 2025'" } };
 
-            var response = await agencyBookApi.GetAppointmentsByDateAsync(new { FilterDate = date }, GetBearerToken());
-            Log.Information("Retrieved appointments for date: {Date}", date);
+            var token = GetTokenFromHttpContext();
+            if (token == LogAndReturnMissingToken())
+                return new { Error = new List<string> { "Authentication token is missing or invalid." } };
+
+            var response = await agencyBookApi.GetAppointmentsByDateAsync(new { FilterDate = parsedDate }, GetBearerToken());
+            Log.Information("Retrieved appointments for date: {Date}", parsedDate);
             return new { Data = response ?? new List<object>() };
         }
         catch (Refit.ApiException ex)
@@ -196,15 +201,24 @@ public sealed class AgencyBookTools : BaseTool
     public async Task<object> CreateAppointmentAsync(
         [Description("Optional: Agency email. If not provided, the current user's agency will be used")] string? agencyEmail,
         [Description("Email address of the user the appointment is for")] string userEmail,
-        [Description("Date and time of the appointment (format: yyyy-MM-dd HH:mm:ss)")] DateTime date,
+        [Description("Date and time of the appointment. Accepts formats like '28 May 2025 8 AM' or 'May 28, 2025 08:00'")] string date,
         [Description("Title or reason for the appointment")] string appointmentName)
     {
         try
         {
+            if (!DateTime.TryParse(date, out var parsedDate))
+            {
+                return new { Error = new List<string> { "Invalid date format. Please use a recognizable format like '28 May 2025 8 AM'." } };
+            }
+
+            parsedDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Local).ToUniversalTime();
+
             var token = GetTokenFromHttpContext();
             if (token == LogAndReturnMissingToken()) return new { Error = new List<string> { "Authentication token is missing or invalid." } };
 
-            var response = await agencyBookApi.CreateAppointmentAsync(new { agencyEmail, userEmail, date, appointmentName }, GetBearerToken());
+            var response = await agencyBookApi.CreateAppointmentAsync(new { agencyEmail = agencyEmail, userEmail = userEmail, date = parsedDate, appointmentName = appointmentName }, 
+                    GetBearerToken());
+
             if (response.IsSuccessStatusCode)
             {
                 Log.Information("Appointment created successfully: {AppointmentName} for {UserEmail}", appointmentName, userEmail);
@@ -264,11 +278,15 @@ public sealed class AgencyBookTools : BaseTool
 
     [McpServerTool, Description(RescheduleAppointmentDescription)]
     public async Task<object> RescheduleAppointmentAsync(
-        [Description("Unique identifier of the appointment (format: GUID string)")] string appointmentId,
-        [Description("New date and time for the appointment (format: yyyy-MM-dd HH:mm:ss)")] DateTime newDate)
+      [Description("Unique identifier of the appointment (format: GUID string)")] string appointmentId,
+      [Description("New date and time for the appointment. Accepts flexible formats like '28 May 2025 8 AM' or '2025-05-28 08:00:00'")] string newDate)
     {
         try
         {
+            if (!DateTime.TryParse(newDate, out var parsedDate))
+            {
+                return new { Error = new List<string> { "Invalid date format. Please use a recognizable format like '28 May 2025 8 AM'." } };
+            }
             var token = GetTokenFromHttpContext();
             if (token == LogAndReturnMissingToken()) return new { Error = new List<string> { "Authentication token is missing or invalid." } };
 
@@ -277,7 +295,7 @@ public sealed class AgencyBookTools : BaseTool
                 return new { Error = new List<string> { "Invalid appointment ID format. Please provide a valid GUID." } };
             }
 
-            var response = await agencyBookApi.RescheduleAppointmentAsync(new { appointmentId = appointmentGuid, newDate }, GetBearerToken());
+            var response = await agencyBookApi.RescheduleAppointmentAsync(new { appointmentId = appointmentGuid, newDate = parsedDate }, GetBearerToken());
             if (response.IsSuccessStatusCode)
             {
                 Log.Information("Appointment rescheduled successfully: {AppointmentId} to {NewDate}", appointmentId, newDate);
@@ -302,36 +320,45 @@ public sealed class AgencyBookTools : BaseTool
 
     [McpServerTool, Description(InitializeAppointmentSlotsDescription)]
     public async Task<object> InitializeAppointmentSlotsAsync(
-        [Description("Optional: Agency email. If provided, admin must execute")] string? agencyEmail,
-        [Description("Start date for slot initialization (format: yyyy-MM-dd HH:mm:ss)")] DateTime startDate,
-        [Description("End date for slot initialization (format: yyyy-MM-dd HH:mm:ss)")] DateTime endDate,
-        [Description("Duration of each appointment slot (format: hh:mm:ss)")] TimeSpan slotDuration,
-        [Description("Number of slots to create per day")] int slotsPerDay,
-        [Description("Maximum number of concurrent appointments per slot")] int capacityPerSlot)
+       [Description("Optional: Agency email. If provided, admin must execute")] string? agencyEmail,
+       [Description("Start date for slot initialization. Accepts flexible formats like '28 May 2025 08:00' or '2025-05-28 08:00:00'")] string startDate,
+       [Description("End date for slot initialization. Accepts flexible formats like '30 May 2025 18:00' or '2025-05-30 18:00:00'")] string endDate,
+       [Description("Duration of each appointment slot. Accepts formats like '01:00' or '1h'")] string slotDuration,
+       [Description("Number of slots to create per day")] int slotsPerDay,
+       [Description("Maximum number of concurrent appointments per slot")] int capacityPerSlot)
     {
         try
         {
+            if (!DateTime.TryParse(startDate, out var parsedStart))
+                return new { Error = new List<string> { "Invalid startDate format. Try '28 May 2025 08:00'" } };
+
+            if (!DateTime.TryParse(endDate, out var parsedEnd))
+                return new { Error = new List<string> { "Invalid endDate format. Try '30 May 2025 18:00'" } };
+
+            if (!TimeSpan.TryParse(slotDuration, out var parsedDuration))
+                return new { Error = new List<string> { "Invalid slotDuration format. Try '01:00:00' or '1h'" } };
+
             var token = GetTokenFromHttpContext();
             if (token == LogAndReturnMissingToken()) return new { Error = new List<string> { "Authentication token is missing or invalid." } };
 
-            var response = await agencyBookApi.InitializeAppointmentSlotsAsync(new 
-            { 
-                agencyEmail,
-                startDate,
-                endDate,
-                slotDuration,
-                slotsPerDay,
-                capacityPerSlot
+            var response = await agencyBookApi.InitializeAppointmentSlotsAsync(new
+            {
+                agencyEmail = agencyEmail,
+                startDate = parsedStart,
+                endDate = parsedEnd,
+                parsedDuration = parsedDuration,
+                slotsPerDay = slotsPerDay,
+                capacityPerSlot = capacityPerSlot
             }, GetBearerToken());
 
             if (response.IsSuccessStatusCode)
             {
-                Log.Information("Appointment slots initialized successfully for agency: {AgencyEmail} from {StartDate} to {EndDate}", 
+                Log.Information("Appointment slots initialized successfully for agency: {AgencyEmail} from {StartDate} to {EndDate}",
                     agencyEmail ?? "current agency", startDate, endDate);
                 return new { Message = "Appointment slots initialized successfully." };
             }
             var errorMessage = await GetErrorMessage(response);
-            Log.Warning("Failed to initialize appointment slots for agency: {AgencyEmail}. Error: {Error}", 
+            Log.Warning("Failed to initialize appointment slots for agency: {AgencyEmail}. Error: {Error}",
                 agencyEmail ?? "current agency", errorMessage);
             return new { Error = new List<string> { errorMessage } };
         }
