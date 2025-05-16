@@ -3,16 +3,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
-public class GetAppointmentsByDateCommand : IRequest<Result<List<AppointmentDto>>>
+public class GetAppointmentsByDateQuery : IRequest<Result<List<AppointmentDto>>>
 {
     public DateTime FilterDate { get; }
 
-    public GetAppointmentsByDateCommand(DateTime filterDate)
+    public GetAppointmentsByDateQuery(DateTime filterDate)
     {
         FilterDate = filterDate;
     }
 
-    public class GetAppointmentsByDateCommandHandler : IRequestHandler<GetAppointmentsByDateCommand, Result<List<AppointmentDto>>>
+    public class GetAppointmentsByDateCommandHandler : IRequestHandler<GetAppointmentsByDateQuery, Result<List<AppointmentDto>>>
     {
         private readonly IAppointmentService appointmentService;
         private readonly ILogger<GetAppointmentsByDateCommandHandler> logger;
@@ -28,7 +28,7 @@ public class GetAppointmentsByDateCommand : IRequest<Result<List<AppointmentDto>
             this.httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<Result<List<AppointmentDto>>> Handle(GetAppointmentsByDateCommand request, CancellationToken cancellationToken)
+        public async Task<Result<List<AppointmentDto>>> Handle(GetAppointmentsByDateQuery request, CancellationToken cancellationToken)
         {
             logger.LogInformation("Fetching appointments for date {Date}.", request.FilterDate);
 

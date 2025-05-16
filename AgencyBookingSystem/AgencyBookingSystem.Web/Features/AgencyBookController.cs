@@ -48,7 +48,7 @@ public class AgencyBookController : ApiController
     [HttpGet]
     [Authorize(Roles = $"{CommonModelConstants.Role.Administrator},{CommonModelConstants.Role.Agency}")]
     [Route(nameof(GetAppointmentsByDateAsync))]
-    public async Task<ActionResult<List<AppointmentDto>>> GetAppointmentsByDateAsync(GetAppointmentsByDateCommand command)
+    public async Task<ActionResult<List<AppointmentDto>>> GetAppointmentsByDateAsync(GetAppointmentsByDateQuery command)
         => await Send(command);
 
     [HttpPost]
