@@ -37,6 +37,8 @@ public class AppointmentSlot : Entity, IAggregateRoot
         EndTime = endTime;
         Capacity = capacity;
         Validate();
+
+        RaiseEvent(new AppointmentSlotEntityEvent(id));
     }
 
     // Factory method

@@ -48,6 +48,8 @@ public class Appointment : Entity, IAggregateRoot
         Status = status;
         Token = token;
         AgencyUser = agencyUser;
+
+        RaiseEvent(new AppointmentEntityEvent(id));
     }
 
     // Factory method to create a new appointment

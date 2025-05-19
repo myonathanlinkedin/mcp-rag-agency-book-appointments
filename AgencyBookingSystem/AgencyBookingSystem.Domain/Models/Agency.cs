@@ -45,6 +45,8 @@ public class Agency : Entity, IAggregateRoot
         RequiresApproval = requiresApproval;
         MaxAppointmentsPerDay = maxAppointmentsPerDay;
         IsApproved = !requiresApproval;
+
+        RaiseEvent(new AgencyEntityEvent(id));
     }
 
     // Factory method for creating a new agency

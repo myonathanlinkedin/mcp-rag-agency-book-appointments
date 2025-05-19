@@ -32,6 +32,8 @@ public class AgencyUser : Entity, IAggregateRoot
         AgencyId = agencyId;
         Email = email;
         FullName = fullName;
+
+        RaiseEvent(new AgencyUserEntityEvent(id));
     }
 
     // Factory method for creating a new agency user

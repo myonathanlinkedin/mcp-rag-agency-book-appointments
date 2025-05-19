@@ -1,4 +1,4 @@
-﻿public abstract class Entity : IEntity
+public abstract class Entity : IEntity
 {
     private readonly ICollection<IDomainEvent> events;
 
@@ -6,7 +6,11 @@
 
     public Guid Id { get; private set; } = default;
 
-    public Entity(Guid id) => Id = id;
+    public Entity(Guid id) 
+    {
+        Id = id;
+        events = new List<IDomainEvent>();
+    }
 
     public IReadOnlyCollection<IDomainEvent> Events
         => events.ToList().AsReadOnly();

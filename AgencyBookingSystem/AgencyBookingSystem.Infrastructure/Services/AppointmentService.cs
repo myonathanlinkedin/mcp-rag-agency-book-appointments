@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.Threading;
 
 public class AppointmentService : IAppointmentService
 {
@@ -169,7 +170,12 @@ public class AppointmentService : IAppointmentService
         // Save changes
         await appointmentRepository.UpsertAsync(appointment);
 
-        // Publish event
+        // ✅ Dispatch event
+        await eventDispatcher.Dispatch(new AppointmentEvent(
+            appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
+        ), default);
+
+        // ✅ Publish event  
         await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.NoShow, appointment, agency, agencyUser);
 
         logger.LogInformation("Appointment {AppointmentId} marked as no-show.", appointmentId);
@@ -344,6 +350,12 @@ public class AppointmentService : IAppointmentService
                 var agencyUser = await agencyUserService.GetByIdAsync(appointment.AgencyUserId);
                 if (agencyUser != null)
                 {
+                    // ✅ Dispatch event
+                    await eventDispatcher.Dispatch(new AppointmentEvent(
+                        appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
+                    ), cancellationToken);
+
+                    // ✅ Publish event to Kafka
                     await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Rescheduled, appointment, agency, agencyUser);
                 }
                 else
@@ -606,7 +618,12 @@ public class AppointmentService : IAppointmentService
                 await appointmentRepository.AddAsync(appointment, cancellationToken);
                 await appointmentRepository.SaveChangesAsync(cancellationToken);
 
-                // Publish event
+                // ✅ Dispatch event
+                await eventDispatcher.Dispatch(new AppointmentEvent(
+                    appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
+                ), cancellationToken);
+
+                // ✅ Publish event
                 await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Created, appointment, agency, agencyUser);
 
                 logger.LogInformation("Appointment created successfully for user {Email} at agency {AgencyId}.", email, agencyId);
@@ -712,7 +729,12 @@ public class AppointmentService : IAppointmentService
         // Save appointment
         await appointmentRepository.UpsertAsync(appointment, cancellationToken);
 
-        // Publish event
+        // ✅ Dispatch event
+        await eventDispatcher.Dispatch(new AppointmentEvent(
+            appointment.Id, appointment.Name, appointment.Date, appointment.Status, agency.Name, agency.Email, agencyUser.Email
+        ), cancellationToken);
+
+        // ✅ Publish event
         await PublishToKafkaAsync(CommonModelConstants.KafkaOperation.Cancelled, appointment, agency, agencyUser);
 
         logger.LogInformation("Appointment {AppointmentId} cancelled successfully.", appointmentId);

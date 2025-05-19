@@ -32,6 +32,8 @@ public class Holiday : Entity, IAggregateRoot
         AgencyId = agencyId;
         Date = date.Date; // Ensure we only store the date part
         Reason = reason;
+
+        RaiseEvent(new HolidayEntityEvent(id));
     }
 
     // Factory method for creating a new holiday

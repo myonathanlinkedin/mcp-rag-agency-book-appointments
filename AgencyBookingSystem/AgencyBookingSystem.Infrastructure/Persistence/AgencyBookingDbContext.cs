@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
-internal class AgencyBookingDbContext : DbContext
+internal class AgencyBookingDbContext : BaseDbContext<AgencyBookingDbContext>
 {
-    public AgencyBookingDbContext(DbContextOptions<AgencyBookingDbContext> options)
-        : base(options)
+    public AgencyBookingDbContext(DbContextOptions<AgencyBookingDbContext> options,
+        IEventDispatcher eventDispatcher)
+        : base(options, eventDispatcher)
     {
     }
 
