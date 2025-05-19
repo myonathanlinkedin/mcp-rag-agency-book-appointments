@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
-internal class AgencyBookingDbContext : BaseDbContext<AgencyBookingDbContext>
+public class AgencyBookingDbContext : BaseDbContext<AgencyBookingDbContext>
 {
     public AgencyBookingDbContext(DbContextOptions<AgencyBookingDbContext> options,
         IEventDispatcher eventDispatcher)

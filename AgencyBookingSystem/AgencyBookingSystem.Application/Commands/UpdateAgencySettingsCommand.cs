@@ -148,7 +148,6 @@ public class UpdateAgencySettingsCommand : IRequest<Result>
 
                 // Update agency
                 agencyService.Update(agency);
-                await agencyService.SaveChangesAsync(cancellationToken);
 
                 logger.LogInformation("Successfully updated settings for agency {AgencyEmail}.", agencyEmail);
                 return Result.Success;

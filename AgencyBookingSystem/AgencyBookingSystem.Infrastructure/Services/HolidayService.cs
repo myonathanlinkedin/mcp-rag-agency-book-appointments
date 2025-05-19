@@ -2,39 +2,39 @@
 
 public class HolidayService : IHolidayService
 {
-    private readonly IHolidayRepository holidayRepository;
+    private readonly IAppointmentUnitOfWork unitOfWork;
     private readonly ILogger<HolidayService> logger;
 
     public HolidayService(
-        IHolidayRepository holidayRepository,
+        IAppointmentUnitOfWork unitOfWork,
         ILogger<HolidayService> logger)
     {
-        this.holidayRepository = holidayRepository;
+        this.unitOfWork = unitOfWork;
         this.logger = logger;
     }
 
     public async Task<Holiday?> GetByIdAsync(Guid id)
     {
         logger.LogInformation("Fetching holiday with ID: {Id}", id);
-        return await holidayRepository.GetByIdAsync(id);
+        return await unitOfWork.Holidays.GetByIdAsync(id);
     }
 
     public async Task<List<Holiday>> GetAllAsync()
     {
         logger.LogInformation("Fetching all holidays");
-        return await holidayRepository.GetAllAsync();
+        return await unitOfWork.Holidays.GetAllAsync();
     }
 
     public async Task UpsertAsync(Holiday entity, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving holiday for date: {Date}", entity.Date);
-        await holidayRepository.UpsertAsync(entity, cancellationToken);
+        await unitOfWork.Holidays.UpsertAsync(entity, cancellationToken);
     }
 
     public async Task<List<Holiday>> GetHolidaysByAgencyAsync(Guid agencyId)
     {
         logger.LogInformation("Fetching holidays for Agency {AgencyId}", agencyId);
-        return await holidayRepository.GetHolidaysByAgencyAsync(agencyId);
+        return await unitOfWork.Holidays.GetHolidaysByAgencyAsync(agencyId);
     }
 
     public async Task<Result> CreateHolidayAsync(
@@ -43,17 +43,29 @@ public class HolidayService : IHolidayService
         string reason,
         CancellationToken cancellationToken = default)
     {
-        var holidayResult = Holiday.Create(agencyId, date, reason);
-        if (!holidayResult.Succeeded)
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            return holidayResult;
+            var holidayResult = Holiday.Create(agencyId, date, reason);
+            if (!holidayResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return holidayResult;
+            }
+
+            var holiday = holidayResult.Data;
+            await unitOfWork.Holidays.UpsertAsync(holiday, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+            
+            logger.LogInformation("Holiday created successfully for Agency {AgencyId} on {Date}.", agencyId, date);
+            return Result.Success;
         }
-
-        var holiday = holidayResult.Data;
-        await holidayRepository.UpsertAsync(holiday, cancellationToken);
-        logger.LogInformation("Holiday created successfully for Agency {AgencyId} on {Date}.", agencyId, date);
-
-        return Result.Success;
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error creating holiday for Agency {AgencyId} on {Date}", agencyId, date);
+            return Result.Failure(new[] { "An error occurred while creating the holiday." });
+        }
     }
 
     public async Task<Result> UpdateHolidayAsync(
@@ -62,65 +74,113 @@ public class HolidayService : IHolidayService
         string newReason,
         CancellationToken cancellationToken = default)
     {
-        var holiday = await holidayRepository.GetByIdAsync(holidayId);
-        if (holiday == null)
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            logger.LogWarning("Update failed. Holiday {HolidayId} not found.", holidayId);
-            return Result.Failure(new[] { "Holiday not found." });
-        }
+            var holiday = await unitOfWork.Holidays.GetByIdAsync(holidayId);
+            if (holiday == null)
+            {
+                logger.LogWarning("Update failed. Holiday {HolidayId} not found.", holidayId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "Holiday not found." });
+            }
 
-        var updateResult = holiday.UpdateDetails(newDate, newReason);
-        if (!updateResult.Succeeded)
+            var updateResult = holiday.UpdateDetails(newDate, newReason);
+            if (!updateResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return updateResult;
+            }
+
+            await unitOfWork.Holidays.UpsertAsync(holiday, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+            
+            logger.LogInformation("Holiday {HolidayId} updated successfully.", holidayId);
+            return Result.Success;
+        }
+        catch (Exception ex)
         {
-            return updateResult;
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error updating holiday {HolidayId}", holidayId);
+            return Result.Failure(new[] { "An error occurred while updating the holiday." });
         }
-
-        await holidayRepository.UpsertAsync(holiday, cancellationToken);
-        logger.LogInformation("Holiday {HolidayId} updated successfully.", holidayId);
-
-        return Result.Success;
     }
 
     public async Task<Result> DeleteHolidayAsync(
         Guid holidayId,
         CancellationToken cancellationToken = default)
     {
-        var holiday = await holidayRepository.GetByIdAsync(holidayId);
-        if (holiday == null)
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            logger.LogWarning("Delete failed. Holiday {HolidayId} not found.", holidayId);
-            return Result.Failure(new[] { "Holiday not found." });
-        }
+            var holiday = await unitOfWork.Holidays.GetByIdAsync(holidayId);
+            if (holiday == null)
+            {
+                logger.LogWarning("Delete failed. Holiday {HolidayId} not found.", holidayId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "Holiday not found." });
+            }
 
-        if (holiday.Date.Date < DateTime.Today)
+            if (holiday.Date.Date < DateTime.Today)
+            {
+                logger.LogWarning("Delete failed. Cannot delete past holidays.");
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "Cannot delete past holidays." });
+            }
+
+            await unitOfWork.Holidays.DeleteAsync(holiday.Id, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+            
+            logger.LogInformation("Holiday {HolidayId} deleted successfully.", holidayId);
+            return Result.Success;
+        }
+        catch (Exception ex)
         {
-            logger.LogWarning("Delete failed. Cannot delete past holidays.");
-            return Result.Failure(new[] { "Cannot delete past holidays." });
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error deleting holiday {HolidayId}", holidayId);
+            return Result.Failure(new[] { "An error occurred while deleting the holiday." });
         }
-
-        await holidayRepository.DeleteAsync(holiday.Id, cancellationToken);
-        logger.LogInformation("Holiday {HolidayId} deleted successfully.", holidayId);
-
-        return Result.Success;
     }
 
     public async Task DeleteHolidaysForAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Deleting all holidays for agency: {AgencyId}", agencyId);
-        await holidayRepository.DeleteForAgencyAsync(agencyId, cancellationToken);
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            logger.LogInformation("Deleting all holidays for agency: {AgencyId}", agencyId);
+            await unitOfWork.Holidays.DeleteForAgencyAsync(agencyId, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error deleting holidays for Agency {AgencyId}", agencyId);
+            throw;
+        }
     }
 
     public async Task AddHolidayAsync(Guid agencyId, Holiday holiday, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Adding holiday for agency {AgencyId} on date {Date}", agencyId, holiday.Date);
-        
-        var holidayResult = Holiday.Create(agencyId, holiday.Date, holiday.Reason);
-        if (!holidayResult.Succeeded)
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            throw new InvalidOperationException($"Failed to create holiday: {string.Join(", ", holidayResult.Errors)}");
-        }
+            logger.LogInformation("Adding holiday for agency {AgencyId} on date {Date}", agencyId, holiday.Date);
+            
+            var holidayResult = Holiday.Create(agencyId, holiday.Date, holiday.Reason);
+            if (!holidayResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                throw new InvalidOperationException($"Failed to create holiday: {string.Join(", ", holidayResult.Errors)}");
+            }
 
-        await holidayRepository.AddAsync(holidayResult.Data, cancellationToken);
-        await holidayRepository.SaveChangesAsync(cancellationToken);
+            await unitOfWork.Holidays.AddAsync(holidayResult.Data, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error adding holiday for Agency {AgencyId}", agencyId);
+            throw;
+        }
     }
 }

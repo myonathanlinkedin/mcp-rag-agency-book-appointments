@@ -24,15 +24,10 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
-            {
-                if (Data.Entry(entity).State == EntityState.Detached)
-                    await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
-                else
-                    Data.Update(entity);
-
-                await Data.SaveChangesAsync(cancellationToken);
-            }, IsolationLevel.RepeatableRead);
+            if (Data.Entry(entity).State == EntityState.Detached)
+                await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
+            else
+                Data.Update(entity);
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -52,31 +47,26 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
+            if (Data.Entry(entity).State == EntityState.Detached)
             {
-                if (Data.Entry(entity).State == EntityState.Detached)
+                // Check if entity exists
+                var existingEntity = await All().FirstOrDefaultAsync(x => x.Id == entity.Id, cancellationToken);
+                if (existingEntity != null)
                 {
-                    // Check if entity exists
-                    var existingEntity = await All().FirstOrDefaultAsync(x => x.Id == entity.Id, cancellationToken);
-                    if (existingEntity != null)
-                    {
-                        // Detach the entity loaded from DB
-                        Data.Entry(existingEntity).State = EntityState.Detached;
-                        // Update with new values
-                        Data.Update(entity);
-                    }
-                    else
-                    {
-                        await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
-                    }
+                    // Detach the entity loaded from DB
+                    Data.Entry(existingEntity).State = EntityState.Detached;
+                    // Update with new values
+                    Data.Update(entity);
                 }
                 else
                 {
-                    Data.Update(entity);
+                    await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
                 }
-
-                await Data.SaveChangesAsync(cancellationToken);
-            }, IsolationLevel.RepeatableRead);
+            }
+            else
+            {
+                Data.Update(entity);
+            }
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -216,20 +206,27 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
+            using var transaction = await Data.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
                 var entity = await GetByIdAsync(id);
                 if (entity != null)
                 {
                     Data.Remove(entity);
                     await Data.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                 }
                 else
                 {
                     Logger?.LogInformation("Entity of type {EntityType} with ID {Id} not found for deletion, skipping",
                         typeof(TEntity).Name, id);
                 }
-            }, IsolationLevel.RepeatableRead);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -249,10 +246,18 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
+            using var transaction = await Data.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
                 await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
-            }, IsolationLevel.RepeatableRead);
+                await Data.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
         catch (Exception ex)
         {
@@ -266,11 +271,7 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            TransactionHelper.ExecuteInTransactionAsync(async () =>
-            {
-                Data.Update(entity);
-                await Task.CompletedTask;
-            }, IsolationLevel.RepeatableRead).GetAwaiter().GetResult();
+            Data.Update(entity);
         }
         catch (Exception ex)
         {
@@ -284,10 +285,17 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
+            using var transaction = await Data.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
                 await Data.SaveChangesAsync(cancellationToken);
-            }, IsolationLevel.RepeatableRead);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
         catch (DbUpdateConcurrencyException ex)
         {

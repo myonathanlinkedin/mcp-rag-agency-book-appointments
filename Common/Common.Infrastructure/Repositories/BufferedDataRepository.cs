@@ -9,111 +9,127 @@ public abstract class BufferedDataRepository<TDbContext, TEntity> : DataReposito
 {
     private static readonly ConcurrentDictionary<Type, SemaphoreSlim> entityLocks = new();
     private readonly SemaphoreSlim semaphore;
-    private readonly ConcurrentQueue<(TEntity Entity, OperationType Operation)> operationQueue;
+    private readonly ConcurrentQueue<(TEntity Entity, OperationType Operation, int RetryCount)> operationQueue;
     private readonly ILogger logger;
-    private const int MaxRetries = 3;
+    private const int MaxRetries = 5;
+    private const int MaxQueueRetries = 3;
+    private static readonly TimeSpan InitialDelay = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan SemaphoreTimeout = TimeSpan.FromMinutes(5);
 
     protected BufferedDataRepository(
         TDbContext db,
         ILogger<BufferedDataRepository<TDbContext, TEntity>> logger) : base(db, logger)
     {
         this.logger = logger;
-        operationQueue = new ConcurrentQueue<(TEntity, OperationType)>();
+        operationQueue = new ConcurrentQueue<(TEntity, OperationType, int)>();
         semaphore = entityLocks.GetOrAdd(typeof(TEntity), _ => new SemaphoreSlim(1, 1));
     }
 
     private async Task<TEntity?> ReloadEntityAsync(TEntity entity, CancellationToken cancellationToken)
     {
-        // Detach current entity to avoid tracking conflicts
-        Data.Entry(entity).State = EntityState.Detached;
-
-        // Reload the entity from database
-        var reloadedEntity = await Data.Set<TEntity>()
-            .FirstOrDefaultAsync(e => e.Id == entity.Id, cancellationToken);
-
-        // Entity might have been deleted by another process
-        if (reloadedEntity == null)
+        try
         {
-            logger.LogWarning(
-                "Entity of type {EntityType} with ID {Id} was not found during reload. It may have been deleted.",
-                typeof(TEntity).Name, entity.Id);
-            return null;
-        }
+            // Detach current entity to avoid tracking conflicts
+            Data.Entry(entity).State = EntityState.Detached;
 
-        return reloadedEntity;
+            // Reload the entity from database
+            var reloadedEntity = await Data.Set<TEntity>()
+                .FirstOrDefaultAsync(e => e.Id == entity.Id, cancellationToken);
+
+            // Entity might have been deleted by another process
+            if (reloadedEntity == null)
+            {
+                logger.LogWarning(
+                    "Entity of type {EntityType} with ID {Id} was not found during reload. It may have been deleted.",
+                    typeof(TEntity).Name, entity.Id);
+                return null;
+            }
+
+            return reloadedEntity;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reloading entity of type {EntityType} with ID {Id}",
+                typeof(TEntity).Name, entity.Id);
+            throw;
+        }
+    }
+
+    private TimeSpan GetExponentialBackoffDelay(int attempt)
+    {
+        var delay = InitialDelay.TotalMilliseconds * Math.Pow(2, attempt);
+        return TimeSpan.FromMilliseconds(Math.Min(delay, MaxDelay.TotalMilliseconds));
     }
 
     private async Task<bool> TryProcessOperationWithRetriesAsync(TEntity entity, OperationType operation, CancellationToken cancellationToken)
     {
         var attempts = 0;
-        var delay = TimeSpan.FromMilliseconds(100); // Start with 100ms delay
+        var lastException = default(Exception);
 
         while (attempts < MaxRetries)
         {
             try
             {
-                return await TransactionHelper.ExecuteInTransactionAsync(async () =>
-                {
-                    var currentEntity = attempts == 0 ? entity : await ReloadEntityAsync(entity, cancellationToken);
+                var currentEntity = attempts == 0 ? entity : await ReloadEntityAsync(entity, cancellationToken);
 
-                    // If entity doesn't exist anymore and it's not a save operation, we can consider it done
-                    if (currentEntity == null)
+                // If entity doesn't exist anymore and it's not a save operation, we can consider it done
+                if (currentEntity == null)
+                {
+                    if (operation == OperationType.Save)
                     {
-                        if (operation == OperationType.Save)
-                        {
-                            // For save operations, we'll add it
-                            await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
-                        }
-                        else if (operation == OperationType.Delete)
-                        {
-                            // For delete operations, it's already gone - consider it a success
-                            logger.LogInformation(
-                                "Entity of type {EntityType} with ID {Id} already deleted, skipping delete operation",
-                                typeof(TEntity).Name, entity.Id);
-                            return true;
-                        }
-                        else
-                        {
-                            // For update operations when entity doesn't exist, we should handle this based on business logic
-                            logger.LogWarning(
-                                "Cannot update entity of type {EntityType} with ID {Id} as it no longer exists in the database",
-                                typeof(TEntity).Name, entity.Id);
-                            throw new DbUpdateConcurrencyException(
-                                $"Entity of type {typeof(TEntity).Name} with ID {entity.Id} was not found during concurrency resolution.");
-                        }
+                        // For save operations, we'll add it
+                        await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
+                    }
+                    else if (operation == OperationType.Delete)
+                    {
+                        // For delete operations, it's already gone - consider it a success
+                        logger.LogInformation(
+                            "Entity of type {EntityType} with ID {Id} already deleted, skipping delete operation",
+                            typeof(TEntity).Name, entity.Id);
+                        return true;
                     }
                     else
                     {
-                        switch (operation)
-                        {
-                            case OperationType.Save:
-                                if (Data.Entry(currentEntity).State == EntityState.Detached)
-                                {
-                                    await Data.Set<TEntity>().AddAsync(currentEntity, cancellationToken);
-                                }
-                                break;
-
-                            case OperationType.Update:
-                                // Apply updates to the reloaded entity
-                                if (attempts > 0)
-                                {
-                                    await OnConcurrencyResolveAsync(currentEntity, entity);
-                                }
-                                Data.Update(currentEntity);
-                                break;
-
-                            case OperationType.Delete:
-                                Data.Remove(currentEntity);
-                                break;
-                        }
+                        // For update operations when entity doesn't exist, we should handle this based on business logic
+                        logger.LogWarning(
+                            "Cannot update entity of type {EntityType} with ID {Id} as it no longer exists in the database",
+                            typeof(TEntity).Name, entity.Id);
+                        throw new DbUpdateConcurrencyException(
+                            $"Entity of type {typeof(TEntity).Name} with ID {entity.Id} was not found during concurrency resolution.");
                     }
+                }
+                else
+                {
+                    switch (operation)
+                    {
+                        case OperationType.Save:
+                            if (Data.Entry(currentEntity).State == EntityState.Detached)
+                            {
+                                await Data.Set<TEntity>().AddAsync(currentEntity, cancellationToken);
+                            }
+                            break;
 
-                    await Data.SaveChangesAsync(cancellationToken);
-                    return true;
-                }, IsolationLevel.RepeatableRead);
+                        case OperationType.Update:
+                            // Apply updates to the reloaded entity
+                            if (attempts > 0)
+                            {
+                                await OnConcurrencyResolveAsync(currentEntity, entity);
+                            }
+                            Data.Update(currentEntity);
+                            break;
+
+                        case OperationType.Delete:
+                            Data.Remove(currentEntity);
+                            break;
+                    }
+                }
+
+                return true;
             }
             catch (DbUpdateConcurrencyException ex)
             {
+                lastException = ex;
                 attempts++;
                 if (attempts >= MaxRetries)
                 {
@@ -127,9 +143,29 @@ public abstract class BufferedDataRepository<TDbContext, TEntity> : DataReposito
                     "Concurrency conflict detected for {EntityType} with ID {Id}. Attempt {Attempt} of {MaxRetries}",
                     typeof(TEntity).Name, entity.Id, attempts, MaxRetries);
 
+                var delay = GetExponentialBackoffDelay(attempts);
                 await Task.Delay(delay, cancellationToken);
-                delay *= 2; // Exponential backoff
             }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                attempts++;
+                if (attempts >= MaxRetries)
+                {
+                    logger.LogError(ex,
+                        "Operation failed after {Attempts} attempts for {EntityType} with ID {Id}",
+                        attempts, typeof(TEntity).Name, entity.Id);
+                    throw;
+                }
+
+                var delay = GetExponentialBackoffDelay(attempts);
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+
+        if (lastException != null)
+        {
+            throw lastException;
         }
 
         return false;
@@ -150,66 +186,86 @@ public abstract class BufferedDataRepository<TDbContext, TEntity> : DataReposito
         await Task.CompletedTask;
     }
 
-    private async Task ProcessOperationAsync(TEntity entity, OperationType operation, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var success = await TryProcessOperationWithRetriesAsync(entity, operation, cancellationToken);
-            if (!success)
-            {
-                throw new DbUpdateConcurrencyException(
-                    $"Failed to process operation {operation} for entity type {typeof(TEntity).Name} after maximum retries.");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error executing {Operation} on entity type {EntityType}",
-                operation, typeof(TEntity).Name);
-            throw;
-        }
-    }
-
     private async Task ProcessQueueAsync(CancellationToken cancellationToken)
     {
-        if (await semaphore.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken))
+        if (await semaphore.WaitAsync(SemaphoreTimeout, cancellationToken))
         {
             try
             {
-                await TransactionHelper.ExecuteInTransactionAsync(async () =>
+                var failedOperations = new ConcurrentQueue<(TEntity Entity, OperationType Operation, int RetryCount)>();
+
+                while (operationQueue.TryDequeue(out var operation))
                 {
-                    var failedOperations = new ConcurrentQueue<(TEntity Entity, OperationType Operation)>();
-
-                    while (operationQueue.TryDequeue(out var operation))
+                    try
                     {
-                        try
+                        var success = await TryProcessOperationWithRetriesAsync(operation.Entity, operation.Operation, cancellationToken);
+                        if (!success && operation.RetryCount < MaxQueueRetries)
                         {
-                            await ProcessOperationAsync(operation.Entity, operation.Operation, cancellationToken);
-                        }
-                        catch (DbUpdateConcurrencyException ex)
-                        {
-                            logger.LogError(ex, "Concurrency error processing operation {Operation} for entity type {EntityType}",
-                                operation.Operation, typeof(TEntity).Name);
-                            // Don't re-queue this operation as it will likely fail again
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "Error processing operation {Operation} for entity type {EntityType}",
-                                operation.Operation, typeof(TEntity).Name);
-                            failedOperations.Enqueue(operation);
+                            // Re-enqueue with incremented retry count
+                            operationQueue.Enqueue((operation.Entity, operation.Operation, operation.RetryCount + 1));
+                            logger.LogWarning(
+                                "Operation {Operation} for entity type {EntityType} with ID {Id} failed, re-queuing. Retry count: {RetryCount}",
+                                operation.Operation, typeof(TEntity).Name, operation.Entity.Id, operation.RetryCount + 1);
                         }
                     }
-
-                    // Re-enqueue failed operations (except concurrency failures)
-                    foreach (var failedOp in failedOperations)
+                    catch (DbUpdateConcurrencyException ex)
                     {
-                        operationQueue.Enqueue(failedOp);
+                        logger.LogError(ex, "Concurrency error processing operation {Operation} for entity type {EntityType}",
+                            operation.Operation, typeof(TEntity).Name);
+                        
+                        if (operation.RetryCount < MaxQueueRetries)
+                        {
+                            // Re-enqueue with incremented retry count
+                            operationQueue.Enqueue((operation.Entity, operation.Operation, operation.RetryCount + 1));
+                            logger.LogWarning(
+                                "Concurrency conflict for entity type {EntityType} with ID {Id}, re-queuing. Retry count: {RetryCount}",
+                                typeof(TEntity).Name, operation.Entity.Id, operation.RetryCount + 1);
+                        }
                     }
-                }, IsolationLevel.RepeatableRead);
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error processing operation {Operation} for entity type {EntityType}",
+                            operation.Operation, typeof(TEntity).Name);
+                        
+                        if (operation.RetryCount < MaxQueueRetries)
+                        {
+                            // Re-enqueue with incremented retry count
+                            operationQueue.Enqueue((operation.Entity, operation.Operation, operation.RetryCount + 1));
+                            logger.LogWarning(
+                                "Operation failed for entity type {EntityType} with ID {Id}, re-queuing. Retry count: {RetryCount}",
+                                typeof(TEntity).Name, operation.Entity.Id, operation.RetryCount + 1);
+                        }
+                    }
+                }
             }
             finally
             {
                 semaphore.Release();
             }
+        }
+        else
+        {
+            logger.LogWarning("Failed to acquire semaphore for processing queue of {EntityType}",
+                typeof(TEntity).Name);
+        }
+    }
+
+    private async Task EnqueueOperation(TEntity entity, OperationType operation, CancellationToken cancellationToken)
+    {
+        operationQueue.Enqueue((entity, operation, 0));
+        await ProcessQueueAsync(cancellationToken);
+    }
+
+    public override async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await ProcessQueueAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error saving changes for entity type {EntityType}", typeof(TEntity).Name);
+            throw;
         }
     }
 
@@ -217,10 +273,7 @@ public abstract class BufferedDataRepository<TDbContext, TEntity> : DataReposito
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
-            {
-                await EnqueueOperation(entity, OperationType.Save, cancellationToken);
-            }, IsolationLevel.RepeatableRead);
+            await EnqueueOperation(entity, OperationType.Save, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -233,10 +286,7 @@ public abstract class BufferedDataRepository<TDbContext, TEntity> : DataReposito
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
-            {
-                await EnqueueOperation(entity, OperationType.Update, cancellationToken);
-            }, IsolationLevel.RepeatableRead);
+            await EnqueueOperation(entity, OperationType.Update, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -249,58 +299,27 @@ public abstract class BufferedDataRepository<TDbContext, TEntity> : DataReposito
     {
         try
         {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
+            var entity = await GetByIdAsync(id);
+            if (entity != null)
             {
-                var entity = await GetByIdAsync(id);
-                if (entity != null)
-                {
-                    await EnqueueOperation(entity, OperationType.Delete, cancellationToken);
-                }
-                else
-                {
-                    logger.LogInformation(
-                        "Entity of type {EntityType} with ID {Id} not found for deletion, skipping",
-                        typeof(TEntity).Name, id);
-                }
-            }, IsolationLevel.RepeatableRead);
+                await EnqueueOperation(entity, OperationType.Delete, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting entity of type {EntityType} with id {Id}", typeof(TEntity).Name, id);
-            throw;
-        }
-    }
-
-    private async Task EnqueueOperation(TEntity entity, OperationType operation, CancellationToken cancellationToken)
-    {
-        operationQueue.Enqueue((entity, operation));
-        await ProcessQueueAsync(cancellationToken);
-    }
-
-    public override async Task SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await TransactionHelper.ExecuteInTransactionAsync(async () =>
-            {
-                await ProcessQueueAsync(cancellationToken);
-                await base.SaveChangesAsync(cancellationToken);
-            }, IsolationLevel.RepeatableRead);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error saving changes for entity type {EntityType}", typeof(TEntity).Name);
+            logger.LogError(ex, "Error deleting entity of type {EntityType} with ID {Id}", typeof(TEntity).Name, id);
             throw;
         }
     }
 
     public override async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        await base.AddAsync(entity, cancellationToken);
+        await SaveAsync(entity, cancellationToken);
     }
 
     public override void Update(TEntity entity)
     {
-        base.Update(entity);
+        // Queue the update operation
+        operationQueue.Enqueue((entity, OperationType.Update, 0));
     }
 }

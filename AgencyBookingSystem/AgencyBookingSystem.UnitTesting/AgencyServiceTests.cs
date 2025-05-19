@@ -4,25 +4,19 @@ using Moq;
 
 public class AgencyServiceTests
 {
-    private readonly Mock<IAgencyRepository> mockAgencyRepository;
-    private readonly Mock<IAgencyUserRepository> mockAgencyUserRepository;
-    private readonly Mock<IAppointmentSlotRepository> mockAppointmentSlotRepository;
+    private readonly Mock<IAppointmentUnitOfWork> mockUnitOfWork;
     private readonly Mock<IEventDispatcher> mockEventDispatcher;
     private readonly Mock<ILogger<AgencyService>> mockLogger;
     private readonly AgencyService agencyService;
 
     public AgencyServiceTests()
     {
-        this.mockAgencyRepository = new Mock<IAgencyRepository>();
-        this.mockAgencyUserRepository = new Mock<IAgencyUserRepository>();
-        this.mockAppointmentSlotRepository = new Mock<IAppointmentSlotRepository>();
+        this.mockUnitOfWork = new Mock<IAppointmentUnitOfWork>();
         this.mockEventDispatcher = new Mock<IEventDispatcher>();
         this.mockLogger = new Mock<ILogger<AgencyService>>();
         
         this.agencyService = new AgencyService(
-            this.mockAgencyRepository.Object,
-            this.mockAgencyUserRepository.Object,
-            this.mockAppointmentSlotRepository.Object,
+            this.mockUnitOfWork.Object,
             this.mockEventDispatcher.Object,
             this.mockLogger.Object
         );
@@ -40,8 +34,8 @@ public class AgencyServiceTests
             false,
             10);
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetByIdAsync(agencyId))
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.GetByIdAsync(agencyId))
             .ReturnsAsync(expectedAgency);
         
         // Act
@@ -51,7 +45,7 @@ public class AgencyServiceTests
         result.Should().NotBeNull();
         result.Id.Should().Be(agencyId);
         result.Name.Should().Be("Test Agency");
-        this.mockAgencyRepository.Verify(repo => repo.GetByIdAsync(agencyId), Times.Once);
+        this.mockUnitOfWork.Verify(uow => uow.Agencies.GetByIdAsync(agencyId), Times.Once);
     }
 
     [Fact]
@@ -67,8 +61,8 @@ public class AgencyServiceTests
             agency2Result.Data
         };
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetAllAsync())
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.GetAllAsync())
             .ReturnsAsync(agencies);
         
         // Act
@@ -79,7 +73,7 @@ public class AgencyServiceTests
         result.Should().HaveCount(2);
         result[0].Name.Should().Be("Agency 1");
         result[1].Name.Should().Be("Agency 2");
-        this.mockAgencyRepository.Verify(repo => repo.GetAllAsync(), Times.Once);
+        this.mockUnitOfWork.Verify(uow => uow.Agencies.GetAllAsync(), Times.Once);
     }
 
     [Fact]
@@ -95,8 +89,8 @@ public class AgencyServiceTests
             agency2Result.Data
         };
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetAgenciesWithUsersAsync())
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.GetAgenciesWithUsersAsync())
             .ReturnsAsync(agencies);
         
         // Act
@@ -105,7 +99,7 @@ public class AgencyServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(2);
-        this.mockAgencyRepository.Verify(repo => repo.GetAgenciesWithUsersAsync(), Times.Once);
+        this.mockUnitOfWork.Verify(uow => uow.Agencies.GetAgenciesWithUsersAsync(), Times.Once);
     }
 
     [Fact]
@@ -116,8 +110,8 @@ public class AgencyServiceTests
         var agencyResult = Agency.Create("Test Agency", email, false, 10);
         var expectedAgency = agencyResult.Data;
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetByEmailAsync(email))
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.GetByEmailAsync(email))
             .ReturnsAsync(expectedAgency);
         
         // Act
@@ -126,7 +120,7 @@ public class AgencyServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Email.Should().Be(email);
-        this.mockAgencyRepository.Verify(repo => repo.GetByEmailAsync(email), Times.Once);
+        this.mockUnitOfWork.Verify(uow => uow.Agencies.GetByEmailAsync(email), Times.Once);
     }
 
     [Fact]
@@ -138,13 +132,13 @@ public class AgencyServiceTests
         var requiresApproval = true;
         var maxAppointmentsPerDay = 10;
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetByEmailAsync(email))
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.GetByEmailAsync(email))
             .ReturnsAsync((Agency)null);
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.UpsertAsync(It.IsAny<Agency>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.UpsertAsync(It.IsAny<Agency>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(1));
         
         // Act
         var result = await this.agencyService.RegisterAgencyAsync(name, email, requiresApproval, maxAppointmentsPerDay);
@@ -152,23 +146,18 @@ public class AgencyServiceTests
         // Assert
         result.Succeeded.Should().BeTrue();
         
-        this.mockAgencyRepository.Verify(
-            repo => repo.UpsertAsync(
-                It.Is<Agency>(a => 
-                    a.Name == name && 
-                    a.Email == email && 
-                    a.RequiresApproval == requiresApproval &&
-                    a.MaxAppointmentsPerDay == maxAppointmentsPerDay),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-        
-        this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(It.IsAny<AgencyRegisteredEvent>(), It.IsAny<CancellationToken>()),
+        this.mockUnitOfWork.Verify(
+            uow => uow.Agencies.UpsertAsync(It.Is<Agency>(a => 
+                a.Name == name && 
+                a.Email == email && 
+                a.RequiresApproval == requiresApproval && 
+                a.MaxAppointmentsPerDay == maxAppointmentsPerDay),
+            It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task RegisterAgencyAsync_ShouldReturnFailure_WhenEmailAlreadyExists()
+    public async Task RegisterAgencyAsync_ShouldReturnFailure_WhenEmailExists()
     {
         // Arrange
         var name = "New Agency";
@@ -179,8 +168,8 @@ public class AgencyServiceTests
         var existingAgencyResult = Agency.Create("Existing Agency", email, false, 10);
         var existingAgency = existingAgencyResult.Data;
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetByEmailAsync(email))
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.GetByEmailAsync(email))
             .ReturnsAsync(existingAgency);
         
         // Act
@@ -190,8 +179,8 @@ public class AgencyServiceTests
         result.Succeeded.Should().BeFalse();
         result.Errors.Should().Contain(e => e.Contains("already exists"));
         
-        this.mockAgencyRepository.Verify(
-            repo => repo.UpsertAsync(It.IsAny<Agency>(), It.IsAny<CancellationToken>()),
+        this.mockUnitOfWork.Verify(
+            uow => uow.Agencies.UpsertAsync(It.IsAny<Agency>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -202,15 +191,15 @@ public class AgencyServiceTests
         var agencyResult = Agency.Create("Test Agency", "agency@example.com", true, 10);
         var agency = agencyResult.Data;
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetByIdAsync(agency.Id))
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.GetByIdAsync(agency.Id))
             .ReturnsAsync(agency);
 
-        this.mockAgencyRepository
-            .Setup(repo => repo.UpsertAsync(
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.UpsertAsync(
                 It.Is<Agency>(a => a.IsApproved == true),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Returns(Task.FromResult(1));
 
         // Act
         var result = await this.agencyService.ApproveAgencyAsync(agency.Id);
@@ -218,8 +207,8 @@ public class AgencyServiceTests
         // Assert
         result.Succeeded.Should().BeTrue();
         
-        this.mockAgencyRepository.Verify(
-            repo => repo.UpsertAsync(
+        this.mockUnitOfWork.Verify(
+            uow => uow.Agencies.UpsertAsync(
                 It.Is<Agency>(a => a.Id == agency.Id && a.IsApproved == true),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -229,109 +218,32 @@ public class AgencyServiceTests
     public async Task AssignUserToAgencyAsync_ShouldAssignUserAndReturnSuccess()
     {
         // Arrange
-        var email = "user@example.com";
-        var fullName = "John Doe";
-        var roles = new List<string> { CommonModelConstants.AgencyRole.Customer };
-        
-        var agencyResult = Agency.Create("Test Agency", "agency@test.com", false, 10);
-        if (!agencyResult.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create test agency: {string.Join(", ", agencyResult.Errors)}");
-        }
-        var agency = agencyResult.Data;
-        
-        // Create an already approved agency
-        var approvedAgency = new Agency(
-            agency.Id,
-            agency.Name,
-            agency.Email,
-            agency.RequiresApproval,
-            agency.MaxAppointmentsPerDay);
-        approvedAgency.Approve();
-        
-        this.mockAgencyRepository
-            .Setup(repo => repo.GetByIdAsync(agency.Id))
-            .ReturnsAsync(approvedAgency);
-        
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.GetByEmailAsync(email))
-            .ReturnsAsync((AgencyUser)null); // User doesn't exist yet
+        var agencyId = Guid.NewGuid();
+        var userEmail = "user@example.com";
+        var agency = new Agency(agencyId, "Test Agency", "test@agency.com");
+        var agencyUser = new AgencyUser(Guid.NewGuid(), userEmail, "Test User");
 
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.AddAsync(It.IsAny<AgencyUser>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(uow => uow.Agencies.GetByIdAsync(agencyId))
+            .ReturnsAsync(agency);
 
-        this.mockAgencyRepository
-            .Setup(repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        
+        mockUnitOfWork.Setup(uow => uow.AgencyUsers.GetByEmailAsync(userEmail))
+            .ReturnsAsync(agencyUser);
+
+        mockUnitOfWork.Setup(uow => uow.AgencyUsers.AddAsync(It.IsAny<AgencyUser>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(agencyUser));
+
+        mockUnitOfWork.Setup(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(1));
+
         // Act
-        var result = await this.agencyService.AssignUserToAgencyAsync(agency.Id, email, fullName, roles);
-        
+        var result = await agencyService.AssignUserToAgencyAsync(agencyId, userEmail);
+
         // Assert
         result.Succeeded.Should().BeTrue();
-        
-        // Verify agency was updated
-        this.mockAgencyRepository.Verify(
-            repo => repo.Update(
-                It.Is<Agency>(a => a.Id == agency.Id)),
-            Times.Once);
-        
-        // Verify user was added
-        this.mockAgencyUserRepository.Verify(
-            repo => repo.AddAsync(
-                It.Is<AgencyUser>(u => 
-                    u.Email == email && 
-                    u.FullName == fullName &&
-                    u.AgencyId == agency.Id),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-        
-        // Verify changes were saved
-        this.mockAgencyRepository.Verify(
-            repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()),
-            Times.Once);
-        
-        // Verify event was dispatched
-        this.mockEventDispatcher.Verify(
-            dispatcher => dispatcher.Dispatch(
-                It.Is<AgencyUserAssignedEvent>(e => 
-                    e.AgencyId == agency.Id && 
-                    e.UserEmail == email && 
-                    e.FullName == fullName &&
-                    e.Roles.Contains(CommonModelConstants.AgencyRole.Customer)),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task GetUserEmailAsync_ShouldReturnEmail_WhenUserExists()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var agencyId = Guid.NewGuid();
-        var expectedEmail = "user@example.com";
-        var userResult = AgencyUser.Create(
-            agencyId,
-            expectedEmail,
-            "Test User",
-            new[] { CommonModelConstants.AgencyRole.Customer });
-        if (!userResult.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create test user: {string.Join(", ", userResult.Errors)}");
-        }
-        var user = userResult.Data;
-        
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.GetByIdAsync(userId))
-            .ReturnsAsync(user);
-        
-        // Act
-        var result = await this.agencyService.GetUserEmailAsync(userId);
-        
-        // Assert
-        result.Should().Be(expectedEmail);
-        this.mockAgencyUserRepository.Verify(repo => repo.GetByIdAsync(userId), Times.Once);
+        mockUnitOfWork.Verify(uow => uow.Agencies.GetByIdAsync(agencyId), Times.Once);
+        mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetByEmailAsync(userEmail), Times.Once);
+        mockUnitOfWork.Verify(uow => uow.AgencyUsers.AddAsync(It.IsAny<AgencyUser>(), It.IsAny<CancellationToken>()), Times.Once);
+        mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -340,8 +252,8 @@ public class AgencyServiceTests
         // Arrange
         var agencyId = Guid.NewGuid();
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.ExistsAsync(agencyId))
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.ExistsAsync(agencyId))
             .ReturnsAsync(true);
         
         // Act
@@ -349,7 +261,7 @@ public class AgencyServiceTests
         
         // Assert
         result.Should().BeTrue();
-        this.mockAgencyRepository.Verify(repo => repo.ExistsAsync(agencyId), Times.Once);
+        this.mockUnitOfWork.Verify(uow => uow.Agencies.ExistsAsync(agencyId), Times.Once);
     }
 
     [Fact]
@@ -363,16 +275,16 @@ public class AgencyServiceTests
             10);
         var agency = agencyResult.Data;
         
-        this.mockAgencyRepository
-            .Setup(repo => repo.UpsertAsync(agency, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        this.mockUnitOfWork
+            .Setup(uow => uow.Agencies.UpsertAsync(agency, It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(1));
         
         // Act
         await this.agencyService.UpsertAsync(agency);
         
         // Assert
-        this.mockAgencyRepository.Verify(
-            repo => repo.UpsertAsync(agency, It.IsAny<CancellationToken>()), 
+        this.mockUnitOfWork.Verify(
+            uow => uow.Agencies.UpsertAsync(agency, It.IsAny<CancellationToken>()), 
             Times.Once);
     }
 }

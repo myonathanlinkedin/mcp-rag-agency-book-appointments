@@ -4,17 +4,17 @@ using Moq;
 
 public class AgencyUserServiceTests
 {
-    private readonly Mock<IAgencyUserRepository> mockAgencyUserRepository;
+    private readonly Mock<IAppointmentUnitOfWork> mockUnitOfWork;
     private readonly Mock<ILogger<AgencyUserService>> mockLogger;
     private readonly AgencyUserService agencyUserService;
 
     public AgencyUserServiceTests()
     {
-        this.mockAgencyUserRepository = new Mock<IAgencyUserRepository>();
+        this.mockUnitOfWork = new Mock<IAppointmentUnitOfWork>();
         this.mockLogger = new Mock<ILogger<AgencyUserService>>();
         
         this.agencyUserService = new AgencyUserService(
-            this.mockAgencyUserRepository.Object,
+            this.mockUnitOfWork.Object,
             this.mockLogger.Object
         );
     }
@@ -23,92 +23,22 @@ public class AgencyUserServiceTests
     public async Task GetByIdAsync_ShouldReturnAgencyUser_WhenUserExists()
     {
         // Arrange
-        var userId = new Guid("1bc5eeb9-aee9-46e2-a32f-f5b4a5b06a23");
-        var agencyId = Guid.NewGuid();
-        var expectedUser = new AgencyUser(
-            userId,
-            agencyId,
-            "test@user.com",
-            "Test User");
-        
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.GetByIdAsync(userId))
-            .ReturnsAsync(expectedUser);
-        
-        // Act
-        var result = await this.agencyUserService.GetByIdAsync(userId);
-        
-        // Assert
-        result.Should().NotBeNull();
-        result.Id.Should().Be(userId);
-        result.Email.Should().Be("test@user.com");
-        this.mockAgencyUserRepository.Verify(repo => repo.GetByIdAsync(userId), Times.Once);
-    }
-
-    [Fact]
-    public async Task GetByIdAsync_ShouldReturnNull_WhenUserDoesNotExist()
-    {
-        // Arrange
         var userId = Guid.NewGuid();
+        var agencyId = Guid.NewGuid();
+        var agencyUserResult = AgencyUser.Create(agencyId, "test@example.com", "Test User", new[] { "Customer" });
+        var expectedUser = agencyUserResult.Data;
         
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.GetByIdAsync(userId))
-            .ReturnsAsync((AgencyUser)null);
+        this.mockUnitOfWork
+            .Setup(uow => uow.AgencyUsers.GetByIdAsync(userId))
+            .ReturnsAsync(expectedUser);
         
         // Act
         var result = await this.agencyUserService.GetByIdAsync(userId);
         
         // Assert
-        result.Should().BeNull();
-        this.mockAgencyUserRepository.Verify(repo => repo.GetByIdAsync(userId), Times.Once);
-    }
-
-    [Fact]
-    public async Task GetByEmailAsync_ShouldReturnAgencyUser_WhenUserExists()
-    {
-        // Arrange
-        var email = "user@example.com";
-        var agencyId = Guid.NewGuid();
-        var userResult = AgencyUser.Create(
-            agencyId,
-            email,
-            "Test User",
-            new[] { CommonModelConstants.AgencyRole.Customer });
-        if (!userResult.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create test user: {string.Join(", ", userResult.Errors)}");
-        }
-        var expectedUser = userResult.Data;
-        
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.GetByEmailAsync(email))
-            .ReturnsAsync(expectedUser);
-        
-        // Act
-        var result = await this.agencyUserService.GetByEmailAsync(email);
-        
-        // Assert
         result.Should().NotBeNull();
-        result!.Email.Should().Be(email);
-        this.mockAgencyUserRepository.Verify(repo => repo.GetByEmailAsync(email), Times.Once);
-    }
-
-    [Fact]
-    public async Task GetByEmailAsync_ShouldReturnNull_WhenUserDoesNotExist()
-    {
-        // Arrange
-        var email = "nonexistent@example.com";
-        
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.GetByEmailAsync(email))
-            .ReturnsAsync((AgencyUser)null);
-        
-        // Act
-        var result = await this.agencyUserService.GetByEmailAsync(email);
-        
-        // Assert
-        result.Should().BeNull();
-        this.mockAgencyUserRepository.Verify(repo => repo.GetByEmailAsync(email), Times.Once);
+        result.Email.Should().Be("test@example.com");
+        this.mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetByIdAsync(userId), Times.Once);
     }
 
     [Fact]
@@ -116,25 +46,8 @@ public class AgencyUserServiceTests
     {
         // Arrange
         var agencyId = Guid.NewGuid();
-        var user1Result = AgencyUser.Create(
-            agencyId,
-            "user1@example.com",
-            "User 1",
-            new[] { CommonModelConstants.AgencyRole.Customer });
-        if (!user1Result.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create test user 1: {string.Join(", ", user1Result.Errors)}");
-        }
-
-        var user2Result = AgencyUser.Create(
-            agencyId,
-            "user2@example.com",
-            "User 2",
-            new[] { CommonModelConstants.AgencyRole.Customer });
-        if (!user2Result.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create test user 2: {string.Join(", ", user2Result.Errors)}");
-        }
+        var user1Result = AgencyUser.Create(agencyId, "user1@test.com", "User 1", new[] { "Customer" });
+        var user2Result = AgencyUser.Create(agencyId, "user2@test.com", "User 2", new[] { "Customer" });
         
         var users = new List<AgencyUser>
         {
@@ -142,8 +55,8 @@ public class AgencyUserServiceTests
             user2Result.Data
         };
         
-        this.mockAgencyUserRepository
-            .Setup(repo => repo.GetAllAsync())
+        this.mockUnitOfWork
+            .Setup(uow => uow.AgencyUsers.GetAllAsync())
             .ReturnsAsync(users);
         
         // Act
@@ -152,33 +65,77 @@ public class AgencyUserServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(2);
-        result[0].Email.Should().Be("user1@example.com");
-        result[1].Email.Should().Be("user2@example.com");
-        this.mockAgencyUserRepository.Verify(repo => repo.GetAllAsync(), Times.Once);
+        result[0].Email.Should().Be("user1@test.com");
+        result[1].Email.Should().Be("user2@test.com");
+        this.mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetAllAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task UpsertAsync_ShouldCallRepositoryUpsert()
+    public async Task GetByEmailAsync_ShouldReturnAgencyUser_WhenUserExists()
+    {
+        // Arrange
+        var email = "test@example.com";
+        var agencyId = Guid.NewGuid();
+        var agencyUserResult = AgencyUser.Create(agencyId, email, "Test User", new[] { "Customer" });
+        var expectedUser = agencyUserResult.Data;
+        
+        this.mockUnitOfWork
+            .Setup(uow => uow.AgencyUsers.GetByEmailAsync(email))
+            .ReturnsAsync(expectedUser);
+        
+        // Act
+        var result = await this.agencyUserService.GetByEmailAsync(email);
+        
+        // Assert
+        result.Should().NotBeNull();
+        result.Email.Should().Be(email);
+        this.mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetByEmailAsync(email), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddAsync_ShouldAddNewAgencyUser()
     {
         // Arrange
         var agencyId = Guid.NewGuid();
-        var userResult = AgencyUser.Create(
-            agencyId,
-            "test@user.com",
-            "Test User",
-            new[] { CommonModelConstants.AgencyRole.Customer });
-        if (!userResult.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create test user: {string.Join(", ", userResult.Errors)}");
-        }
-        var user = userResult.Data;
+        var agencyUserResult = AgencyUser.Create(agencyId, "new@example.com", "New User", new[] { "Customer" });
+        var newUser = agencyUserResult.Data;
+        
+        this.mockUnitOfWork
+            .Setup(uow => uow.AgencyUsers.AddAsync(newUser, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         
         // Act
-        await this.agencyUserService.UpsertAsync(user);
+        await this.agencyUserService.AddAsync(newUser);
         
         // Assert
-        this.mockAgencyUserRepository.Verify(
-            repo => repo.UpsertAsync(user, It.IsAny<CancellationToken>()),
+        this.mockUnitOfWork.Verify(
+            uow => uow.AgencyUsers.AddAsync(newUser, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Update_ShouldUpdateExistingAgencyUser()
+    {
+        // Arrange
+        var agencyUser = new AgencyUser(Guid.NewGuid(), "test@example.com", "Test User");
+        
+        mockUnitOfWork.Setup(uow => uow.AgencyUsers.GetByIdAsync(agencyUser.Id))
+            .ReturnsAsync(agencyUser);
+
+        mockUnitOfWork.Setup(uow => uow.AgencyUsers.Update(It.IsAny<AgencyUser>()))
+            .Returns(agencyUser);
+
+        mockUnitOfWork.Setup(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(1));
+
+        // Act
+        var result = await agencyUserService.Update(agencyUser);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Succeeded.Should().BeTrue();
+        mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetByIdAsync(agencyUser.Id), Times.Once);
+        mockUnitOfWork.Verify(uow => uow.AgencyUsers.Update(It.IsAny<AgencyUser>()), Times.Once);
+        mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

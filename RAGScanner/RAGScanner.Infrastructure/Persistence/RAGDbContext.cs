@@ -1,10 +1,11 @@
 ﻿using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 
-internal class RAGDbContext : DbContext
+public class RAGDbContext : BaseDbContext<RAGDbContext>
 {
-    public RAGDbContext(DbContextOptions<RAGDbContext> options)
-        : base(options)
+    public RAGDbContext(DbContextOptions<RAGDbContext> options,
+       IEventDispatcher eventDispatcher)
+       : base(options, eventDispatcher)
     {
     }
 

@@ -8,7 +8,6 @@
     // Unit of work methods
     Task AddAsync(Agency entity, CancellationToken cancellationToken = default);
     void Update(Agency entity);
-    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     // Assign a user to an agency with validation & notification support
     Task<Result> AssignUserToAgencyAsync(Guid agencyId, string email, string fullName, List<string> roles, CancellationToken cancellationToken = default);
@@ -18,10 +17,6 @@
 
     // Approve an agency, transitioning it to an active state & notifying relevant parties
     Task<Result> ApproveAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default);
-
-    // Retrieve an agency user's email dynamically for notifications
-    Task<string?> GetUserEmailAsync(Guid userId);
-    Task<AgencyUser?> GetAgencyUserByEmailAsync(string email);
 
     // Initialize appointment slots for an agency for a given date range
     Task<Result> InitializeAppointmentSlotsAsync(

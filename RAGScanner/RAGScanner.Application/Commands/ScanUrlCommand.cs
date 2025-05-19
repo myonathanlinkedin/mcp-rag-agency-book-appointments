@@ -8,12 +8,12 @@ public class ScanUrlCommand : BaseCommand<ScanUrlCommand>, IRequest<Result>
     public class ScanUrlCommandHandler : IRequestHandler<UserRequestWrapper<ScanUrlCommand>, Result>
     {
         private readonly IBackgroundJobClient jobClient;
-        private readonly IJobStatusRepository jobStatusStore;
+        private readonly IRAGUnitOfWork unitOfWork;
 
-        public ScanUrlCommandHandler(IBackgroundJobClient jobClient, IJobStatusRepository jobStatusStore)
+        public ScanUrlCommandHandler(IBackgroundJobClient jobClient, IRAGUnitOfWork unitOfWork)
         {
             this.jobClient = jobClient;
-            this.jobStatusStore = jobStatusStore;
+            this.unitOfWork = unitOfWork;
         }
 
         public async Task<Result> Handle(UserRequestWrapper<ScanUrlCommand> request, CancellationToken cancellationToken)
@@ -31,7 +31,8 @@ public class ScanUrlCommand : BaseCommand<ScanUrlCommand>, IRequest<Result>
                 return Result.Failure(new[] { "Authenticated user does not have a valid email." });
             }
 
-            var jobs = await Task.WhenAll(command.Urls.Select(url => jobStatusStore.CreateJobAsync(new List<string> { url })));
+            var jobs = await Task.WhenAll(command.Urls.Select(url => unitOfWork.JobStatuses.CreateJobAsync(new List<string> { url })));
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             foreach (var (url, jobId) in command.Urls.Zip(jobs))
             {

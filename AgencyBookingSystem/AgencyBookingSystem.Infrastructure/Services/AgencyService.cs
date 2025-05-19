@@ -3,84 +3,71 @@ using System.Transactions;
 
 public class AgencyService : IAgencyService
 {
-    private readonly IAgencyRepository agencyRepository;
-    private readonly IAgencyUserRepository agencyUserRepository;
-    private readonly IAppointmentSlotRepository appointmentSlotRepository;
+    private readonly IAppointmentUnitOfWork unitOfWork;
     private readonly ILogger<AgencyService> logger;
     private readonly IEventDispatcher eventDispatcher;
 
     public AgencyService(
-        IAgencyRepository agencyRepository,
-        IAgencyUserRepository agencyUserRepository,
-        IAppointmentSlotRepository appointmentSlotRepository,
+        IAppointmentUnitOfWork unitOfWork,
         IEventDispatcher eventDispatcher,
         ILogger<AgencyService> logger)
     {
-        this.agencyRepository = agencyRepository;
-        this.agencyUserRepository = agencyUserRepository;
-        this.appointmentSlotRepository = appointmentSlotRepository;
+        this.unitOfWork = unitOfWork;
         this.eventDispatcher = eventDispatcher;
         this.logger = logger;
     }
 
-    // Unit of work methods
     public async Task AddAsync(Agency entity, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Adding new agency: {AgencyName}", entity.Name);
-        await agencyRepository.AddAsync(entity, cancellationToken);
+        await unitOfWork.Agencies.AddAsync(entity, cancellationToken);
     }
 
     public void Update(Agency entity)
     {
         logger.LogInformation("Updating agency: {AgencyName}", entity.Name);
-        agencyRepository.Update(entity);
-    }
-
-    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        logger.LogInformation("Saving changes for agencies");
-        await agencyRepository.SaveChangesAsync(cancellationToken);
+        unitOfWork.Agencies.Update(entity);
     }
 
     public async Task<Agency?> GetByIdAsync(Guid id)
     {
         logger.LogInformation("Fetching agency with ID: {Id}", id);
-        return await agencyRepository.GetByIdAsync(id);
+        return await unitOfWork.Agencies.GetByIdAsync(id);
     }
 
     public async Task<List<Agency>> GetAllAsync()
     {
         logger.LogInformation("Fetching all agencies.");
-        return await agencyRepository.GetAllAsync();
+        return await unitOfWork.Agencies.GetAllAsync();
     }
 
     public async Task UpsertAsync(Agency entity, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving agency: {AgencyName}", entity.Name);
-        await agencyRepository.UpsertAsync(entity, cancellationToken);
+        await unitOfWork.Agencies.UpsertAsync(entity, cancellationToken);
     }
 
     public async Task<List<Agency>> GetAgenciesWithUsersAsync()
     {
         logger.LogInformation("Fetching agencies with users.");
-        return await agencyRepository.GetAgenciesWithUsersAsync();
+        return await unitOfWork.Agencies.GetAgenciesWithUsersAsync();
     }
 
     public async Task<Agency?> GetByEmailAsync(string email)
     {
         logger.LogInformation("Fetching agency by email: {Email}", email);
-        return await agencyRepository.GetByEmailAsync(email);
+        return await unitOfWork.Agencies.GetByEmailAsync(email);
     }
 
     public async Task<List<Agency>> GetApprovedAgenciesAsync()
     {
         logger.LogInformation("Fetching all approved agencies.");
-        return await agencyRepository.GetApprovedAgenciesAsync();
+        return await unitOfWork.Agencies.GetApprovedAgenciesAsync();
     }
 
     public async Task<bool> ExistsAsync(Guid agencyId)
     {
-        return await agencyRepository.ExistsAsync(agencyId);
+        return await unitOfWork.Agencies.ExistsAsync(agencyId);
     }
 
     public async Task<Result> RegisterAgencyAsync(
@@ -91,96 +78,90 @@ public class AgencyService : IAgencyService
         CancellationToken cancellationToken = default)
     {
         // Check for existing agency outside transaction
-        if (await agencyRepository.GetByEmailAsync(email) != null)
+        if (await unitOfWork.Agencies.GetByEmailAsync(email) != null)
         {
             logger.LogWarning("Agency registration failed. Email {Email} is already in use.", email);
             return Result.Failure(new[] { "An agency with this email already exists." });
         }
 
-        Result result = null;
-        await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
+            var agencyResult = Agency.Create(name, email, requiresApproval, maxAppointmentsPerDay);
+            if (!agencyResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return agencyResult;
+            }
+
+            var agency = agencyResult.Data;
+            await unitOfWork.Agencies.UpsertAsync(agency, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+
+            // Create the event outside transaction
+            var registeredEvent = new AgencyRegisteredEvent(
+                agency.Id,
+                agency.Name,
+                agency.Email,
+                agency.RequiresApproval
+            );
+
+            logger.LogInformation("Agency '{AgencyName}' registered successfully. Approval required: {RequiresApproval}.", 
+                agency.Name, agency.RequiresApproval);
+            
+            // Dispatch events outside the transaction
             try
             {
-                var agencyResult = Agency.Create(name, email, requiresApproval, maxAppointmentsPerDay);
-                if (!agencyResult.Succeeded)
-                {
-                    result = agencyResult;
-                    return;
-                }
-
-                var agency = agencyResult.Data;
-                await agencyRepository.UpsertAsync(agency, cancellationToken);
-                await agencyRepository.SaveChangesAsync(cancellationToken);
-
-                // Create the event outside transaction
-                var registeredEvent = new AgencyRegisteredEvent(
-                    agency.Id,
-                    agency.Name,
-                    agency.Email,
-                    agency.RequiresApproval
-                );
-
-                logger.LogInformation("Agency '{AgencyName}' registered successfully. Approval required: {RequiresApproval}.", 
-                    agency.Name, agency.RequiresApproval);
-                
-                result = Result.Success;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error registering agency with name {Name} and email {Email}", name, email);
-                result = Result.Failure(new[] { "An error occurred while registering the agency." });
-            }
-        }, System.Transactions.IsolationLevel.RepeatableRead);
-
-        // Dispatch events outside the transaction
-        if (result?.Succeeded == true)
-        {
-            try
-            {
-                var agency = await agencyRepository.GetByEmailAsync(email);
-                if (agency != null)
-                {
-                    await eventDispatcher.Dispatch(new AgencyRegisteredEvent(
-                        agency.Id,
-                        agency.Name,
-                        agency.Email,
-                        agency.RequiresApproval
-                    ), cancellationToken);
-                }
+                await eventDispatcher.Dispatch(registeredEvent, cancellationToken);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error dispatching events for agency registration. Agency: {Email}", email);
                 // Don't fail the operation if event dispatch fails
             }
-        }
 
-        return result;
+            return Result.Success;
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error registering agency with name {Name} and email {Email}", name, email);
+            return Result.Failure(new[] { "An error occurred while registering the agency." });
+        }
     }
 
     public async Task<Result> ApproveAgencyAsync(Guid agencyId, CancellationToken cancellationToken = default)
     {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            var agency = await agencyRepository.GetByIdAsync(agencyId);
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
             if (agency == null)
             {
                 logger.LogWarning("Approval failed. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result.Failure(new[] { "Agency not found." });
             }
 
             var approveResult = agency.Approve();
             if (!approveResult.Succeeded)
             {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return approveResult;
             }
 
-            await agencyRepository.UpsertAsync(agency, cancellationToken);
+            await unitOfWork.Agencies.UpsertAsync(agency, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+            
             logger.LogInformation("Agency {AgencyId} approved successfully.", agencyId);
-
             return Result.Success;
-        }, IsolationLevel.RepeatableRead);
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error approving agency {AgencyId}", agencyId);
+            return Result.Failure(new[] { "An error occurred while approving the agency." });
+        }
     }
 
     public async Task<Result> AssignUserToAgencyAsync(
@@ -197,103 +178,138 @@ public class AgencyService : IAgencyService
             return Result.Failure(new[] { "Invalid input parameters" });
         }
 
-        // Check for existing user outside transaction
-        if (await agencyUserRepository.GetByEmailAsync(email) != null)
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            logger.LogWarning("User assignment failed. User with email {Email} already exists.", email);
-            return Result.Failure(new[] { "A user with this email already exists." });
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
+            if (agency == null)
+            {
+                logger.LogWarning("Assignment failed. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "Agency not found." });
+            }
+
+            var existingUser = await unitOfWork.AgencyUsers.GetByEmailAsync(email);
+            if (existingUser != null)
+            {
+                logger.LogWarning("Assignment failed. User with email {Email} already exists.", email);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "A user with this email already exists." });
+            }
+
+            var userResult = AgencyUser.Create(agencyId, email, fullName, roles);
+            if (!userResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return userResult;
+            }
+
+            var user = userResult.Data;
+            var assignResult = agency.AssignUser(user);
+            if (!assignResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return assignResult;
+            }
+
+            await unitOfWork.AgencyUsers.AddAsync(user, cancellationToken);
+            unitOfWork.Agencies.Update(agency);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+
+            logger.LogInformation("User {Email} assigned to Agency {AgencyId} successfully.", email, agencyId);
+            return Result.Success;
         }
-
-        Result result = null;
-        AgencyUser createdUser = null;
-        await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        catch (Exception ex)
         {
-            try
-            {
-                // Validate agency exists and is approved
-                var agency = await agencyRepository.GetByIdAsync(agencyId);
-                if (agency == null)
-                {
-                    logger.LogWarning("User assignment failed. Agency {AgencyId} not found.", agencyId);
-                    result = Result.Failure(new[] { "Agency not found." });
-                    return;
-                }
-
-                if (!agency.IsApproved)
-                {
-                    logger.LogWarning("User assignment failed. Agency {AgencyId} is not approved.", agencyId);
-                    result = Result.Failure(new[] { "Cannot assign users to an unapproved agency." });
-                    return;
-                }
-
-                // Create new user
-                var userResult = AgencyUser.Create(agencyId, email, fullName, roles);
-                if (!userResult.Succeeded)
-                {
-                    result = userResult;
-                    return;
-                }
-
-                var user = userResult.Data;
-
-                // Set up back-reference
-                var assignResult = agency.AssignUser(user);
-                if (!assignResult.Succeeded)
-                {
-                    result = assignResult;
-                    return;
-                }
-
-                // Save all changes
-                await agencyUserRepository.AddAsync(user, cancellationToken);
-                await agencyUserRepository.SaveChangesAsync(cancellationToken);
-
-                agencyRepository.Update(agency);
-                await agencyRepository.SaveChangesAsync(cancellationToken);
-
-                createdUser = user;
-                logger.LogInformation("User {Email} assigned to agency {AgencyId} successfully.", email, agencyId);
-                result = Result.Success;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error assigning user {Email} to agency {AgencyId}", email, agencyId);
-                result = Result.Failure(new[] { "An error occurred while assigning the user to the agency." });
-            }
-        }, System.Transactions.IsolationLevel.RepeatableRead);
-
-        // Dispatch events outside the transaction
-        if (result?.Succeeded == true && createdUser != null)
-        {
-            try
-            {
-                await eventDispatcher.Dispatch(new AgencyUserAssignedEvent(
-                    createdUser.Id,
-                    agencyId,
-                    createdUser.Email,
-                    createdUser.FullName,
-                    createdUser.Roles.ToList()
-                ), cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error dispatching events for user assignment. User: {Email}, Agency: {AgencyId}", email, agencyId);
-                // Don't fail the operation if event dispatch fails
-            }
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error assigning user {Email} to Agency {AgencyId}", email, agencyId);
+            return Result.Failure(new[] { "An error occurred while assigning the user to the agency." });
         }
-
-        return result;
     }
 
-    public async Task<string?> GetUserEmailAsync(Guid userId)
+    public async Task<Result> UpdateAgencyDetailsAsync(
+        Guid agencyId,
+        string name,
+        string email,
+        int maxAppointmentsPerDay,
+        CancellationToken cancellationToken = default)
     {
-        var user = await agencyUserRepository.GetByIdAsync(userId);
-        return user?.Email;
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
+            if (agency == null)
+            {
+                logger.LogWarning("Update failed. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "Agency not found." });
+            }
+
+            var updateResult = agency.UpdateDetails(name, email, maxAppointmentsPerDay);
+            if (!updateResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return updateResult;
+            }
+
+            await unitOfWork.Agencies.UpsertAsync(agency, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+            
+            logger.LogInformation("Agency {AgencyId} details updated successfully.", agencyId);
+            return Result.Success;
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error updating agency {AgencyId}", agencyId);
+            return Result.Failure(new[] { "An error occurred while updating the agency details." });
+        }
     }
 
-    public async Task<AgencyUser?> GetAgencyUserByEmailAsync(string email)
+    public async Task<Result> RemoveUserAsync(
+        Guid agencyId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
-        return await agencyUserRepository.GetByEmailAsync(email);
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
+            if (agency == null)
+            {
+                logger.LogWarning("Removal failed. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "Agency not found." });
+            }
+
+            var user = await unitOfWork.AgencyUsers.GetByIdAsync(userId);
+            if (user == null)
+            {
+                logger.LogWarning("Removal failed. User {UserId} not found.", userId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(new[] { "User not found." });
+            }
+
+            var removeResult = agency.RemoveUser(userId);
+            if (!removeResult.Succeeded)
+            {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return removeResult;
+            }
+
+            unitOfWork.Agencies.Update(agency);
+            await unitOfWork.AgencyUsers.DeleteAsync(userId, cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+            
+            logger.LogInformation("User {UserId} removed from Agency {AgencyId} successfully.", userId, agencyId);
+            return Result.Success;
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error removing user {UserId} from Agency {AgencyId}", userId, agencyId);
+            return Result.Failure(new[] { "An error occurred while removing the user from the agency." });
+        }
     }
 
     public async Task<Result> InitializeAppointmentSlotsAsync(
@@ -306,7 +322,7 @@ public class AgencyService : IAgencyService
         CancellationToken cancellationToken = default)
     {
         // First validate all parameters outside of transaction
-        var agency = await agencyRepository.GetByIdAsync(agencyId);
+        var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
         if (agency == null)
         {
             logger.LogWarning("Failed to initialize slots. Agency {AgencyId} not found.", agencyId);
@@ -404,7 +420,7 @@ public class AgencyService : IAgencyService
         int capacityPerSlot,
         CancellationToken cancellationToken)
     {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        try
         {
             var slots = new List<AppointmentSlot>();
             var currentDate = startDate;
@@ -447,17 +463,22 @@ public class AgencyService : IAgencyService
             // Batch insert all slots for this date range
             foreach (var slot in slots)
             {
-                await appointmentSlotRepository.AddAsync(slot, cancellationToken);
+                await unitOfWork.AppointmentSlots.AddAsync(slot, cancellationToken);
             }
 
-            await appointmentSlotRepository.SaveChangesAsync(cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             return Result.Success;
-        }, IsolationLevel.RepeatableRead, maxRetries: 5);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing date range for Agency {AgencyId}", agency.Id);
+            return Result.Failure(new[] { "An error occurred while processing the date range." });
+        }
     }
 
     public async Task<List<AppointmentSlot>> GetAvailableSlotsAsync(Guid agencyId, DateTime date)
     {
-        return await appointmentSlotRepository.GetSlotsByAgencyAsync(agencyId, date);
+        return await unitOfWork.AppointmentSlots.GetSlotsByAgencyAsync(agencyId, date);
     }
 
     public async Task<Result> AddHolidayAsync(
@@ -466,12 +487,14 @@ public class AgencyService : IAgencyService
         string reason,
         CancellationToken cancellationToken = default)
     {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            var agency = await agencyRepository.GetByIdAsync(agencyId);
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
             if (agency == null)
             {
                 logger.LogWarning("Failed to add holiday. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result.Failure(new[] { "Agency not found." });
             }
 
@@ -479,18 +502,24 @@ public class AgencyService : IAgencyService
             var addHolidayResult = agency.AddHoliday(date, reason);
             if (!addHolidayResult.Succeeded)
             {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return addHolidayResult;
             }
 
             // Track changes
-            agencyRepository.Update(agency);
-
-            // Save all changes
-            await agencyRepository.SaveChangesAsync(cancellationToken);
+            unitOfWork.Agencies.Update(agency);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
 
             logger.LogInformation("Successfully added holiday for Agency {AgencyId} on {Date}.", agencyId, date);
             return Result.Success;
-        }, IsolationLevel.RepeatableRead);
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error adding holiday for Agency {AgencyId}", agencyId);
+            return Result.Failure(new[] { "An error occurred while adding the holiday." });
+        }
     }
 
     public async Task<Result> RemoveHolidayAsync(
@@ -498,12 +527,14 @@ public class AgencyService : IAgencyService
         Guid holidayId,
         CancellationToken cancellationToken = default)
     {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            var agency = await agencyRepository.GetByIdAsync(agencyId);
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
             if (agency == null)
             {
                 logger.LogWarning("Failed to remove holiday. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result.Failure(new[] { "Agency not found." });
             }
 
@@ -511,14 +542,23 @@ public class AgencyService : IAgencyService
             var removeHolidayResult = agency.RemoveHoliday(holidayId);
             if (!removeHolidayResult.Succeeded)
             {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return removeHolidayResult;
             }
 
-            await agencyRepository.UpsertAsync(agency, cancellationToken);
-            logger.LogInformation("Successfully removed holiday {HolidayId} for Agency {AgencyId}.", holidayId, agencyId);
+            await unitOfWork.Agencies.UpsertAsync(agency, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
 
+            logger.LogInformation("Successfully removed holiday {HolidayId} for Agency {AgencyId}.", holidayId, agencyId);
             return Result.Success;
-        }, IsolationLevel.RepeatableRead);
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error removing holiday for Agency {AgencyId}", agencyId);
+            return Result.Failure(new[] { "An error occurred while removing the holiday." });
+        }
     }
 
     public async Task<Result> AddAppointmentSlotAsync(
@@ -527,18 +567,21 @@ public class AgencyService : IAgencyService
         int capacity,
         CancellationToken cancellationToken = default)
     {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            var agency = await agencyRepository.GetByIdAsync(agencyId);
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
             if (agency == null)
             {
                 logger.LogWarning("Failed to add slot. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result.Failure(new[] { "Agency not found." });
             }
 
             if (!agency.IsApproved)
             {
                 logger.LogWarning("Failed to add slot. Agency {AgencyId} is not approved.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result.Failure(new[] { "Agency is not approved." });
             }
 
@@ -549,17 +592,25 @@ public class AgencyService : IAgencyService
             var addSlotResult = agency.AddAppointmentSlot(startTime, capacity);
             if (!addSlotResult.Succeeded)
             {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return addSlotResult;
             }
 
             // Track all changes within the transaction
-            await appointmentSlotRepository.AddAsync(slot, cancellationToken);
-            agencyRepository.Update(agency);
-            await agencyRepository.SaveChangesAsync(cancellationToken);
+            await unitOfWork.AppointmentSlots.AddAsync(slot, cancellationToken);
+            unitOfWork.Agencies.Update(agency);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
 
             logger.LogInformation("Successfully added appointment slot for Agency {AgencyId} at {StartTime}.", agencyId, startTime);
             return Result.Success;
-        }, IsolationLevel.RepeatableRead);
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error adding appointment slot for Agency {AgencyId}", agencyId);
+            return Result.Failure(new[] { "An error occurred while adding the appointment slot." });
+        }
     }
 
     public async Task<Result> RemoveAppointmentSlotAsync(
@@ -567,81 +618,36 @@ public class AgencyService : IAgencyService
         Guid slotId,
         CancellationToken cancellationToken = default)
     {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
         {
-            var agency = await agencyRepository.GetByIdAsync(agencyId);
+            var agency = await unitOfWork.Agencies.GetByIdAsync(agencyId);
             if (agency == null)
             {
                 logger.LogWarning("Failed to remove slot. Agency {AgencyId} not found.", agencyId);
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result.Failure(new[] { "Agency not found." });
             }
 
             var removeSlotResult = agency.RemoveAppointmentSlot(slotId);
             if (!removeSlotResult.Succeeded)
             {
+                await unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return removeSlotResult;
             }
 
-            await agencyRepository.UpsertAsync(agency, cancellationToken);
+            await unitOfWork.Agencies.UpsertAsync(agency, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+
             logger.LogInformation("Successfully removed appointment slot {SlotId} for Agency {AgencyId}.", slotId, agencyId);
-
             return Result.Success;
-        }, IsolationLevel.RepeatableRead);
-    }
-
-    public async Task<Result> UpdateAgencyDetailsAsync(
-        Guid agencyId,
-        string name,
-        string email,
-        int maxAppointmentsPerDay,
-        CancellationToken cancellationToken = default)
-    {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
+        }
+        catch (Exception ex)
         {
-            var agency = await agencyRepository.GetByIdAsync(agencyId);
-            if (agency == null)
-            {
-                logger.LogWarning("Failed to update details. Agency {AgencyId} not found.", agencyId);
-                return Result.Failure(new[] { "Agency not found." });
-            }
-
-            var updateResult = agency.UpdateDetails(name, email, maxAppointmentsPerDay);
-            if (!updateResult.Succeeded)
-            {
-                return updateResult;
-            }
-
-            await agencyRepository.UpsertAsync(agency, cancellationToken);
-            logger.LogInformation("Successfully updated details for Agency {AgencyId}.", agencyId);
-
-            return Result.Success;
-        }, IsolationLevel.RepeatableRead);
-    }
-
-    public async Task<Result> RemoveUserAsync(
-        Guid agencyId,
-        Guid userId,
-        CancellationToken cancellationToken = default)
-    {
-        return await TransactionHelper.ExecuteInTransactionAsync(async () =>
-        {
-            var agency = await agencyRepository.GetByIdAsync(agencyId);
-            if (agency == null)
-            {
-                logger.LogWarning("Failed to remove user. Agency {AgencyId} not found.", agencyId);
-                return Result.Failure(new[] { "Agency not found." });
-            }
-
-            var removeUserResult = agency.RemoveUser(userId);
-            if (!removeUserResult.Succeeded)
-            {
-                return removeUserResult;
-            }
-
-            await agencyRepository.UpsertAsync(agency, cancellationToken);
-            logger.LogInformation("Successfully removed user {UserId} from Agency {AgencyId}.", userId, agencyId);
-
-            return Result.Success;
-        }, IsolationLevel.RepeatableRead);
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error removing appointment slot for Agency {AgencyId}", agencyId);
+            return Result.Failure(new[] { "An error occurred while removing the appointment slot." });
+        }
     }
 }

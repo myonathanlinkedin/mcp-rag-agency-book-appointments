@@ -36,6 +36,8 @@ public class JobStatus : Entity, IAggregateRoot
         this.Urls.AddRange(urls);
         CreatedAt = createdAt;
         UpdatedAt = null;
+
+        RaiseEvent(new JobStatusEntityEvent(id));
     }
 
     // Factory method for creating a new job status

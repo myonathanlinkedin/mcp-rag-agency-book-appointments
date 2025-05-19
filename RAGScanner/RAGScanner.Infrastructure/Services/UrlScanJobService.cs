@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Marten.Services;
+using Microsoft.Extensions.Logging;
 
 public class UrlScanJobService : IUrlScanJobService
 {
@@ -6,7 +7,7 @@ public class UrlScanJobService : IUrlScanJobService
     private readonly IDocumentParserService parserService;
     private readonly IVectorStoreService vectorStore;
     private readonly IEmbeddingService embeddingService;
-    private readonly IJobStatusRepository jobStatusRepository;
+    private readonly IRAGUnitOfWork unitOfWork;
     private readonly IEventDispatcher eventDispatcher;
     private readonly ILogger<UrlScanJobService> logger;
 
@@ -15,7 +16,7 @@ public class UrlScanJobService : IUrlScanJobService
         IDocumentParserService parserService,
         IVectorStoreService vectorStore,
         IEmbeddingService embeddingService,
-        IJobStatusRepository jobStatusRepository,
+        IRAGUnitOfWork unitOfWork,
         IEventDispatcher eventDispatcher,
         ILogger<UrlScanJobService> logger)
     {
@@ -23,38 +24,46 @@ public class UrlScanJobService : IUrlScanJobService
         this.parserService = parserService;
         this.vectorStore = vectorStore;
         this.embeddingService = embeddingService;
-        this.jobStatusRepository = jobStatusRepository;
+        this.unitOfWork = unitOfWork;
         this.eventDispatcher = eventDispatcher;
         this.logger = logger;
     }
 
     public async Task ProcessAsync(List<string> urls, Guid jobId, string uploaderEmail, CancellationToken cancellationToken)
     {
-        await UpdateJobStatusAsync(jobId, JobStatusType.InProgress, "Processing");
-
-        var scrapedDocs = await TryScrapeAsync(urls);
-        if (!scrapedDocs.Any())
+        try
         {
-            await UpdateJobStatusAsync(jobId, JobStatusType.Failed, "Nothing scraped.");
-            await DispatchScanEvent("N/A", uploaderEmail, "Failed", null, "No content available", cancellationToken);
-            return;
-        }
+            await UpdateJobStatusAsync(jobId, JobStatusType.InProgress, "Processing");
 
-        var tasks = scrapedDocs
-            .SelectMany(doc => ParseDocumentPages(doc)
-                .Where(content => !string.IsNullOrWhiteSpace(content.Content))
-                .Select(content => ProcessPageAsync(doc, content)));
-
-        await Task.WhenAll(tasks);
-        await UpdateJobStatusAsync(jobId, JobStatusType.Completed, "Completed");
-
-        foreach (var doc in scrapedDocs)
-        {
-            var parsedPages = ParseDocumentPages(doc);
-            foreach (var (content, index) in parsedPages.Select((page, idx) => (page.Content, idx)))
+            var scrapedDocs = await TryScrapeAsync(urls);
+            if (!scrapedDocs.Any())
             {
-                await DispatchScanEvent(doc.Url, uploaderEmail, "Success", doc.IsPdf ? index + 1 : null, content, cancellationToken: cancellationToken);
+                await UpdateJobStatusAsync(jobId, JobStatusType.Failed, "Nothing scraped.");
+                await DispatchScanEvent("N/A", uploaderEmail, "Failed", null, "No content available", cancellationToken);
+                return;
             }
+
+            var tasks = scrapedDocs
+                .SelectMany(doc => ParseDocumentPages(doc)
+                    .Where(content => !string.IsNullOrWhiteSpace(content.Content))
+                    .Select(content => ProcessPageAsync(doc, content)));
+
+            await Task.WhenAll(tasks);
+            await UpdateJobStatusAsync(jobId, JobStatusType.Completed, "Completed");
+
+            foreach (var doc in scrapedDocs)
+            {
+                var parsedPages = ParseDocumentPages(doc);
+                foreach (var (content, index) in parsedPages.Select((page, idx) => (page.Content, idx)))
+                {
+                    await DispatchScanEvent(doc.Url, uploaderEmail, "Success", doc.IsPdf ? index + 1 : null, content, cancellationToken: cancellationToken);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing job {JobId}", jobId);
+            throw;
         }
     }
 
@@ -95,11 +104,13 @@ public class UrlScanJobService : IUrlScanJobService
     {
         try
         {
-            await jobStatusRepository.UpdateJobStatusAsync(jobId.ToString(), status, message);
+            await unitOfWork.JobStatuses.UpdateJobStatusAsync(jobId.ToString(), status, message);
+            await unitOfWork.SaveChangesAsync();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to update job status.");
+            throw;
         }
     }
 
