@@ -198,8 +198,32 @@ public class AppointmentServiceTests
         // Arrange
         var agencyId = Guid.NewGuid();
         var userId = Guid.NewGuid();
-        var appointmentDate = DateTime.UtcNow.AddDays(1);
-        var appointment = new Appointment(agencyId, userId, appointmentDate);
+        var email = "test@example.com";
+        var name = "Test Appointment";
+        var appointmentDate = DateTime.UtcNow.AddDays(1).Date.AddHours(9); // Set to 9 AM
+        var agencyUser = new AgencyUser(userId, agencyId, email, "Test User");
+        var agency = new Agency(agencyId, "Test Agency", "agency@test.com", false, 10);
+        var appointment = new Appointment(Guid.NewGuid(), agencyId, userId, name, appointmentDate, AppointmentStatus.Initiated, Guid.NewGuid().ToString("N"), agencyUser);
+        var appointmentSlot = new AppointmentSlot(Guid.NewGuid(), agencyId, appointmentDate, appointmentDate.AddHours(1), 5);
+
+        // Setup mocks for validation
+        mockUnitOfWork.Setup(uow => uow.AgencyUsers.GetByEmailAsync(email))
+            .ReturnsAsync(agencyUser);
+
+        mockUnitOfWork.Setup(uow => uow.Agencies.GetByIdAsync(agencyId))
+            .ReturnsAsync(agency);
+
+        mockUnitOfWork.Setup(uow => uow.AppointmentSlots.GetSlotsByAgencyAsync(agencyId, appointmentDate))
+            .ReturnsAsync(new List<AppointmentSlot> { appointmentSlot });
+
+        mockUnitOfWork.Setup(uow => uow.AppointmentSlots.GetAvailableSlotAsync(agencyId, appointmentDate))
+            .ReturnsAsync(appointmentSlot);
+
+        mockUnitOfWork.Setup(uow => uow.Appointments.GetByDateAndUserAsync(appointmentDate, email))
+            .ReturnsAsync(new List<Appointment>());
+
+        mockUnitOfWork.Setup(uow => uow.Appointments.GetByDateAsync(appointmentDate))
+            .Returns(Task.FromResult(new List<Appointment>()));
 
         mockUnitOfWork.Setup(uow => uow.Appointments.AddAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(appointment));
@@ -207,17 +231,23 @@ public class AppointmentServiceTests
         mockUnitOfWork.Setup(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(1));
 
-        mockProducer.Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()))
+        mockKafkaProducer.Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(new DeliveryResult<Null, string>()));
 
         // Act
-        var result = await appointmentService.CreateAppointmentAsync(appointment);
+        var result = await appointmentService.CreateAppointmentAsync(agencyId, email, name, appointmentDate);
+
+        // Debug output for errors
+        if (!result.Succeeded && result.Errors != null)
+        {
+            System.Console.WriteLine("Test Failure Errors: " + string.Join(", ", result.Errors));
+        }
 
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         mockUnitOfWork.Verify(uow => uow.Appointments.AddAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()), Times.Once);
         mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        mockProducer.Verify(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        mockKafkaProducer.Verify(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

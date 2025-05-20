@@ -219,31 +219,34 @@ public class AgencyServiceTests
     {
         // Arrange
         var agencyId = Guid.NewGuid();
-        var userEmail = "user@example.com";
-        var agency = new Agency(agencyId, "Test Agency", "test@agency.com");
-        var agencyUser = new AgencyUser(Guid.NewGuid(), userEmail, "Test User");
+        var email = "test@example.com";
+        var fullName = "Test User";
+        var roles = new List<string> { "Customer" };
+
+        var agencyResult = Agency.Create("Test Agency", "agency@test.com", false, 10);
+        var agency = agencyResult.Data;
+
+        var agencyUserResult = AgencyUser.Create(agencyId, email, fullName, roles);
+        var agencyUser = agencyUserResult.Data;
 
         mockUnitOfWork.Setup(uow => uow.Agencies.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
 
-        mockUnitOfWork.Setup(uow => uow.AgencyUsers.GetByEmailAsync(userEmail))
-            .ReturnsAsync(agencyUser);
+        mockUnitOfWork.Setup(uow => uow.AgencyUsers.GetByEmailAsync(email))
+            .ReturnsAsync((AgencyUser)null);
 
         mockUnitOfWork.Setup(uow => uow.AgencyUsers.AddAsync(It.IsAny<AgencyUser>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(agencyUser));
 
-        mockUnitOfWork.Setup(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(1));
-
         // Act
-        var result = await agencyService.AssignUserToAgencyAsync(agencyId, userEmail);
+        var result = await agencyService.AssignUserToAgencyAsync(agencyId, email, fullName, roles);
 
         // Assert
+        result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         mockUnitOfWork.Verify(uow => uow.Agencies.GetByIdAsync(agencyId), Times.Once);
-        mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetByEmailAsync(userEmail), Times.Once);
+        mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetByEmailAsync(email), Times.Once);
         mockUnitOfWork.Verify(uow => uow.AgencyUsers.AddAsync(It.IsAny<AgencyUser>(), It.IsAny<CancellationToken>()), Times.Once);
-        mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

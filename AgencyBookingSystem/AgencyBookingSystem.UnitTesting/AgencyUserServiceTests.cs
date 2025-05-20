@@ -114,28 +114,22 @@ public class AgencyUserServiceTests
     }
 
     [Fact]
-    public async Task Update_ShouldUpdateExistingAgencyUser()
+    public void Update_ShouldUpdateExistingAgencyUser()
     {
         // Arrange
-        var agencyUser = new AgencyUser(Guid.NewGuid(), "test@example.com", "Test User");
+        var agencyId = Guid.NewGuid();
+        var agencyUser = new AgencyUser(Guid.NewGuid(), agencyId, "test@example.com", "Test User");
         
         mockUnitOfWork.Setup(uow => uow.AgencyUsers.GetByIdAsync(agencyUser.Id))
             .ReturnsAsync(agencyUser);
 
         mockUnitOfWork.Setup(uow => uow.AgencyUsers.Update(It.IsAny<AgencyUser>()))
-            .Returns(agencyUser);
-
-        mockUnitOfWork.Setup(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(1));
+            .Verifiable();
 
         // Act
-        var result = await agencyUserService.Update(agencyUser);
+        agencyUserService.Update(agencyUser);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Succeeded.Should().BeTrue();
-        mockUnitOfWork.Verify(uow => uow.AgencyUsers.GetByIdAsync(agencyUser.Id), Times.Once);
         mockUnitOfWork.Verify(uow => uow.AgencyUsers.Update(It.IsAny<AgencyUser>()), Times.Once);
-        mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }
