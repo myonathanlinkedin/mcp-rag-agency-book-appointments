@@ -18,7 +18,13 @@ public abstract class UnitOfWork<TDbContext> : IUnitOfWork where TDbContext : Db
     {
         try
         {
-            return await dbContext.SaveChangesAsync(cancellationToken);
+            var baseDbContext = dbContext as BaseDbContext<TDbContext>;
+            if (baseDbContext == null)
+            {
+                throw new InvalidOperationException("The DbContext is not of type BaseDbContext<TDbContext>.");
+            }
+
+            return await baseDbContext.WithDispatchEvent(true).SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
