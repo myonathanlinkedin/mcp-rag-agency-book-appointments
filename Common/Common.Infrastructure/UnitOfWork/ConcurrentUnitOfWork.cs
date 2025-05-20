@@ -1,10 +1,7 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Polly;
 using System.Collections.Concurrent;
 using System.Transactions;
-using Microsoft.EntityFrameworkCore;
 
 /// <summary>
 /// Provides enhanced concurrency control for database operations.
