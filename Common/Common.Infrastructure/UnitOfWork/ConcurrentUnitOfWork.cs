@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Polly;
 using System.Collections.Concurrent;
 using System.Transactions;
+using Microsoft.EntityFrameworkCore;
 
 /// <summary>
 /// Provides enhanced concurrency control for database operations.
@@ -162,7 +165,7 @@ public abstract class ConcurrentUnitOfWork<TDbContext> : UnitOfWork<TDbContext> 
                         }
                     }
 
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await (dbContext as BaseDbContext<TDbContext>).WithDispatchEvent(false).SaveChangesAsync(cancellationToken);
                     return true;
                 }, IsolationLevel.RepeatableRead);
             }
