@@ -1,6 +1,6 @@
 ﻿public interface IDocumentParserService
 {
-    string ParseHtml(string htmlContent);
+    Task<List<string>> ParseHtml(string htmlContent);
     string ParsePdf(byte[] pdfBytes);
-    List<string> ParsePdfPerPage(byte[] pdfBytes);
+    Task<List<string>> ParsePdfPerPage(byte[] pdfBytes);
 }

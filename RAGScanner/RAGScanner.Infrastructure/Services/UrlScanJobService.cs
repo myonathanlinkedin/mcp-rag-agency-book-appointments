@@ -43,26 +43,36 @@ public class UrlScanJobService : IUrlScanJobService
                 return;
             }
 
-            var tasks = scrapedDocs
-                .SelectMany(doc => ParseDocumentPages(doc)
-                    .Where(content => !string.IsNullOrWhiteSpace(content.Content))
-                    .Select(content => ProcessPageAsync(doc, content)));
+            var tasks = new List<Task>();
+            foreach (var doc in scrapedDocs)
+            {
+                var parsedPages = await ParseDocumentPagesAsync(doc);
+                foreach (var content in parsedPages.Where(c => !string.IsNullOrWhiteSpace(c.Content)))
+                {
+                    tasks.Add(ProcessPageAsync(doc, content));
+                }
+            }
 
             await Task.WhenAll(tasks);
             await UpdateJobStatusAsync(jobId, JobStatusType.Completed, "Completed");
 
+            // Dispatch events for successful processing
             foreach (var doc in scrapedDocs)
             {
-                var parsedPages = ParseDocumentPages(doc);
+                var parsedPages = await ParseDocumentPagesAsync(doc);
                 foreach (var (content, index) in parsedPages.Select((page, idx) => (page.Content, idx)))
                 {
-                    await DispatchScanEvent(doc.Url, uploaderEmail, "Success", doc.IsPdf ? index + 1 : null, content, cancellationToken: cancellationToken);
+                    if (!string.IsNullOrWhiteSpace(content))
+                    {
+                        await DispatchScanEvent(doc.Url, uploaderEmail, "Success", doc.IsPdf ? index + 1 : null, content, cancellationToken);
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing job {JobId}", jobId);
+            await UpdateJobStatusAsync(jobId, JobStatusType.Failed, $"Error: {ex.Message}");
             throw;
         }
     }
@@ -80,24 +90,48 @@ public class UrlScanJobService : IUrlScanJobService
         }
     }
 
-    private IEnumerable<DocumentContent> ParseDocumentPages(ScrapedDocument doc) =>
-        doc.IsPdf
-            ? parserService.ParsePdfPerPage(doc.ContentBytes)
-                .Select((content, index) => new DocumentContent(content ?? string.Empty, index))
-            : new[] { new DocumentContent(parserService.ParseHtml(doc.ContentText) ?? string.Empty, 0) };
+    private async Task<IEnumerable<DocumentContent>> ParseDocumentPagesAsync(ScrapedDocument doc)
+    {
+        try
+        {
+            if (doc.IsPdf)
+            {
+                var pages = await parserService.ParsePdfPerPage(doc.ContentBytes);
+                return pages.Select((content, index) => new DocumentContent(content, index));
+            }
+            else
+            {
+                var pages = await parserService.ParseHtml(doc.ContentText);
+                return pages.Select((content, index) => new DocumentContent(content, index));
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to parse document from {Url}", doc.Url);
+            return Enumerable.Empty<DocumentContent>();
+        }
+    }
 
     private async Task ProcessPageAsync(ScrapedDocument doc, DocumentContent pageContent)
     {
-        var embedding = await embeddingService.GenerateEmbeddingAsync(pageContent.Content, default);
-        var metadata = new DocumentMetadata
+        try
         {
-            Url = doc.Url,
-            Title = doc.IsPdf ? $"Page {pageContent.Index + 1}" : ExtractTitle(doc.ContentText),
-            SourceType = doc.IsPdf ? "pdf" : "html",
-            Content = pageContent.Content,
-            ScrapedAt = DateTime.UtcNow
-        };
-        await vectorStore.SaveDocumentAsync(new DocumentVector { Embedding = embedding, Metadata = metadata }, embedding.Length);
+            var embedding = await embeddingService.GenerateEmbeddingAsync(pageContent.Content, default);
+            var metadata = new DocumentMetadata
+            {
+                Url = doc.Url,
+                Title = doc.IsPdf ? $"Page {pageContent.Index + 1}" : ExtractTitle(doc.ContentText),
+                SourceType = doc.IsPdf ? "pdf" : "html",
+                Content = pageContent.Content,
+                ScrapedAt = DateTime.UtcNow
+            };
+            await vectorStore.SaveDocumentAsync(new DocumentVector { Embedding = embedding, Metadata = metadata }, embedding.Length);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to process page {Index} from {Url}", pageContent.Index, doc.Url);
+            throw;
+        }
     }
 
     private async Task UpdateJobStatusAsync(Guid jobId, JobStatusType status, string message)
@@ -116,16 +150,32 @@ public class UrlScanJobService : IUrlScanJobService
 
     private async Task DispatchScanEvent(string documentUrl, string uploaderEmail, string status, int? pageNumber, string contentSnippet, CancellationToken cancellationToken)
     {
-        await eventDispatcher.Dispatch(new DocumentScanEvent(documentUrl, DateTime.UtcNow, uploaderEmail, status, pageNumber, contentSnippet), cancellationToken);
+        try
+        {
+            await eventDispatcher.Dispatch(new DocumentScanEvent(documentUrl, DateTime.UtcNow, uploaderEmail, status, pageNumber, contentSnippet), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to dispatch scan event for {Url}", documentUrl);
+            throw;
+        }
     }
 
     private string ExtractTitle(string html)
     {
-        const string startTag = "<title>", endTag = "</title>";
-        var start = html.IndexOf(startTag, StringComparison.OrdinalIgnoreCase);
-        var end = html.IndexOf(endTag, StringComparison.OrdinalIgnoreCase);
-        return (start == -1 || end == -1 || end <= start)
-            ? "Untitled"
-            : html[(start + startTag.Length)..end].Trim();
+        try
+        {
+            const string startTag = "<title>", endTag = "</title>";
+            var start = html.IndexOf(startTag, StringComparison.OrdinalIgnoreCase);
+            var end = html.IndexOf(endTag, StringComparison.OrdinalIgnoreCase);
+            return (start == -1 || end == -1 || end <= start)
+                ? "Untitled"
+                : html[(start + startTag.Length)..end].Trim();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to extract title from HTML");
+            return "Untitled";
+        }
     }
 }
