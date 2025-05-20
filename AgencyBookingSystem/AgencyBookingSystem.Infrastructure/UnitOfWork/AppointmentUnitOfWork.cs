@@ -1,6 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Transactions;
 
-public class AppointmentUnitOfWork : UnitOfWork<AgencyBookingDbContext>, IAppointmentUnitOfWork
+public class AppointmentUnitOfWork : ConcurrentUnitOfWork<AgencyBookingDbContext>, IAppointmentUnitOfWork
 {
     private readonly IAppointmentRepository appointments;
     private readonly IAppointmentSlotRepository appointmentSlots;

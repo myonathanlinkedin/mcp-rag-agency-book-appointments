@@ -216,6 +216,15 @@ public class AgencyService : IAgencyService
             unitOfWork.Agencies.Update(agency);
             await unitOfWork.CommitTransactionAsync(cancellationToken);
 
+            // Dispatch event instead of direct notification
+            await eventDispatcher.Dispatch(new AgencyUserAssignedEvent(
+                user.Id,
+                agencyId,
+                email,
+                fullName,
+                roles
+            ), cancellationToken);
+
             logger.LogInformation("User {Email} assigned to Agency {AgencyId} successfully.", email, agencyId);
             return Result.Success;
         }

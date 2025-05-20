@@ -206,26 +206,15 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            using var transaction = await Data.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var entity = await GetByIdAsync(id);
+            if (entity != null)
             {
-                var entity = await GetByIdAsync(id);
-                if (entity != null)
-                {
-                    Data.Remove(entity);
-                    await Data.SaveChangesAsync(cancellationToken);
-                    await transaction.CommitAsync(cancellationToken);
-                }
-                else
-                {
-                    Logger?.LogInformation("Entity of type {EntityType} with ID {Id} not found for deletion, skipping",
-                        typeof(TEntity).Name, id);
-                }
+                Data.Remove(entity);
             }
-            catch
+            else
             {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
+                Logger?.LogInformation("Entity of type {EntityType} with ID {Id} not found for deletion, skipping",
+                    typeof(TEntity).Name, id);
             }
         }
         catch (DbUpdateConcurrencyException ex)
@@ -246,18 +235,7 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            using var transaction = await Data.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
-                await Data.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
+            await Data.Set<TEntity>().AddAsync(entity, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -285,17 +263,7 @@ public abstract class DataRepository<TDbContext, TEntity> : IDomainRepository<TE
     {
         try
         {
-            using var transaction = await Data.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                await Data.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
+            await Data.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException ex)
         {

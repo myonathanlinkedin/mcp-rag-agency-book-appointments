@@ -1,57 +1,81 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System.Linq;
 
-public abstract class UnitOfWork<TContext> : IUnitOfWork where TContext : DbContext
+public abstract class UnitOfWork<TDbContext> : IUnitOfWork where TDbContext : DbContext
 {
-    protected readonly TContext dbContext;
+    protected readonly TDbContext dbContext;
     protected readonly ILogger logger;
-    private bool disposed;
 
-    protected UnitOfWork(TContext dbContext, ILogger logger)
+    protected UnitOfWork(TDbContext dbContext, ILogger logger)
     {
         this.dbContext = dbContext;
         this.logger = logger;
     }
 
+    public virtual async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error saving changes");
+            throw;
+        }
+    }
+
     public virtual async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
-        var strategy = dbContext.Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
+        try
         {
             await dbContext.Database.BeginTransactionAsync(cancellationToken);
-            logger.LogInformation("Transaction started");
-        });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error beginning transaction");
+            throw;
+        }
     }
 
     public virtual async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
     {
-        await dbContext.Database.CommitTransactionAsync(cancellationToken);
-        logger.LogInformation("Transaction committed");
+        try
+        {
+            var transaction = dbContext.Database.CurrentTransaction;
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error committing transaction");
+            throw;
+        }
     }
 
     public virtual async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
     {
-        await dbContext.Database.RollbackTransactionAsync(cancellationToken);
-        logger.LogWarning("Transaction rolled back");
-    }
-
-    public virtual async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        return await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            var transaction = dbContext.Database.CurrentTransaction;
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error rolling back transaction");
+            throw;
+        }
     }
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposed && disposing)
-        {
-            dbContext.Dispose();
-        }
-        disposed = true;
+        dbContext?.Dispose();
     }
 } 

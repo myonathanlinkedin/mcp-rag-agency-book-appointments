@@ -98,10 +98,10 @@ public class AppointmentServiceTests
         this.mockUnitOfWork
             .Setup(uow => uow.Appointments.GetByIdAsync(appointmentId))
             .Returns(Task.FromResult(expectedAppointment));
-        
+
         // Act
         var result = await this.appointmentService.GetByIdAsync(appointmentId);
-        
+
         // Assert
         result.Should().NotBeNull();
         result.Name.Should().Be("Test Appointment");
@@ -128,20 +128,20 @@ public class AppointmentServiceTests
             "Appointment 2",
             DateTime.UtcNow.AddDays(2),
             agencyUser);
-        
+
         var appointments = new List<Appointment>
         {
             appointment1Result.Data,
             appointment2Result.Data
         };
-        
+
         this.mockUnitOfWork
             .Setup(uow => uow.Appointments.GetAllAsync())
             .Returns(Task.FromResult(appointments));
-        
+
         // Act
         var result = await this.appointmentService.GetAllAsync();
-        
+
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(2);
@@ -170,20 +170,20 @@ public class AppointmentServiceTests
             "Appointment 2",
             DateTime.UtcNow.AddDays(2),
             agencyUser);
-        
+
         var appointments = new List<Appointment>
         {
             appointment1Result.Data,
             appointment2Result.Data
         };
-        
+
         this.mockUnitOfWork
             .Setup(uow => uow.Appointments.GetAppointmentsByAgencyAsync(agencyId))
             .Returns(Task.FromResult(appointments));
-        
+
         // Act
         var result = await this.appointmentService.GetAppointmentsByAgencyAsync(agencyId);
-        
+
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(2);

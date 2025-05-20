@@ -148,11 +148,11 @@ public class AgencyServiceTests
         
         this.mockUnitOfWork.Verify(
             uow => uow.Agencies.UpsertAsync(It.Is<Agency>(a => 
-                a.Name == name && 
-                a.Email == email && 
-                a.RequiresApproval == requiresApproval && 
-                a.MaxAppointmentsPerDay == maxAppointmentsPerDay),
-            It.IsAny<CancellationToken>()),
+                    a.Name == name && 
+                    a.Email == email && 
+                    a.RequiresApproval == requiresApproval &&
+                    a.MaxAppointmentsPerDay == maxAppointmentsPerDay),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -222,25 +222,25 @@ public class AgencyServiceTests
         var email = "test@example.com";
         var fullName = "Test User";
         var roles = new List<string> { "Customer" };
-
+        
         var agencyResult = Agency.Create("Test Agency", "agency@test.com", false, 10);
         var agency = agencyResult.Data;
-
+        
         var agencyUserResult = AgencyUser.Create(agencyId, email, fullName, roles);
         var agencyUser = agencyUserResult.Data;
 
         mockUnitOfWork.Setup(uow => uow.Agencies.GetByIdAsync(agencyId))
             .ReturnsAsync(agency);
-
+        
         mockUnitOfWork.Setup(uow => uow.AgencyUsers.GetByEmailAsync(email))
             .ReturnsAsync((AgencyUser)null);
 
         mockUnitOfWork.Setup(uow => uow.AgencyUsers.AddAsync(It.IsAny<AgencyUser>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(agencyUser));
-
+        
         // Act
         var result = await agencyService.AssignUserToAgencyAsync(agencyId, email, fullName, roles);
-
+        
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
