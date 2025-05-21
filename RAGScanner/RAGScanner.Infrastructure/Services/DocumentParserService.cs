@@ -4,15 +4,17 @@ using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 public class DocumentParserService : IDocumentParserService
 {
-    private readonly IMCPServerRequester mCPServerRequester;
+    private readonly IMCPServerRequester? mCPServerRequester;
     private readonly ITextCleaningService textCleaningService;
     private readonly ILogger<DocumentParserService> logger;
+    private readonly bool useLLMDocumentParsing;
+    private readonly int maxChunkSize;
 
     private const int MaxRetries = 3;
-    private const int RetryDelayMs = 1000;
     private const string ProcessPromptTemplate = "Fix and improve the following text while maintaining its meaning. " +
                                                     "Correct any OCR errors, " +
                                                     "fix grammar, improve readability, " +
@@ -31,12 +33,15 @@ public class DocumentParserService : IDocumentParserService
 
     public DocumentParserService(
         ITextCleaningService textCleaningService, 
-        IMCPServerRequester mCPServerRequester,
-        ILogger<DocumentParserService> logger)
+        IMCPServerRequester? mCPServerRequester,
+        ILogger<DocumentParserService> logger,
+        IOptions<ApplicationSettings> appSettings)
     {
         this.textCleaningService = textCleaningService ?? throw new ArgumentNullException(nameof(textCleaningService));
-        this.mCPServerRequester = mCPServerRequester ?? throw new ArgumentNullException(nameof(mCPServerRequester));
+        this.mCPServerRequester = mCPServerRequester;
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.useLLMDocumentParsing = appSettings.Value.LLMDocumentParsing.EnabledLLMDocParsing;
+        this.maxChunkSize = appSettings.Value.LLMDocumentParsing.MaxChunkSize;
     }
 
     public async Task<List<string>> ParseHtml(string htmlContent)
@@ -309,7 +314,6 @@ public class DocumentParserService : IDocumentParserService
         if (string.IsNullOrWhiteSpace(text))
             return new List<string>();
 
-        const int maxChunkSize = 500; // Maximum characters per chunk
         var chunks = new List<string>();
         
         // Split text into smaller chunks first
@@ -350,8 +354,6 @@ public class DocumentParserService : IDocumentParserService
 
     private async Task ProcessChunkAsync(string chunk, List<string> processedChunks)
     {
-        const int maxChunkSize = 500; // Maximum characters per chunk
-
         if (chunk.Length > maxChunkSize)
         {
             // Split oversized chunks
@@ -398,8 +400,6 @@ public class DocumentParserService : IDocumentParserService
         {
             try
             {
-                const int maxChunkSize = 500; // Maximum characters per chunk
-                
                 // Ensure the chunk doesn't exceed the maximum size
                 if (subChunk.Length > maxChunkSize)
                 {
@@ -408,20 +408,9 @@ public class DocumentParserService : IDocumentParserService
                     subChunk = subChunk.Substring(0, maxChunkSize);
                 }
 
-                var prompt = string.Format(ProcessPromptTemplate, subChunk);
-                var result = await mCPServerRequester.RequestAsync(prompt: prompt);
-                
-                if (result.Succeeded && !string.IsNullOrWhiteSpace(result.Data))
-                {
-                    var cleanResult = CleanLLMResponse(result.Data);
-                    processedChunks.Add(cleanResult);
-                    return;
-                }
-                
-                if (attempt < MaxRetries)
-                {
-                    await Task.Delay(RetryDelayMs * attempt);
-                }
+                var processedText = await ProcessTextWithMcp(subChunk);
+                processedChunks.Add(processedText);
+                return;
             }
             catch (Exception ex)
             {
@@ -429,6 +418,34 @@ public class DocumentParserService : IDocumentParserService
                 if (attempt == MaxRetries)
                     throw;
             }
+        }
+    }
+
+    private async Task<string> ProcessTextWithMcp(string text)
+    {
+        if (!useLLMDocumentParsing || mCPServerRequester == null)
+        {
+            logger.LogWarning("LLM document parsing is not configured or not available. Using direct text processing.");
+            return text;
+        }
+
+        try
+        {
+            var prompt = string.Format(ProcessPromptTemplate, text);
+            var result = await mCPServerRequester.RequestAsync(prompt: prompt);
+            
+            if (result.Succeeded && !string.IsNullOrWhiteSpace(result.Data))
+            {
+                return CleanLLMResponse(result.Data);
+            }
+            
+            logger.LogWarning("LLM document parsing request failed. Using original text.");
+            return text;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing text with LLM document parsing");
+            return text;
         }
     }
 
