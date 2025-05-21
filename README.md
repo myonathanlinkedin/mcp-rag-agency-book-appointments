@@ -10,6 +10,7 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ Built-in IdentityServer with Asymmetric JWT Signing 🔐  
 ✅ AI Chat Bots via PromptAPI 🤖  
 ✅ Retrieval-augmented generation (RAG) – combines real-time knowledge retrieval with language generation for smarter, context-aware responses 🧠🔍  
+✅ Intelligent document parsing using LLM – extracts clean, structured, semantically meaningful text from messy HTML and scanned PDFs 📄🧹🤖  
 ✅ Users can update the AI brain using RAG by scanning URLs & PDF documents on the fly – parsed content is embedded and stored in Qdrant for semantic search 📄🌐⚡  
 ✅ RAG with Hangfire for document scan, parse & upload to Qdrant ⚙️  
 ✅ MCP client/server ready ⚡  
@@ -26,8 +27,8 @@ Built with **Domain-Driven Development (DDD)** principles, the system leverages 
 ✅ Microservices-ready, modular & scalable 🏢🔄  
 ✅ Cloud-ready (Azure/AWS) ☁️  
 ✅ Refit-powered REST API clients 🔌  
-✅ producer-consumer pattern with buffer cache for real-time insert, save & update 📤📥  
-✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️ – supports theme changes
+✅ Producer-consumer pattern with buffer cache for real-time insert, save & update 📤📥  
+✅ Next.js + React.js chatbot UI – real-time chat interface integrated with backend LLM API 💬⚛️ – supports theme changes  
 ✅ Redis implementation for faster public key retrieval and chat store caching 🧰🔑
 
 ## **📜 Architecture Diagram**  
